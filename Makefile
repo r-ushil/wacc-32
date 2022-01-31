@@ -11,6 +11,9 @@ OUTPUT_DIR	 := target
 all:
 	cargo build --release
 
+test:
+	cargo test
+
 # clean up all of the compiled files
 clean:
 	cargo clean
