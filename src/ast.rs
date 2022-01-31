@@ -2,13 +2,13 @@
 
 
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Program {
   funcs: Vec<Func>,
   statement: Stat,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Func {
   return_type: Type,
   ident: Ident,
@@ -16,10 +16,10 @@ pub struct Func {
   body: Stat,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Param(Type, Ident);
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Stat {
   Skip,
   Declaration(Type, Ident, AssignRhs),
@@ -36,14 +36,14 @@ pub enum Stat {
   Sequence(Box<Stat>, Box<Stat>),
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum AssignLhs {
   Ident(Ident),
   ArrayElem(ArrayElem),
   PairElem(PairElem),
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum AssignRhs {
   Expr(Expr),
   ArrayLiter(Vec<Expr>),
@@ -52,27 +52,27 @@ pub enum AssignRhs {
   Call(Ident, Vec<Expr>),
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum PairElem {
   Fst(Expr),
   Snd(Expr),
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Type {
   BaseType(BaseType),
   Array(Box<Type>),
-  Pair(PairElemType)
+  Pair(PairElemType, PairElemType)
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum PairElemType {
   BaseType(BaseType),
   Array(Box<Type>),
   Pair,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum BaseType {
   Int,
   Bool,
@@ -80,7 +80,7 @@ pub enum BaseType {
   String,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Expr {
   IntLiter(i32),
   BoolLiter(bool),
@@ -94,7 +94,7 @@ pub enum Expr {
 }
 
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum UnaryOper {
   Bang,
   Neg,
@@ -103,7 +103,7 @@ pub enum UnaryOper {
   Chr,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum BinaryOper {
   Mul,
   Div,
@@ -120,12 +120,11 @@ pub enum BinaryOper {
   Or,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Ident(pub String);
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct ArrayElem(Ident, Vec<Expr>);
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct ArrayLiter(Vec<Expr>);
-
