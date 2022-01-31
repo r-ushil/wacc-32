@@ -17,7 +17,7 @@ pub struct Func {
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct Param(Type, Ident);
+pub struct Param(pub Type, pub Ident);
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum Stat {

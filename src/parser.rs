@@ -5,7 +5,7 @@ use nom::{
   branch::alt,
   combinator::{
     value,
-    map,
+    map, recognize,
   },
   sequence::{
     pair,
@@ -14,7 +14,7 @@ use nom::{
     preceded, delimited
   },
   multi::many0,
-  character::{is_space, complete::multispace0}, error::{ParseError, Error, ErrorKind}, Parser,
+  character::{is_space, complete::{multispace0, alpha1, alphanumeric1}}, error::{ParseError, Error, ErrorKind}, Parser,
 };
 
 use crate::ast::*;
@@ -33,10 +33,19 @@ where F: Parser<&'a str, O, E>,
   )
 }
 
+pub fn tok<'a>(t: &'a str) -> impl FnMut(&'a str) -> IResult<&'a str, &'a str> {
+  delimited(
+    multispace0,
+    tag(t),
+    multispace0
+  )
+}
+
 /* ======= PARSERS ======= */
 /* The parser which parses a string into a AST node of type
 ExampleNode, will have the name example_node. */
 /* If names conflict with Rust keywords, an underscore is appended. */
+/* All parsers will consume all leading whitespace before and after parsing. */
 
 /* program ::= 'begin' <func>* <stat> 'end' */
 pub fn program(input: &str) -> IResult<&str, Program> {
@@ -51,7 +60,9 @@ fn func(input: &str) -> IResult<&str, Func> {
 
 /* param ::= <type> <ident> */
 fn param(input: &str) -> IResult<&str, Param> {
-  todo!();
+  let (input, (t, id)) = pair(type_, ident)(input)?;
+
+  Ok((input, Param(t, id)))
 }
 
 /* stat ::= 'skip'
@@ -98,14 +109,16 @@ fn type_(input: &str) -> IResult<&str, Type> {
     map(base_type, |bt| Type::BaseType(bt)),
     map(
       tuple((
-        ws(tag("pair(")), pair_elem_type, ws(tag(",")), pair_elem_type, ws(tag(")")),
+        tok("pair("), pair_elem_type, tok(","), pair_elem_type, tok(")"),
       )),
       |(_, l, _, r, _)| Type::Pair(l, r),
     ),
   ))(input)?;
 
   /* Counts how many '[]' trail. */
-  let (input, arrs) = many0(tag("[]"))(input)?;
+  let (input, arrs) = many0(
+    pair(tok("["), tok("]"))
+  )(input)?;
 
   /* Nests t in Type::Array's that amount of times. */
   for _ in arrs {
@@ -118,10 +131,10 @@ fn type_(input: &str) -> IResult<&str, Type> {
 /* 'int' | 'bool' | 'char' | 'string' */
 fn base_type(input: &str) -> IResult<&str, BaseType> {
   alt((
-    value(BaseType::Int, tag("int")),
-    value(BaseType::Bool, tag("bool")),
-    value(BaseType::Char, tag("char")),
-    value(BaseType::String, tag("string")),
+    value(BaseType::Int, tok("int")),
+    value(BaseType::Bool, tok("bool")),
+    value(BaseType::Char, tok("char")),
+    value(BaseType::String, tok("string")),
   ))(input)
 }
 
@@ -132,7 +145,7 @@ fn pair_elem_type(input: &str) -> IResult<&str, PairElemType> {
   match type_(input) {
     Ok((input, Type::BaseType(it))) => Ok((input, PairElemType::BaseType(it))),
     Ok((input, Type::Array(it))) => Ok((input, PairElemType::Array(it))),
-    _ => value(PairElemType::Pair, tag("pair"))(input)
+    _ => value(PairElemType::Pair, tok("pair"))(input)
   }
 }
 
@@ -158,9 +171,14 @@ fn binary_oper(input: &str) -> IResult<&str, BinaryOper> {
   todo!();
 }
 
-/*〈ident〉::= ( ‘ ’ | ‘a’-‘z’ | ‘A’-‘Z’ ) ( ‘ ’ | ‘a’-‘z’ | ‘A’-‘Z’ | ‘0’-‘9’)* */
+/*〈ident〉::= (‘_’ | ‘a’-‘z’ | ‘A’-‘Z’) (‘_’ | ‘a’-‘z’ | ‘A’-‘Z’ | ‘0’-‘9’)* */
 fn ident(input: &str) -> IResult<&str, Ident> {
-  todo!();
+  map(recognize(
+    pair(
+      alt((alpha1, tag("_"))),
+      many0(alt((alphanumeric1, tag("_"))))
+    )
+  ), |s: &str| Ident(s.to_string()))(input)
 }
 
 /*〈array-elem〉::=〈ident〉(‘[’〈expr〉‘]’)+ */
@@ -188,7 +206,17 @@ mod tests {
   fn test_func() {}
 
   #[test]
-  fn test_param() {}
+  fn test_param() {
+    assert_eq!(param("int x"),
+      Ok(("", Param(Type::BaseType(BaseType::Int), Ident("x".to_string()))))
+    );
+    assert_eq!(param("int [ ][ ] x"),
+      Ok(("", Param(
+        Type::Array(Box::new(Type::Array(Box::new(Type::BaseType(BaseType::Int))))),
+        Ident("x".to_string()))
+      ))
+    );
+  }
 
   #[test]
   fn test_stat() {}
@@ -257,7 +285,18 @@ mod tests {
   fn test_binary_oper() {}
 
   #[test]
-  fn test_ident() {}
+  fn test_ident() {
+    assert_eq!(ident("_hello123"), 
+      Ok(("", Ident("_hello123".to_string())))
+    );
+    assert_eq!(ident("_hello123 test"), 
+      Ok((" test", Ident("_hello123".to_string())))
+    );
+    assert!(ident("9test").is_err());
+    assert_eq!(ident("te@st"), 
+      Ok(("@st", Ident("te".to_string())))
+    );
+  }
 
   #[test]
   fn test_array_elem() {}
