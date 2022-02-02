@@ -1,20 +1,16 @@
 extern crate nom;
 use nom::{
-  IResult,
-  bytes::complete::{tag, take_while},
   branch::alt,
-  combinator::{
-    value,
-    map, recognize,
+  bytes::complete::{tag, take_while},
+  character::{
+    complete::{alpha1, alphanumeric1, multispace0},
+    is_space,
   },
-  sequence::{
-    pair,
-    tuple,
-    terminated,
-    preceded, delimited
-  },
+  combinator::{map, recognize, value},
+  error::{Error, ErrorKind, ParseError},
   multi::many0,
-  character::{is_space, complete::{multispace0, alpha1, alphanumeric1}}, error::{ParseError, Error, ErrorKind}, Parser,
+  sequence::{delimited, pair, preceded, terminated, tuple},
+  IResult, Parser,
 };
 
 use crate::ast::*;
@@ -22,23 +18,18 @@ use crate::ast::*;
 /* ======= HELPER FUNCTIONS ======= */
 
 /* Consumes leading and trailing whitespace, then applies a parser
-   to the inner content. */
-pub fn ws<'a, F: 'a, O, E: ParseError<&'a str>>(inner: F) -> impl FnMut(&'a str) -> IResult<&'a str, O, E>
-where F: Parser<&'a str, O, E>,
+to the inner content. */
+pub fn ws<'a, F: 'a, O, E: ParseError<&'a str>>(
+  inner: F,
+) -> impl FnMut(&'a str) -> IResult<&'a str, O, E>
+where
+  F: Parser<&'a str, O, E>,
 {
-  delimited(
-    multispace0,
-    inner,
-    multispace0
-  )
+  delimited(multispace0, inner, multispace0)
 }
 
 pub fn tok<'a>(t: &'a str) -> impl FnMut(&'a str) -> IResult<&'a str, &'a str> {
-  delimited(
-    multispace0,
-    tag(t),
-    multispace0
-  )
+  delimited(multispace0, tag(t), multispace0)
 }
 
 /* ======= PARSERS ======= */
@@ -66,18 +57,18 @@ fn param(input: &str) -> IResult<&str, Param> {
 }
 
 /* stat ::= 'skip'
-          | <type> <ident> '=' <assign-rhs>
-          | <assign-lhs> '=' <assign-rhs>
-          | 'read' <assign-lhs>
-          | 'free' <expr>
-          | 'return' <expr>
-          | 'exit' <expr>
-          | 'print' <expr>
-          | 'println' <expr>
-          | 'if' <expr> 'then' <stat> 'else' <stat> 'fi'
-          | 'while' <expr> 'do' <stat> 'done'
-          | 'begin' <stat> 'end'
-          | <stat> ';' <stat> */
+| <type> <ident> '=' <assign-rhs>
+| <assign-lhs> '=' <assign-rhs>
+| 'read' <assign-lhs>
+| 'free' <expr>
+| 'return' <expr>
+| 'exit' <expr>
+| 'print' <expr>
+| 'println' <expr>
+| 'if' <expr> 'then' <stat> 'else' <stat> 'fi'
+| 'while' <expr> 'do' <stat> 'done'
+| 'begin' <stat> 'end'
+| <stat> ';' <stat> */
 fn stat(input: &str) -> IResult<&str, Stat> {
   todo!();
 }
@@ -88,10 +79,10 @@ fn assign_lhs(input: &str) -> IResult<&str, AssignLhs> {
 }
 
 /* assign-rhs ::= <expr>
-                | <array-liter>
-                | 'newpair' '(' <expr> ',' <expr> ')'
-                | <pair-elem>
-                | 'call' <ident> '(' <arg-list>? ')' */
+| <array-liter>
+| 'newpair' '(' <expr> ',' <expr> ')'
+| <pair-elem>
+| 'call' <ident> '(' <arg-list>? ')' */
 /* arg-list ::= <expr> ( ',' <expr> )* */
 fn assign_rhs(input: &str) -> IResult<&str, AssignRhs> {
   todo!();
@@ -109,16 +100,18 @@ fn type_(input: &str) -> IResult<&str, Type> {
     map(base_type, |bt| Type::BaseType(bt)),
     map(
       tuple((
-        tok("pair("), pair_elem_type, tok(","), pair_elem_type, tok(")"),
+        tok("pair("),
+        pair_elem_type,
+        tok(","),
+        pair_elem_type,
+        tok(")"),
       )),
       |(_, l, _, r, _)| Type::Pair(l, r),
     ),
   ))(input)?;
 
   /* Counts how many '[]' trail. */
-  let (input, arrs) = many0(
-    pair(tok("["), tok("]"))
-  )(input)?;
+  let (input, arrs) = many0(pair(tok("["), tok("]")))(input)?;
 
   /* Nests t in Type::Array's that amount of times. */
   for _ in arrs {
@@ -145,20 +138,20 @@ fn pair_elem_type(input: &str) -> IResult<&str, PairElemType> {
   match type_(input) {
     Ok((input, Type::BaseType(it))) => Ok((input, PairElemType::BaseType(it))),
     Ok((input, Type::Array(it))) => Ok((input, PairElemType::Array(it))),
-    _ => value(PairElemType::Pair, tok("pair"))(input)
+    _ => value(PairElemType::Pair, tok("pair"))(input),
   }
 }
 
 /*〈expr〉 ::= 〈int-liter〉  //〈int-liter〉::= (‘+’ | ‘-’) ? (‘0’-‘9’)
-            | 〈bool-liter〉 //〈bool-liter〉::= ‘true’ | ‘false’
-            | 〈char-liter〉 //〈char-liter〉::= ‘'’〈character〉‘'’
-            | 〈str-liter〉  //〈str-liter〉::= ‘"’〈character〉* ‘"’
-            | 〈pair-liter〉 //〈pair-liter〉::= ‘null’
-            | 〈ident〉
-            | 〈array-elem〉
-            | 〈unary-oper〉〈expr〉          //〈unary-oper〉::= ‘!’ | ‘-’ | ‘len’ | ‘ord’ | ‘chr’
-            | 〈expr〉〈binary-oper〉〈expr〉  //〈binary-oper〉::= ‘*’ | ‘/’ | ‘%’ | ‘+’ | ‘-’ | ‘>’ | ‘>=’ | ‘<’ | ‘<=’ | ‘==’ | ‘!=’ | ‘&&’ | ‘||’
-            | ‘(’〈expr〉‘)’ */
+| 〈bool-liter〉 //〈bool-liter〉::= ‘true’ | ‘false’
+| 〈char-liter〉 //〈char-liter〉::= ‘'’〈character〉‘'’
+| 〈str-liter〉  //〈str-liter〉::= ‘"’〈character〉* ‘"’
+| 〈pair-liter〉 //〈pair-liter〉::= ‘null’
+| 〈ident〉
+| 〈array-elem〉
+| 〈unary-oper〉〈expr〉          //〈unary-oper〉::= ‘!’ | ‘-’ | ‘len’ | ‘ord’ | ‘chr’
+| 〈expr〉〈binary-oper〉〈expr〉  //〈binary-oper〉::= ‘*’ | ‘/’ | ‘%’ | ‘+’ | ‘-’ | ‘>’ | ‘>=’ | ‘<’ | ‘<=’ | ‘==’ | ‘!=’ | ‘&&’ | ‘||’
+| ‘(’〈expr〉‘)’ */
 fn expr(input: &str) -> IResult<&str, Expr> {
   todo!();
 }
@@ -171,22 +164,24 @@ fn binary_oper(input: &str) -> IResult<&str, BinaryOper> {
   todo!();
 }
 
-/*〈ident〉::= (‘_’ | ‘a’-‘z’ | ‘A’-‘Z’) (‘_’ | ‘a’-‘z’ | ‘A’-‘Z’ | ‘0’-‘9’)* */
+/* 〈ident〉::= (‘_’ | ‘a’-‘z’ | ‘A’-‘Z’) (‘_’ | ‘a’-‘z’ | ‘A’-‘Z’ |
+ * ‘0’-‘9’)* */
 fn ident(input: &str) -> IResult<&str, Ident> {
-  map(recognize(
-    pair(
+  map(
+    recognize(pair(
       alt((alpha1, tag("_"))),
-      many0(alt((alphanumeric1, tag("_"))))
-    )
-  ), |s: &str| Ident(s.to_string()))(input)
+      many0(alt((alphanumeric1, tag("_")))),
+    )),
+    |s: &str| Ident(s.to_string()),
+  )(input)
 }
 
-/*〈array-elem〉::=〈ident〉(‘[’〈expr〉‘]’)+ */
+/* 〈array-elem〉::=〈ident〉(‘[’〈expr〉‘]’)+ */
 fn array_elem(input: &str) -> IResult<&str, ArrayElem> {
   todo!();
 }
 
-/*〈array-liter〉::= ‘[’ (〈expr〉 (‘,’〈expr〉)* )? ‘]’ */
+/* 〈array-liter〉::= ‘[’ (〈expr〉 (‘,’〈expr〉)* )? ‘]’ */
 fn array_liter(input: &str) -> IResult<&str, ArrayLiter> {
   todo!();
 }
@@ -207,13 +202,23 @@ mod tests {
 
   #[test]
   fn test_param() {
-    assert_eq!(param("int x"),
-      Ok(("", Param(Type::BaseType(BaseType::Int), Ident("x".to_string()))))
+    assert_eq!(
+      param("int x"),
+      Ok((
+        "",
+        Param(Type::BaseType(BaseType::Int), Ident("x".to_string()))
+      ))
     );
-    assert_eq!(param("int [ ][ ] x"),
-      Ok(("", Param(
-        Type::Array(Box::new(Type::Array(Box::new(Type::BaseType(BaseType::Int))))),
-        Ident("x".to_string()))
+    assert_eq!(
+      param("int [ ][ ] x"),
+      Ok((
+        "",
+        Param(
+          Type::Array(Box::new(Type::Array(Box::new(Type::BaseType(
+            BaseType::Int
+          ))))),
+          Ident("x".to_string())
+        )
       ))
     );
   }
@@ -232,19 +237,22 @@ mod tests {
 
   #[test]
   fn test_type_() {
-    assert_eq!(type_("int"),
-      Ok(("", Type::BaseType(BaseType::Int))),
+    assert_eq!(type_("int"), Ok(("", Type::BaseType(BaseType::Int))),);
+    assert_eq!(
+      type_("pair(int[], int)[]"),
+      Ok((
+        "",
+        Type::Array(Box::new(Type::Pair(
+          PairElemType::Array(Box::new(Type::BaseType(BaseType::Int))),
+          PairElemType::BaseType(BaseType::Int)
+        )))
+      ))
     );
-    assert_eq!(type_("pair(int[], int)[]"),
-      Ok(("", Type::Array(Box::new(Type::Pair(
-        PairElemType::Array(Box::new(Type::BaseType(BaseType::Int))),
-        PairElemType::BaseType(BaseType::Int))
-      ))))
-    );
-    assert_eq!(type_("pair(pair, string)"),
-      Ok(("", Type::Pair(
-        PairElemType::Pair,
-        PairElemType::BaseType(BaseType::String))
+    assert_eq!(
+      type_("pair(pair, string)"),
+      Ok((
+        "",
+        Type::Pair(PairElemType::Pair, PairElemType::BaseType(BaseType::String))
       ))
     );
     assert!(type_("pair(pair(int, int), string)").is_err());
@@ -252,24 +260,32 @@ mod tests {
 
   #[test]
   fn test_pair_elem_type() {
-    assert_eq!(pair_elem_type("int"),
+    assert_eq!(
+      pair_elem_type("int"),
       Ok(("", PairElemType::BaseType(BaseType::Int))),
     );
-    assert_eq!(pair_elem_type("char[]"),
-      Ok(("", PairElemType::Array(Box::new(Type::BaseType(BaseType::Char))))),
+    assert_eq!(
+      pair_elem_type("char[]"),
+      Ok((
+        "",
+        PairElemType::Array(Box::new(Type::BaseType(BaseType::Char)))
+      )),
     );
-    assert_eq!(pair_elem_type("pair"),
-      Ok(("", PairElemType::Pair))
-    );
-    assert_eq!(pair_elem_type("pair(int, int)"),
+    assert_eq!(pair_elem_type("pair"), Ok(("", PairElemType::Pair)));
+    assert_eq!(
+      pair_elem_type("pair(int, int)"),
       Ok(("(int, int)", PairElemType::Pair))
     );
-    assert_eq!(pair_elem_type("pair(int, int)[]"),
-      Ok(("", PairElemType::Array(Box::new(Type::Pair(
-        PairElemType::BaseType(BaseType::Int),
-        PairElemType::BaseType(BaseType::Int),
-      ))))
-    ));
+    assert_eq!(
+      pair_elem_type("pair(int, int)[]"),
+      Ok((
+        "",
+        PairElemType::Array(Box::new(Type::Pair(
+          PairElemType::BaseType(BaseType::Int),
+          PairElemType::BaseType(BaseType::Int),
+        )))
+      ))
+    );
   }
 
   #[test]
@@ -286,16 +302,13 @@ mod tests {
 
   #[test]
   fn test_ident() {
-    assert_eq!(ident("_hello123"), 
-      Ok(("", Ident("_hello123".to_string())))
-    );
-    assert_eq!(ident("_hello123 test"), 
+    assert_eq!(ident("_hello123"), Ok(("", Ident("_hello123".to_string()))));
+    assert_eq!(
+      ident("_hello123 test"),
       Ok((" test", Ident("_hello123".to_string())))
     );
     assert!(ident("9test").is_err());
-    assert_eq!(ident("te@st"), 
-      Ok(("@st", Ident("te".to_string())))
-    );
+    assert_eq!(ident("te@st"), Ok(("@st", Ident("te".to_string()))));
   }
 
   #[test]

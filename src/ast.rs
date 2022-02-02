@@ -1,7 +1,3 @@
-
-
-
-
 #[derive(PartialEq, Debug, Clone)]
 pub struct Program {
   funcs: Vec<Func>,
@@ -62,7 +58,7 @@ pub enum PairElem {
 pub enum Type {
   BaseType(BaseType),
   Array(Box<Type>),
-  Pair(PairElemType, PairElemType)
+  Pair(PairElemType, PairElemType),
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -92,7 +88,6 @@ pub enum Expr {
   UnaryApp(UnaryOper, Box<Expr>),
   BinaryApp(Box<Expr>, BinaryOper, Box<Expr>),
 }
-
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum UnaryOper {
