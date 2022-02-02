@@ -6,10 +6,10 @@ pub struct Program {
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Func {
-  return_type: Type,
-  ident: Ident,
-  param_list: Vec<Param>,
-  body: Stat,
+  pub return_type: Type,
+  pub ident: Ident,
+  pub param_list: Vec<Param>,
+  pub body: Stat,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -122,4 +122,4 @@ pub struct Ident(pub String);
 pub struct ArrayElem(pub Ident, pub Vec<Expr>);
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct ArrayLiter(Vec<Expr>);
+pub struct ArrayLiter(pub Vec<Expr>);
