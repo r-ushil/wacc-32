@@ -40,7 +40,16 @@ ExampleNode, will have the name example_node. */
 
 /* program ::= 'begin' <func>* <stat> 'end' */
 pub fn program(input: &str) -> IResult<&str, Program> {
-  todo!();
+  let (input, (funcs, statement)) = delimited(
+    tok("begin"),
+    pair(
+      many0(func),
+      stat,
+    ),
+    tok("end"),
+  )(input)?;
+
+  Ok((input, Program {funcs, statement}))
 }
 
 /* func ::= <type> <ident> '(' <param-list>? ') 'is' <stat> 'end' */
