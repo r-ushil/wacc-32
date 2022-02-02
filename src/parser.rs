@@ -71,8 +71,75 @@ fn param(input: &str) -> IResult<&str, Param> {
 | 'begin' <stat> 'end'
 | <stat> ';' <stat> */
 fn stat(input: &str) -> IResult<&str, Stat> {
-  todo!();
+  alt((stat_multiple, stat_unit))(input)
 }
+
+fn stat_unit(input: &str) -> IResult<&str, Stat> {
+  let skip = map(tok("skip"), |_| Stat::Skip);
+  let declaration = map(
+    tuple((type_, ident, tok("="), assign_rhs)),
+    |(t, id, _, ass)| Stat::Declaration(t, id, ass),
+  );
+  let assignment = map(
+    tuple((assign_lhs, tok("="), assign_rhs)),
+    |(ass_lhs, _, ass_rhs)| Stat::Assignment(ass_lhs, ass_rhs),
+  );
+  let read = map(pair(tok("read"), assign_lhs), |(_, ass)| Stat::Read(ass));
+
+  let free = map(pair(tok("free"), expr), |(_, e)| Stat::Free(e));
+  let return_ = map(pair(tok("return"), expr), |(_, e)| Stat::Return(e));
+  let exit = map(pair(tok("exit"), expr), |(_, e)| Stat::Exit(e));
+  let print = map(pair(tok("print"), expr), |(_, e)| Stat::Print(e));
+  let println = map(pair(tok("println"), expr), |(_, e)| Stat::Println(e));
+
+  let if_ = map(
+    tuple((
+      tok("if"),
+      expr,
+      tok("then"),
+      stat,
+      tok("else"),
+      stat,
+      tok("fi"),
+    )),
+    |(_, e, _, stat_if, _, stat_else, _)| Stat::If(e, Box::new(stat_if), Box::new(stat_else)),
+  );
+
+  let while_ = map(
+    tuple((tok("while"), expr, tok("do"), stat, tok("done"))),
+    |(_, e, _, s, _)| Stat::While(e, Box::new(s)),
+  );
+
+  let begin = map(tuple((tok("begin"), stat, tok("end"))), |(_, s, _)| {
+    Stat::Scope(Box::new(s))
+  });
+
+  alt((
+    skip,
+    declaration,
+    assignment,
+    read,
+    free,
+    return_,
+    exit,
+    print,
+    println,
+    if_,
+    while_,
+    begin,
+  ))(input)
+}
+
+fn stat_multiple(input: &str) -> IResult<&str, Stat> {
+  map(tuple((stat_unit, tok(";"), stat)), |(s1, _, s2)| {
+    Stat::Sequence(Box::new(s1), Box::new(s2))
+  })(input)
+}
+
+// stat = stat ; stat | xxxxx
+//          v
+// stat ::= stat' ; stat | stat'
+// stat' ::= xxxxx
 
 /* assign-lhs ::= <ident> | <array-elem> | <pair-elem> */
 fn assign_lhs(input: &str) -> IResult<&str, AssignLhs> {
@@ -110,7 +177,7 @@ fn type_(input: &str) -> IResult<&str, Type> {
       )),
       |(_, _, l, _, r, _)| Type::Pair(l, r),
     ),
-  ))(input)?;
+  ))(input)?; // int [] [][][][]
 
   /* Counts how many '[]' trail. */
   let (input, arrs) = many0(pair(tok("["), tok("]")))(input)?;
