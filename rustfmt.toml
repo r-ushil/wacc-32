@@ -1,0 +1,7 @@
+tab_spaces = 2
+newline_style = "Unix"
+trailing_comma = "Vertical"
+match_block_trailing_comma = true
+use_field_init_shorthand = true
+wrap_comments = true
+group_imports = "StdExternalCrate"
