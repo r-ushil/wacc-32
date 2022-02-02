@@ -93,21 +93,21 @@ fn pair_elem(input: &str) -> IResult<&str, PairElem> {
 
 /* type ::= <base-type> | <array-type> | <pair-type> */
 fn type_(input: &str) -> IResult<&str, Type> {
-  fn arrayless_type(input: &str) -> IResult<&str, Type> {
-    alt((
-      map(base_type, |bt| Type::BaseType(bt)),
-      map(
-        tuple((
-          ws(tag("pair(")), pair_elem_type, ws(tag(",")), pair_elem_type, ws(tag(")")),
-        )),
-        |(_, l, _, r, _)| Type::Pair(l, r),
-      ),
-    ))(input)
-  }
+  /* Parses everything apart from the trailing array notes. */
+  let (input, mut t) = alt((
+    map(base_type, |bt| Type::BaseType(bt)),
+    map(
+      tuple((
+        ws(tag("pair(")), pair_elem_type, ws(tag(",")), pair_elem_type, ws(tag(")")),
+      )),
+      |(_, l, _, r, _)| Type::Pair(l, r),
+    ),
+  ))(input)?;
 
-  let (input, mut t) = arrayless_type(input)?;
-
+  /* Counts how many '[]' trail. */
   let (input, arrs) = many0(tag("[]"))(input)?;
+
+  /* Nests t in Type::Array's that amount of times. */
   for _ in arrs {
     t = Type::Array(Box::new(t));
   }
