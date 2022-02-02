@@ -3,12 +3,12 @@ use nom::{
   branch::alt,
   bytes::complete::{tag, take_while},
   character::{
-    complete::{alpha1, alphanumeric1, multispace0},
+    complete::{alpha1, alphanumeric1, multispace0, none_of, digit1},
     is_space,
   },
-  combinator::{map, recognize, value},
+  combinator::{map, recognize, value, opt},
   error::{Error, ErrorKind, ParseError},
-  multi::many0,
+  multi::{many0, many1},
   sequence::{delimited, pair, preceded, terminated, tuple},
   IResult, Parser,
 };
@@ -17,6 +17,7 @@ use crate::ast::*;
 
 /* ======= HELPER FUNCTIONS ======= */
 
+/* https://github.com/Geal/nom/blob/main/doc/nom_recipes.md#whitespace */
 /* Consumes leading and trailing whitespace, then applies a parser
 to the inner content. */
 pub fn ws<'a, F: 'a, O, E: ParseError<&'a str>>(
@@ -162,32 +163,137 @@ fn pair_elem_type(input: &str) -> IResult<&str, PairElemType> {
 | 〈expr〉〈binary-oper〉〈expr〉  //〈binary-oper〉::= ‘*’ | ‘/’ | ‘%’ | ‘+’ | ‘-’ | ‘>’ | ‘>=’ | ‘<’ | ‘<=’ | ‘==’ | ‘!=’ | ‘&&’ | ‘||’
 | ‘(’〈expr〉‘)’ */
 fn expr(input: &str) -> IResult<&str, Expr> {
-  todo!();
+  let int_liter = map(
+    pair(
+      opt(ws(alt((nom::character::complete::char('+'), nom::character::complete::char('-'))))),
+      digit1,
+    ),
+    |(sign, digits): (Option<char>, &str)| {
+      /* Parse digits. */
+      let mut n = digits.parse::<i32>().unwrap();
+      if sign == Some('-') { n *= -1 }
+
+      Expr::IntLiter(n)
+    }
+  );
+
+  let bool_liter = alt((
+    value(Expr::BoolLiter(true), tok("true")),
+    value(Expr::BoolLiter(false), tok("false")),
+  ));
+  
+  // let escaped_char = one_of("0btnfr\"'\\");
+  let escaped_char = || preceded(
+    tag("\\"),
+    alt((
+      value('\0', tag("0")),
+      value('\u{8}', tag("b")),
+      value('\t', tag("t")),
+      value('\n', tag("n")),
+      value('\u{c}', tag("f")),
+      value('\r', tag("r")),
+      value('\"', tag("\"")),
+      value('\'', tag("'")),
+      value('\\', tag("\\")),
+    )),
+  );
+  
+  let character = || alt((none_of("\\'\""), escaped_char()));
+
+  let char_liter = ws(delimited(
+    tag("'"),
+    map(character(), |c| Expr::CharLiter(c)),
+    tag("'"),
+  ));
+
+  let str_liter = ws(delimited(
+    tag("\""),
+    map(many0(character()), |cs| Expr::StrLiter(cs.iter().collect::<String>())),
+    tag("\"")
+  ));
+
+  let pair_liter = value(Expr::PairLiter, tok("null"));
+
+  let unary_app = map(
+    pair(unary_oper, expr),
+    |(op, expr)| Expr::UnaryApp(op, Box::new(expr)),
+  );
+
+  let (input, expr1) = alt((
+    int_liter,
+    bool_liter,
+    char_liter,
+    str_liter,
+    pair_liter,
+    map(array_elem, Expr::ArrayElem),
+    unary_app,
+    map(ident, Expr::Ident),
+    delimited(tok("("), expr, tok(")")),
+  ))(input)?;
+
+  match opt(pair(binary_oper, expr))(input).unwrap() {
+    (input, Some((op, expr2))) => Ok((
+      input,
+      Expr::BinaryApp(
+        Box::new(expr1),
+        op,
+        Box::new(expr2),
+      )
+    )),
+    (input, None) => Ok((input, expr1)),
+  }
 }
 
+/*〈unary-oper〉::= ‘!’ | ‘-’ | ‘len’ | ‘ord’ | ‘chr’ */
 fn unary_oper(input: &str) -> IResult<&str, UnaryOper> {
-  todo!();
+  alt((
+    value(UnaryOper::Bang, tok("!")),
+    value(UnaryOper::Neg, tok("-")),
+    value(UnaryOper::Len, tok("len")),
+    value(UnaryOper::Ord, tok("ord")),
+    value(UnaryOper::Chr, tok("chr")),
+  ))(input)
 }
 
 fn binary_oper(input: &str) -> IResult<&str, BinaryOper> {
-  todo!();
+  alt((
+    value(BinaryOper::Mul, tok("*")),
+    value(BinaryOper::Div, tok("/")),
+    value(BinaryOper::Mod, tok("%")),
+    value(BinaryOper::Add, tok("+")),
+    value(BinaryOper::Sub, tok("-")),
+    value(BinaryOper::Gt, tok(">")),
+    value(BinaryOper::Gte, tok(">=")),
+    value(BinaryOper::Lt, tok("<")),
+    value(BinaryOper::Lte, tok("<=")),
+    value(BinaryOper::Eq, tok("==")),
+    value(BinaryOper::Neq, tok("!=")),
+    value(BinaryOper::And, tok("&&")),
+    value(BinaryOper::Or, tok("||")),
+  ))(input)
 }
 
 /* 〈ident〉::= (‘_’ | ‘a’-‘z’ | ‘A’-‘Z’) (‘_’ | ‘a’-‘z’ | ‘A’-‘Z’ |
  * ‘0’-‘9’)* */
 fn ident(input: &str) -> IResult<&str, Ident> {
-  map(
-    recognize(pair(
+  ws(map(recognize(
+    pair(
       alt((alpha1, tag("_"))),
-      many0(alt((alphanumeric1, tag("_")))),
-    )),
-    |s: &str| Ident(s.to_string()),
-  )(input)
+      many0(alt((alphanumeric1, tag("_"))))
+    )
+  ), |s: &str| Ident(s.to_string())))(input)
 }
 
 /* 〈array-elem〉::=〈ident〉(‘[’〈expr〉‘]’)+ */
 fn array_elem(input: &str) -> IResult<&str, ArrayElem> {
-  todo!();
+  let (input, id) = ident(input)?;
+
+  /* Gets the exprs to be indexed. */
+  let (input, exprs) = many1(
+    delimited(tok("["), expr, tok("]"))
+  )(input)?;
+
+  Ok((input, ArrayElem(id, exprs)))
 }
 
 /* 〈array-liter〉::= ‘[’ (〈expr〉 (‘,’〈expr〉)* )? ‘]’ */
@@ -196,7 +302,9 @@ fn array_liter(input: &str) -> IResult<&str, ArrayLiter> {
 }
 
 pub fn main() {
-  println!("Hello, World!");
+  let x = expr("1");
+
+  println!("x = {:?}", x);
 }
 
 #[cfg(test)]
@@ -301,7 +409,57 @@ mod tests {
   fn test_base_type() {}
 
   #[test]
-  fn test_expr() {}
+  fn test_expr() {
+    assert_eq!(expr(" true   "    ), Ok(("", Expr::BoolLiter(true) )));
+    assert_eq!(expr(" ( false)   "), Ok(("", Expr::BoolLiter(false))));
+    assert_eq!(expr(" ( - 5321)"  ), Ok(("", Expr::IntLiter(-5321) )));
+    assert_eq!(expr("+523"        ), Ok(("", Expr::IntLiter(523)   )));
+    assert_eq!(expr("1"           ), Ok(("", Expr::IntLiter(1)     )));
+    assert_eq!(expr("'a'"         ), Ok(("", Expr::CharLiter('a')  )));
+    assert_eq!(expr("'\\n'"       ), Ok(("", Expr::CharLiter('\n') )));
+    assert_eq!(expr("'\\b'"       ), Ok(("", Expr::CharLiter('\u{8}'))));
+    assert_eq!(expr("\"hello\""   ), Ok(("", Expr::StrLiter(String::from("hello")))));
+    assert_eq!(expr("\"hello\n\"" ), Ok(("", Expr::StrLiter(String::from("hello\n")))));
+    assert_eq!(expr("\"\""        ), Ok(("", Expr::StrLiter(String::from("")))));
+    assert_eq!(expr("null"), Ok(("", Expr::PairLiter)));
+    assert_eq!(expr("  null  5"), Ok(("5", Expr::PairLiter)));
+    assert_eq!(expr(" hello "), Ok(("", Expr::Ident(Ident(String::from("hello"))))));
+    assert_eq!(expr(" hello  5"), Ok(("5", Expr::Ident(Ident(String::from("hello"))))));
+    assert_eq!(expr("hello [ 2] "), Ok(("", Expr::ArrayElem(ArrayElem(
+      Ident(String::from("hello")),
+      vec!(Expr::IntLiter(2)),
+    )))));
+    assert_eq!(expr("- (5)"), Ok(("", Expr::UnaryApp(
+      UnaryOper::Neg,
+      Box::new(Expr::IntLiter(5)),
+    ))));
+    assert_eq!(expr("ord 'a'"), Ok(("", Expr::UnaryApp(
+      UnaryOper::Ord,
+      Box::new(Expr::CharLiter('a')),
+    ))));
+    assert_eq!(expr("5 + 5"), Ok(("", Expr::BinaryApp(
+      Box::new(Expr::IntLiter(5)),
+      BinaryOper::Add,
+      Box::new(Expr::IntLiter(5)),
+    ))));
+    assert_eq!(expr("5 && false"), Ok(("", Expr::BinaryApp(
+      Box::new(Expr::IntLiter(5)),
+      BinaryOper::And,
+      Box::new(Expr::BoolLiter(false)),
+    ))));
+    assert_ne!(expr("1 * (2 + 3)"), expr("(1 * 2) + 3"));
+    assert_eq!(expr("1 * (2 + 3)"), Ok(("",
+      Expr::BinaryApp(
+        Box::new(Expr::IntLiter(1)),
+        BinaryOper::Mul,
+        Box::new(Expr::BinaryApp(
+          Box::new(Expr::IntLiter(2)),
+          BinaryOper::Add,
+          Box::new(Expr::IntLiter(3)),
+        )),
+      )
+    )));
+  }
 
   #[test]
   fn test_unary_oper() {}
@@ -311,10 +469,11 @@ mod tests {
 
   #[test]
   fn test_ident() {
-    assert_eq!(ident("_hello123"), Ok(("", Ident("_hello123".to_string()))));
-    assert_eq!(
-      ident("_hello123 test"),
-      Ok((" test", Ident("_hello123".to_string())))
+    assert_eq!(ident("_hello123"), 
+      Ok(("", Ident("_hello123".to_string())))
+    );
+    assert_eq!(ident("_hello123 test"), 
+      Ok(("test", Ident("_hello123".to_string())))
     );
     assert!(ident("9test").is_err());
     assert_eq!(ident("te@st"), Ok(("@st", Ident("te".to_string()))));

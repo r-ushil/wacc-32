@@ -1,7 +1,7 @@
 #[derive(PartialEq, Debug, Clone)]
 pub struct Program {
-  funcs: Vec<Func>,
-  statement: Stat,
+  pub funcs: Vec<Func>,
+  pub statement: Stat,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -119,7 +119,7 @@ pub enum BinaryOper {
 pub struct Ident(pub String);
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct ArrayElem(Ident, Vec<Expr>);
+pub struct ArrayElem(pub Ident, pub Vec<Expr>);
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct ArrayLiter(Vec<Expr>);
