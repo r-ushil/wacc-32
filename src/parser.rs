@@ -6,7 +6,7 @@ use nom::{
   combinator::{map, opt, recognize, value},
   error::ParseError,
   multi::{many0, many1},
-  sequence::{delimited, pair, preceded, tuple},
+  sequence::{delimited, pair, preceded, terminated, tuple},
   IResult, Parser,
 };
 
@@ -75,7 +75,7 @@ fn stat(input: &str) -> IResult<&str, Stat> {
 }
 
 fn stat_unit(input: &str) -> IResult<&str, Stat> {
-  let skip = map(tok("skip"), |_| Stat::Skip);
+  let skip = value(Stat::Skip, tok("skip"));
   let declaration = map(
     tuple((type_, ident, tok("="), assign_rhs)),
     |(t, id, _, ass)| Stat::Declaration(t, id, ass),
@@ -84,13 +84,13 @@ fn stat_unit(input: &str) -> IResult<&str, Stat> {
     tuple((assign_lhs, tok("="), assign_rhs)),
     |(ass_lhs, _, ass_rhs)| Stat::Assignment(ass_lhs, ass_rhs),
   );
-  let read = map(pair(tok("read"), assign_lhs), |(_, ass)| Stat::Read(ass));
+  let read = map(preceded(tok("read"), assign_lhs), Stat::Read);
 
-  let free = map(pair(tok("free"), expr), |(_, e)| Stat::Free(e));
-  let return_ = map(pair(tok("return"), expr), |(_, e)| Stat::Return(e));
-  let exit = map(pair(tok("exit"), expr), |(_, e)| Stat::Exit(e));
-  let print = map(pair(tok("print"), expr), |(_, e)| Stat::Print(e));
-  let println = map(pair(tok("println"), expr), |(_, e)| Stat::Println(e));
+  let free = map(preceded(tok("free"), expr), Stat::Free);
+  let return_ = map(preceded(tok("return"), expr), Stat::Return);
+  let exit = map(preceded(tok("exit"), expr), Stat::Exit);
+  let print = map(preceded(tok("print"), expr), Stat::Print);
+  let println = map(preceded(tok("println"), expr), Stat::Println);
 
   let if_ = map(
     tuple((
@@ -122,8 +122,8 @@ fn stat_unit(input: &str) -> IResult<&str, Stat> {
     free,
     return_,
     exit,
-    print,
     println,
+    print,
     if_,
     while_,
     begin,
@@ -136,14 +136,13 @@ fn stat_multiple(input: &str) -> IResult<&str, Stat> {
   })(input)
 }
 
-// stat = stat ; stat | xxxxx
-//          v
-// stat ::= stat' ; stat | stat'
-// stat' ::= xxxxx
-
 /* assign-lhs ::= <ident> | <array-elem> | <pair-elem> */
 fn assign_lhs(input: &str) -> IResult<&str, AssignLhs> {
-  todo!();
+  alt((
+    map(pair_elem, AssignLhs::PairElem),
+    map(array_elem, AssignLhs::ArrayElem),
+    map(ident, AssignLhs::Ident),
+  ))(input)
 }
 
 /* assign-rhs ::= <expr>
@@ -153,12 +152,23 @@ fn assign_lhs(input: &str) -> IResult<&str, AssignLhs> {
 | 'call' <ident> '(' <arg-list>? ')' */
 /* arg-list ::= <expr> ( ',' <expr> )* */
 fn assign_rhs(input: &str) -> IResult<&str, AssignRhs> {
-  todo!();
+  alt((
+    map(
+      tuple((tok("newpair"), tok("("), expr, tok(","), expr, tok(")"))),
+      |(_, _, e1, _, e2, _)| AssignRhs::Pair(e1, e2),
+    ),
+    map(pair_elem, AssignRhs::PairElem),
+    map(expr, AssignRhs::Expr),
+    map(array_liter, AssignRhs::ArrayLiter),
+  ))(input)
 }
 
 /* pair-elem ::= 'fst' <expr> | 'snd' <expr> */
 fn pair_elem(input: &str) -> IResult<&str, PairElem> {
-  todo!();
+  ws(alt((
+    map(preceded(tok("fst"), expr), PairElem::Fst),
+    map(preceded(tok("snd"), expr), PairElem::Snd),
+  )))(input)
 }
 
 /* type ::= <base-type> | <array-type> | <pair-type> */
@@ -288,10 +298,10 @@ fn binary_oper(input: &str) -> IResult<&str, BinaryOper> {
     value(BinaryOper::Mod, tok("%")),
     value(BinaryOper::Add, tok("+")),
     value(BinaryOper::Sub, tok("-")),
-    value(BinaryOper::Gt, tok(">")),
     value(BinaryOper::Gte, tok(">=")),
-    value(BinaryOper::Lt, tok("<")),
+    value(BinaryOper::Gt, tok(">")),
     value(BinaryOper::Lte, tok("<=")),
+    value(BinaryOper::Lt, tok("<")),
     value(BinaryOper::Eq, tok("==")),
     value(BinaryOper::Neq, tok("!=")),
     value(BinaryOper::And, tok("&&")),
@@ -359,7 +369,20 @@ fn character(input: &str) -> IResult<&str, char> {
 
 /* 〈array-liter〉::= ‘[’ (〈expr〉 (‘,’〈expr〉)* )? ‘]’ */
 fn array_liter(input: &str) -> IResult<&str, ArrayLiter> {
-  todo!();
+  ws(delimited(
+    tok("["),
+    map(
+      pair(many0(terminated(expr, tok(","))), opt(expr)),
+      |(mut es, oe): (Vec<Expr>, Option<Expr>)| {
+        if let Some(e) = oe {
+          es.push(e);
+        }
+
+        ArrayLiter(es)
+      },
+    ),
+    tok("]"),
+  ))(input)
 }
 
 pub fn main() {
@@ -402,16 +425,216 @@ mod tests {
   }
 
   #[test]
-  fn test_stat() {}
+  fn test_stat() {
+    assert_eq!(stat(" skip @"), Ok(("@", Stat::Skip)));
+
+    assert_eq!(
+      stat("int x = 5"),
+      Ok((
+        "",
+        Stat::Declaration(
+          Type::BaseType(BaseType::Int),
+          Ident("x".to_string()),
+          AssignRhs::Expr(Expr::IntLiter(5)),
+        )
+      ))
+    );
+    assert_eq!(
+      stat("int[] arr = [1,2,3,4,5]"),
+      Ok((
+        "",
+        Stat::Declaration(
+          Type::Array(Box::new(Type::BaseType(BaseType::Int))),
+          Ident("arr".to_string()),
+          AssignRhs::ArrayLiter(ArrayLiter((1..=5).map(Expr::IntLiter).collect()))
+        )
+      ))
+    );
+
+    assert_eq!(
+      stat("aaa = 123"),
+      Ok((
+        "",
+        Stat::Assignment(
+          AssignLhs::Ident(Ident("aaa".to_string())),
+          AssignRhs::Expr(Expr::IntLiter(123))
+        )
+      ))
+    );
+
+    assert_eq!(
+      stat("array[2] = newpair (1, 'a') restOfString"),
+      Ok((
+        "restOfString",
+        Stat::Assignment(
+          AssignLhs::ArrayElem(ArrayElem(
+            Ident("array".to_string()),
+            vec!(Expr::IntLiter(2))
+          )),
+          AssignRhs::Pair(Expr::IntLiter(1), Expr::CharLiter('a'))
+        )
+      ))
+    );
+
+    assert_eq!(
+      stat("read test"),
+      Ok(("", Stat::Read(AssignLhs::Ident(Ident("test".to_string())))))
+    );
+
+    let e1 = Expr::IntLiter(5);
+    assert_eq!(stat("free 5"), Ok(("", Stat::Free(e1.clone()))));
+    assert_eq!(stat("return 5"), Ok(("", Stat::Return(e1.clone()))));
+    assert_eq!(stat("exit 5"), Ok(("", Stat::Exit(e1.clone()))));
+    assert_eq!(stat("print 5"), Ok(("", Stat::Print(e1.clone()))));
+    assert_eq!(stat("println 5"), Ok(("", Stat::Println(e1.clone()))));
+
+    let e2 = Expr::StrLiter("hello".to_string());
+    assert_eq!(stat("print \"hello\""), Ok(("", Stat::Print(e2.clone()))));
+    assert_eq!(
+      stat("println \"hello\""),
+      Ok(("", Stat::Println(e2.clone())))
+    );
+
+    assert_eq!(
+      stat("if b == 2 then x = 5 else x = 6 fi"),
+      Ok((
+        "",
+        Stat::If(
+          Expr::BinaryApp(
+            Box::new(Expr::Ident(Ident("b".to_string()))),
+            BinaryOper::Eq,
+            Box::new(Expr::IntLiter(2)),
+          ),
+          Box::new(Stat::Assignment(
+            AssignLhs::Ident(Ident("x".to_string())),
+            AssignRhs::Expr(Expr::IntLiter(5)),
+          )),
+          Box::new(Stat::Assignment(
+            AssignLhs::Ident(Ident("x".to_string())),
+            AssignRhs::Expr(Expr::IntLiter(6)),
+          )),
+        )
+      ))
+    );
+
+    assert_eq!(
+      stat("while n != 0 do acc = acc * n; n = n - 1 done"),
+      Ok((
+        "",
+        Stat::While(
+          Expr::BinaryApp(
+            Box::new(Expr::Ident(Ident("n".to_string()))),
+            BinaryOper::Neq,
+            Box::new(Expr::IntLiter(0)),
+          ),
+          Box::new(Stat::Sequence(
+            Box::new(Stat::Assignment(
+              AssignLhs::Ident(Ident("acc".to_string())),
+              AssignRhs::Expr(Expr::BinaryApp(
+                Box::new(Expr::Ident(Ident("acc".to_string()))),
+                BinaryOper::Mul,
+                Box::new(Expr::Ident(Ident("n".to_string()))),
+              )),
+            )),
+            Box::new(Stat::Assignment(
+              AssignLhs::Ident(Ident("n".to_string())),
+              AssignRhs::Expr(Expr::BinaryApp(
+                Box::new(Expr::Ident(Ident("n".to_string()))),
+                BinaryOper::Sub,
+                Box::new(Expr::IntLiter(1)),
+              )),
+            )),
+          )),
+        )
+      ))
+    );
+
+    assert_eq!(
+      stat("begin skip end"),
+      Ok(("", Stat::Scope(Box::new(Stat::Skip))))
+    );
+  }
 
   #[test]
-  fn test_assign_lhs() {}
+  fn test_assign_lhs() {
+    assert_eq!(
+      assign_lhs("foo"),
+      Ok(("", AssignLhs::Ident(Ident("foo".to_string())))),
+    );
+    assert_eq!(
+      assign_lhs("foo [ 5]"),
+      Ok((
+        "",
+        AssignLhs::ArrayElem(ArrayElem(Ident("foo".to_string()), vec!(Expr::IntLiter(5)))),
+      ))
+    );
+    assert_eq!(
+      assign_lhs("fst 5"),
+      Ok(("", AssignLhs::PairElem(PairElem::Fst(Expr::IntLiter(5))))),
+    );
+    assert_eq!(
+      assign_lhs("snd null"),
+      Ok(("", AssignLhs::PairElem(PairElem::Snd(Expr::PairLiter)))),
+    )
+  }
 
   #[test]
-  fn test_assign_rhs() {}
+  fn test_assign_rhs() {
+    assert_eq!(
+      assign_rhs("5"),
+      Ok(("", AssignRhs::Expr(Expr::IntLiter(5))))
+    );
+    assert_eq!(
+      assign_rhs("[1, 2 ,3 ,4,5]"),
+      Ok((
+        "",
+        AssignRhs::ArrayLiter(ArrayLiter((1..=5).map(Expr::IntLiter).collect()))
+      ))
+    );
+    assert_eq!(
+      assign_rhs("[1, 'c']"),
+      Ok((
+        "",
+        AssignRhs::ArrayLiter(ArrayLiter(vec!(Expr::IntLiter(1), Expr::CharLiter('c'))))
+      ))
+    );
+    assert_eq!(
+      assign_rhs("[]"),
+      Ok(("", AssignRhs::ArrayLiter(ArrayLiter(vec!()))))
+    );
+    assert_eq!(
+      assign_rhs("newpair (1, 2)"),
+      Ok(("", AssignRhs::Pair(Expr::IntLiter(1), Expr::IntLiter(2))))
+    );
+
+    assert_eq!(
+      assign_rhs("fst 5"),
+      Ok(("", AssignRhs::PairElem(PairElem::Fst(Expr::IntLiter(5)))))
+    );
+    assert_eq!(
+      assign_rhs("snd null"),
+      Ok(("", AssignRhs::PairElem(PairElem::Snd(Expr::PairLiter))))
+    );
+    assert_eq!(
+      assign_rhs("fst 1 ; snd 2"),
+      Ok((
+        "; snd 2",
+        AssignRhs::PairElem(PairElem::Fst(Expr::IntLiter(1)))
+      ))
+    );
+  }
 
   #[test]
-  fn test_pair_elem() {}
+  fn test_pair_elem() {
+    assert_eq!(
+      pair_elem("fst 5"),
+      Ok(("", PairElem::Fst(Expr::IntLiter(5))))
+    );
+    assert_eq!(
+      pair_elem("snd null"),
+      Ok(("", PairElem::Snd(Expr::PairLiter)))
+    );
+  }
 
   #[test]
   fn test_type_() {
@@ -467,7 +690,12 @@ mod tests {
   }
 
   #[test]
-  fn test_base_type() {}
+  fn test_base_type() {
+    assert_eq!(base_type("int"), Ok(("", BaseType::Int)));
+    assert_eq!(base_type("bool"), Ok(("", BaseType::Bool)));
+    assert_eq!(base_type("char"), Ok(("", BaseType::Char)));
+    assert_eq!(base_type("string"), Ok(("", BaseType::String)));
+  }
 
   #[test]
   fn test_expr() {
@@ -563,10 +791,33 @@ mod tests {
   }
 
   #[test]
-  fn test_unary_oper() {}
+  fn test_unary_oper() {
+    assert_eq!(unary_oper("!"), Ok(("", UnaryOper::Bang)));
+    assert_eq!(unary_oper("-"), Ok(("", UnaryOper::Neg)));
+    assert_eq!(unary_oper("len"), Ok(("", UnaryOper::Len)));
+    assert_eq!(unary_oper("ord"), Ok(("", UnaryOper::Ord)));
+    assert_eq!(unary_oper("chr"), Ok(("", UnaryOper::Chr)));
+  }
 
   #[test]
-  fn test_binary_oper() {}
+  fn test_binary_oper() {
+    assert_eq!(binary_oper("  *"), Ok(("", BinaryOper::Mul)));
+    assert_eq!(binary_oper("/  "), Ok(("", BinaryOper::Div)));
+    assert_eq!(binary_oper("%"), Ok(("", BinaryOper::Mod)));
+    assert_eq!(binary_oper("+"), Ok(("", BinaryOper::Add)));
+    assert_eq!(binary_oper("-  "), Ok(("", BinaryOper::Sub)));
+    assert_eq!(binary_oper(">"), Ok(("", BinaryOper::Gt)));
+    assert_eq!(binary_oper(">="), Ok(("", BinaryOper::Gte)));
+    assert_eq!(binary_oper("<"), Ok(("", BinaryOper::Lt)));
+    assert_eq!(binary_oper(" <="), Ok(("", BinaryOper::Lte)));
+    assert_eq!(binary_oper(" == "), Ok(("", BinaryOper::Eq)));
+    assert_eq!(binary_oper("!="), Ok(("", BinaryOper::Neq)));
+    assert_eq!(binary_oper("&&"), Ok(("", BinaryOper::And)));
+    assert_eq!(binary_oper("||"), Ok(("", BinaryOper::Or)));
+
+    assert_eq!(binary_oper(" < ="), Ok(("=", BinaryOper::Lt)));
+    assert_eq!(binary_oper("> ="), Ok(("=", BinaryOper::Gt)));
+  }
 
   #[test]
   fn test_ident() {
@@ -580,7 +831,26 @@ mod tests {
   }
 
   #[test]
-  fn test_array_elem() {}
+  fn test_array_elem() {
+    assert_eq!(
+      array_elem("array[2]"),
+      Ok((
+        "",
+        ArrayElem(Ident("array".to_string()), vec!(Expr::IntLiter(2)))
+      ))
+    );
+
+    assert_eq!(
+      array_elem("otherArray[1][2]"),
+      Ok((
+        "",
+        ArrayElem(
+          Ident("otherArray".to_string()),
+          vec!(Expr::IntLiter(1), Expr::IntLiter(2))
+        )
+      ))
+    );
+  }
 
   #[test]
   fn test_array_liter() {}

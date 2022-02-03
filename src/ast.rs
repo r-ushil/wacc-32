@@ -42,7 +42,7 @@ pub enum AssignLhs {
 #[derive(PartialEq, Debug, Clone)]
 pub enum AssignRhs {
   Expr(Expr),
-  ArrayLiter(Vec<Expr>),
+  ArrayLiter(ArrayLiter),
   Pair(Expr, Expr),
   PairElem(PairElem),
   Call(Ident, Vec<Expr>),
