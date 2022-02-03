@@ -101,13 +101,14 @@ fn type_(input: &str) -> IResult<&str, Type> {
     map(base_type, |bt| Type::BaseType(bt)),
     map(
       tuple((
-        tok("pair("),
+        tok("pair"),
+        tok("("),
         pair_elem_type,
         tok(","),
         pair_elem_type,
         tok(")"),
       )),
-      |(_, l, _, r, _)| Type::Pair(l, r),
+      |(_, _, l, _, r, _)| Type::Pair(l, r),
     ),
   ))(input)?;
 
@@ -349,7 +350,7 @@ mod tests {
   fn test_type_() {
     assert_eq!(type_("int"), Ok(("", Type::BaseType(BaseType::Int))),);
     assert_eq!(
-      type_("pair(int[], int)[]"),
+      type_("pair (int [], int)[ ]"),
       Ok((
         "",
         Type::Array(Box::new(Type::Pair(
@@ -359,7 +360,7 @@ mod tests {
       ))
     );
     assert_eq!(
-      type_("pair(pair, string)"),
+      type_("pair (pair , string)"),
       Ok((
         "",
         Type::Pair(PairElemType::Pair, PairElemType::BaseType(BaseType::String))
@@ -375,7 +376,7 @@ mod tests {
       Ok(("", PairElemType::BaseType(BaseType::Int))),
     );
     assert_eq!(
-      pair_elem_type("char[]"),
+      pair_elem_type("char[ ]"),
       Ok((
         "",
         PairElemType::Array(Box::new(Type::BaseType(BaseType::Char)))
