@@ -1,0 +1,87 @@
+extern crate nom;
+use nom::{
+  branch::alt,
+  bytes::complete::tag,
+  character::complete::{alpha1, alphanumeric1, char as char_, digit1, multispace0, none_of},
+  combinator::{map, opt, recognize, value},
+  error::ParseError,
+  multi::{many0, many1},
+  sequence::{delimited, pair, preceded, terminated, tuple},
+  IResult, Parser,
+};
+
+use crate::ast::*;
+
+/* ======= HELPER FUNCTIONS ======= */
+
+/* https://github.com/Geal/nom/blob/main/doc/nom_recipes.md#whitespace */
+/* Consumes leading and trailing whitespace, then applies a parser
+to the inner content. */
+pub fn ws<'a, F: 'a, O, E: ParseError<&'a str>>(
+  inner: F,
+) -> impl FnMut(&'a str) -> IResult<&'a str, O, E>
+where
+  F: Parser<&'a str, O, E>,
+{
+  delimited(multispace0, inner, multispace0)
+}
+
+/* Consumes whitespace, matches tag, consumes whitespace.
+Returns tag. */
+pub fn tok<'a>(t: &'a str) -> impl FnMut(&'a str) -> IResult<&'a str, &'a str> {
+  delimited(multispace0, tag(t), multispace0)
+}
+
+/* Like many0, but each of the elements are seperated by another parser,
+the result of which is thrown away. */
+pub fn many0_delimited<'a, O, O2, Ep: 'a, Dp: 'a, E>(
+  element: Ep,
+  delimeter: Dp,
+) -> impl FnMut(&'a str) -> IResult<&'a str, Vec<O>, E>
+where
+  E: ParseError<&'a str>,
+  Ep: Parser<&'a str, O, E> + Copy,
+  Dp: Parser<&'a str, O2, E>,
+{
+  map(
+    pair(many0(terminated(element, delimeter)), opt(element)),
+    |(mut elements, optlast)| {
+      if let Some(last) = optlast {
+        elements.push(last);
+      }
+      elements
+    },
+  )
+}
+
+/* ======= PARSERS ======= */
+
+/* 〈ident〉::= (‘_’ | ‘a’-‘z’ | ‘A’-‘Z’) (‘_’ | ‘a’-‘z’ | ‘A’-‘Z’ |
+ * ‘0’-‘9’)* */
+pub fn ident(input: &str) -> IResult<&str, Ident> {
+  ws(map(
+    /* Then recognise will return the part of the input that got consumed. */
+    recognize(pair(
+      /* The parsers in here will match the whole identifier. */
+      alt((alpha1, tag("_"))),
+      many0(alt((alphanumeric1, tag("_")))),
+    )),
+    |s: &str| Ident(s.to_string()), /* Copy string into identifier. */
+  ))(input)
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_ident() {
+    assert_eq!(ident("_hello123"), Ok(("", Ident("_hello123".to_string()))));
+    assert_eq!(
+      ident("_hello123 test"),
+      Ok(("test", Ident("_hello123".to_string())))
+    );
+    assert!(ident("9test").is_err());
+    assert_eq!(ident("te@st"), Ok(("@st", Ident("te".to_string()))));
+  }
+}
