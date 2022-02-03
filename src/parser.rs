@@ -1,15 +1,12 @@
 extern crate nom;
 use nom::{
   branch::alt,
-  bytes::complete::{tag, take_while},
-  character::{
-    complete::{alpha1, alphanumeric1, digit1, multispace0, none_of},
-    is_space,
-  },
+  bytes::complete::tag,
+  character::complete::{alpha1, alphanumeric1, char as char_, digit1, multispace0, none_of},
   combinator::{map, opt, recognize, value},
-  error::{Error, ErrorKind, ParseError},
+  error::ParseError,
   multi::{many0, many1},
-  sequence::{delimited, pair, preceded, terminated, tuple},
+  sequence::{delimited, pair, preceded, tuple},
   IResult, Parser,
 };
 
@@ -125,7 +122,7 @@ fn type_(input: &str) -> IResult<&str, Type> {
   Ok((input, t))
 }
 
-/* 'int' | 'bool' | 'char' | 'string' */
+/* base-type ::= 'int' | 'bool' | 'char' | 'string' */
 fn base_type(input: &str) -> IResult<&str, BaseType> {
   alt((
     value(BaseType::Int, tok("int")),
@@ -146,7 +143,7 @@ fn pair_elem_type(input: &str) -> IResult<&str, PairElemType> {
   }
 }
 
-/*〈expr〉 ::= 〈int-liter〉  //〈int-liter〉::= (‘+’ | ‘-’) ? (‘0’-‘9’)
+/*〈expr〉 ::= 〈int-liter〉
 | 〈bool-liter〉 //〈bool-liter〉::= ‘true’ | ‘false’
 | 〈char-liter〉 //〈char-liter〉::= ‘'’〈character〉‘'’
 | 〈str-liter〉  //〈str-liter〉::= ‘"’〈character〉* ‘"’
@@ -157,82 +154,46 @@ fn pair_elem_type(input: &str) -> IResult<&str, PairElemType> {
 | 〈expr〉〈binary-oper〉〈expr〉  //〈binary-oper〉::= ‘*’ | ‘/’ | ‘%’ | ‘+’ | ‘-’ | ‘>’ | ‘>=’ | ‘<’ | ‘<=’ | ‘==’ | ‘!=’ | ‘&&’ | ‘||’
 | ‘(’〈expr〉‘)’ */
 fn expr(input: &str) -> IResult<&str, Expr> {
-  let int_liter = map(
-    pair(
-      opt(ws(alt((
-        nom::character::complete::char('+'),
-        nom::character::complete::char('-'),
-      )))),
-      digit1,
-    ),
-    |(sign, digits): (Option<char>, &str)| {
-      /* Parse digits. */
-      let mut n = digits.parse::<i32>().unwrap();
-      if sign == Some('-') {
-        n *= -1
-      }
-
-      Expr::IntLiter(n)
-    },
-  );
-
   let bool_liter = alt((
     value(Expr::BoolLiter(true), tok("true")),
     value(Expr::BoolLiter(false), tok("false")),
   ));
 
-  // let escaped_char = one_of("0btnfr\"'\\");
-  let escaped_char = || {
-    preceded(
-      tag("\\"),
-      alt((
-        value('\0', tag("0")),
-        value('\u{8}', tag("b")),
-        value('\t', tag("t")),
-        value('\n', tag("n")),
-        value('\u{c}', tag("f")),
-        value('\r', tag("r")),
-        value('\"', tag("\"")),
-        value('\'', tag("'")),
-        value('\\', tag("\\")),
-      )),
-    )
-  };
-
-  let character = || alt((none_of("\\'\""), escaped_char()));
-
   let char_liter = ws(delimited(
     tag("'"),
-    map(character(), |c| Expr::CharLiter(c)),
+    map(character, |c| Expr::CharLiter(c)),
     tag("'"),
   ));
 
   let str_liter = ws(delimited(
     tag("\""),
-    map(many0(character()), |cs| {
+    map(many0(character), |cs| {
       Expr::StrLiter(cs.iter().collect::<String>())
     }),
     tag("\""),
   ));
 
-  let pair_liter = value(Expr::PairLiter, tok("null"));
-
   let unary_app = map(pair(unary_oper, expr), |(op, expr)| {
     Expr::UnaryApp(op, Box::new(expr))
   });
 
+  /* Run a parser for each of the enum variants except binary operators. */
   let (input, expr1) = alt((
-    int_liter,
+    map(int_liter, Expr::IntLiter),
     bool_liter,
     char_liter,
     str_liter,
-    pair_liter,
+    value(Expr::PairLiter, tok("null")),
     map(array_elem, Expr::ArrayElem),
     unary_app,
     map(ident, Expr::Ident),
     delimited(tok("("), expr, tok(")")),
   ))(input)?;
 
+  /* If we got this far, we know the input at least _starts with_ an expression,
+  but the input might continue on in the form of a binary application. */
+  /* So we try to parse a binary operator and a second expression, if it
+  succeeds, combine both expressions into a binary application. */
   match opt(pair(binary_oper, expr))(input).unwrap() {
     (input, Some((op, expr2))) => {
       Ok((input, Expr::BinaryApp(Box::new(expr1), op, Box::new(expr2))))
@@ -274,11 +235,13 @@ fn binary_oper(input: &str) -> IResult<&str, BinaryOper> {
  * ‘0’-‘9’)* */
 fn ident(input: &str) -> IResult<&str, Ident> {
   ws(map(
+    /* Then recognise will return the part of the input that got consumed. */
     recognize(pair(
+      /* The parsers in here will match the whole identifier. */
       alt((alpha1, tag("_"))),
       many0(alt((alphanumeric1, tag("_")))),
     )),
-    |s: &str| Ident(s.to_string()),
+    |s: &str| Ident(s.to_string()), /* Copy string into identifier. */
   ))(input)
 }
 
@@ -287,9 +250,43 @@ fn array_elem(input: &str) -> IResult<&str, ArrayElem> {
   let (input, id) = ident(input)?;
 
   /* Gets the exprs to be indexed. */
+  /* This matches many times because we might have arr[x][y][z], which has
+  multiple expressions. (=> ArrayElem("arr", [x, y, z])) */
   let (input, exprs) = many1(delimited(tok("["), expr, tok("]")))(input)?;
 
   Ok((input, ArrayElem(id, exprs)))
+}
+
+//〈int-liter〉::= (‘+’ | ‘-’) ? (‘0’-‘9’)
+fn int_liter(input: &str) -> IResult<&str, i32> {
+  let (input, (sign, digits)) = pair(opt(ws(alt((char_('+'), char_('-'))))), digit1)(input)?;
+
+  /* Use builtin i32 parsing for digits. */
+  let n = digits.parse::<i32>().unwrap();
+
+  /* Negate if negative sign present. */
+  let n = if sign == Some('-') { -n } else { n };
+
+  Ok((input, n))
+}
+
+/* 〈character〉 ::= any-ASCII-character-except-‘\’-‘'’-‘"’
+| ‘\’ 〈escaped-char〉 */
+fn character(input: &str) -> IResult<&str, char> {
+  /* 〈escaped-char〉::= ‘0’ | ‘b’ | ‘t’ | ‘n’ | ‘f’ | ‘r’ | ‘"’ | ‘'’ | ‘\’ */
+  let escaped_char = alt((
+    value('\0', tag("0")),
+    value('\u{8}', tag("b")),
+    value('\t', tag("t")),
+    value('\n', tag("n")),
+    value('\u{c}', tag("f")),
+    value('\r', tag("r")),
+    value('\"', tag("\"")),
+    value('\'', tag("'")),
+    value('\\', tag("\\")),
+  ));
+
+  alt((none_of("\\'\""), preceded(tag("\\"), escaped_char)))(input)
 }
 
 /* 〈array-liter〉::= ‘[’ (〈expr〉 (‘,’〈expr〉)* )? ‘]’ */
