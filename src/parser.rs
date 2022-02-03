@@ -26,8 +26,32 @@ where
   delimited(multispace0, inner, multispace0)
 }
 
+/* Consumes whitespace, matches tag, consumes whitespace.
+Returns tag. */
 pub fn tok<'a>(t: &'a str) -> impl FnMut(&'a str) -> IResult<&'a str, &'a str> {
   delimited(multispace0, tag(t), multispace0)
+}
+
+/* Like many0, but each of the elements are seperated by another parser,
+the result of which is thrown away. */
+fn many0_delimited<'a, O, O2, Ep: 'a, Dp: 'a, E>(
+  element: Ep,
+  delimeter: Dp,
+) -> impl FnMut(&'a str) -> IResult<&'a str, Vec<O>, E>
+where
+  E: ParseError<&'a str>,
+  Ep: Parser<&'a str, O, E> + Copy,
+  Dp: Parser<&'a str, O2, E>,
+{
+  map(
+    pair(many0(terminated(element, delimeter)), opt(element)),
+    |(mut elements, optlast)| {
+      if let Some(last) = optlast {
+        elements.push(last);
+      }
+      elements
+    },
+  )
 }
 
 /* ======= PARSERS ======= */
@@ -44,10 +68,31 @@ pub fn program(input: &str) -> IResult<&str, Program> {
   Ok((input, Program { funcs, statement }))
 }
 
-/* func ::= <type> <ident> '(' <param-list>? ') 'is' <stat> 'end' */
+/* func ::= <type> <ident> '(' <param-list>? ')' 'is' <stat> 'end' */
 /* param-list ::= <param> ( ',' <param> )* */
 fn func(input: &str) -> IResult<&str, Func> {
-  todo!();
+  let param_list = many0_delimited(param, tok(","));
+
+  let (input, (return_type, ident, _, param_list, _, _, body, _)) = tuple((
+    type_,
+    ident,
+    tok("("),
+    param_list,
+    tok(")"),
+    tok("is"),
+    stat,
+    tok("end"),
+  ))(input)?;
+
+  Ok((
+    input,
+    Func {
+      return_type,
+      ident,
+      param_list,
+      body,
+    },
+  ))
 }
 
 /* param ::= <type> <ident> */
@@ -153,6 +198,16 @@ fn assign_lhs(input: &str) -> IResult<&str, AssignLhs> {
 /* arg-list ::= <expr> ( ',' <expr> )* */
 fn assign_rhs(input: &str) -> IResult<&str, AssignRhs> {
   alt((
+    map(
+      tuple((
+        tok("call"),
+        ident,
+        tok("("),
+        many0_delimited(expr, tok(",")),
+        tok(")"),
+      )),
+      |(_, id, _, exprs, _)| AssignRhs::Call(id, exprs),
+    ),
     map(
       tuple((tok("newpair"), tok("("), expr, tok(","), expr, tok(")"))),
       |(_, _, e1, _, e2, _)| AssignRhs::Pair(e1, e2),
@@ -371,16 +426,7 @@ fn character(input: &str) -> IResult<&str, char> {
 fn array_liter(input: &str) -> IResult<&str, ArrayLiter> {
   ws(delimited(
     tok("["),
-    map(
-      pair(many0(terminated(expr, tok(","))), opt(expr)),
-      |(mut es, oe): (Vec<Expr>, Option<Expr>)| {
-        if let Some(e) = oe {
-          es.push(e);
-        }
-
-        ArrayLiter(es)
-      },
-    ),
+    map(many0_delimited(expr, tok(",")), ArrayLiter),
     tok("]"),
   ))(input)
 }
@@ -396,10 +442,70 @@ mod tests {
   use super::*;
 
   #[test]
-  fn test_program() {}
+  fn test_program() {
+    assert_eq!(
+      program("begin int foo(int x) is return x end int y = call foo(5 + 1) end",),
+      Ok((
+        "",
+        Program {
+          funcs: vec!(Func {
+            return_type: Type::BaseType(BaseType::Int),
+            ident: Ident("foo".to_string()),
+            param_list: vec!(Param(Type::BaseType(BaseType::Int), Ident("x".to_string()),)),
+            body: Stat::Return(Expr::Ident(Ident("x".to_string()))),
+          }),
+          statement: Stat::Declaration(
+            Type::BaseType(BaseType::Int),
+            Ident("y".to_string()),
+            AssignRhs::Call(
+              Ident("foo".to_string()),
+              vec!(Expr::BinaryApp(
+                Box::new(Expr::IntLiter(5)),
+                BinaryOper::Add,
+                Box::new(Expr::IntLiter(1)),
+              )),
+            )
+          )
+        }
+      ))
+    );
+  }
 
   #[test]
-  fn test_func() {}
+  fn test_func() {
+    assert_eq!(
+      func("int firstFunc (int x, int y) is return x + y end"),
+      Ok((
+        "",
+        Func {
+          return_type: Type::BaseType(BaseType::Int),
+          ident: Ident("firstFunc".to_string()),
+          param_list: vec!(
+            Param(Type::BaseType(BaseType::Int), Ident("x".to_string())),
+            Param(Type::BaseType(BaseType::Int), Ident("y".to_string()))
+          ),
+          body: Stat::Return(Expr::BinaryApp(
+            Box::new(Expr::Ident(Ident("x".to_string()))),
+            BinaryOper::Add,
+            Box::new(Expr::Ident(Ident("y".to_string())))
+          ))
+        }
+      ))
+    );
+
+    assert_eq!(
+      func("int exitThree () is exit 3 end"),
+      Ok((
+        "",
+        Func {
+          return_type: Type::BaseType(BaseType::Int),
+          ident: Ident("exitThree".to_string()),
+          param_list: vec!(),
+          body: Stat::Exit(Expr::IntLiter(3))
+        }
+      ))
+    );
+  }
 
   #[test]
   fn test_param() {
@@ -622,6 +728,11 @@ mod tests {
         AssignRhs::PairElem(PairElem::Fst(Expr::IntLiter(1)))
       ))
     );
+
+    assert_eq!(
+      assign_rhs("call callee ()"),
+      Ok(("", AssignRhs::Call(Ident("callee".to_string()), vec!(),)))
+    )
   }
 
   #[test]
