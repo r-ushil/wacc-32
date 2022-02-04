@@ -2,12 +2,11 @@ extern crate nom;
 use nom::{
   branch::alt,
   bytes::complete::tag,
-  character::complete::{alpha1, alphanumeric1, char as char_, digit1, multispace0, none_of},
-  combinator::{map, opt, recognize, value},
-  error::ParseError,
+  character::complete::{char as char_, digit1, none_of},
+  combinator::{map, opt, value},
   multi::{many0, many1},
-  sequence::{delimited, pair, preceded, terminated, tuple},
-  IResult, Parser,
+  sequence::{delimited, pair, preceded},
+  IResult,
 };
 
 use super::shared::*;
