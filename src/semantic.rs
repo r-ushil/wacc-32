@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::collections::VecDeque;
+use std::slice::SliceIndex;
 
 use super::ast::*;
 
@@ -11,11 +12,11 @@ fn assign_type_check(
     Stat::Assignment(lhs, rhs) => {
       let mut lhs_var = "".to_string();
 
-      match lhs {
-        AssignLhs::Ident(id) => lhs_var = id.0.to_owned(),
-        AssignLhs::ArrayElem(elem) => lhs_var = array_elem_fmt(&elem),
-        AssignLhs::PairElem(elem) => lhs_var = pair_elem_fmt(&elem),
-      }
+      //match lhs {
+      // AssignLhs::Ident(id) => lhs_var = id.0.to_owned(),
+      //AssignLhs::ArrayElem(elem) => lhs_var = array_elem_fmt(&elem),
+      //AssignLhs::PairElem(elem) => lhs_var = pair_elem_fmt(&elem),
+      //}
 
       let lhs_type = table_lookup(symbol_tables, &lhs_var).unwrap();
 
@@ -36,7 +37,10 @@ fn type_from_unary_op(
         return Ok(Type::BaseType(BaseType::Bool));
       }
     },
-    UnaryOper::Len => todo!(),
+    UnaryOper::Len => match type_from_expr(symbol_tables, expr) {
+      Type::Array(_) => return Ok(Type::BaseType(BaseType::Int)),
+      _ => return Err("Invalid Unary Op".to_string()),
+    },
     UnaryOper::Ord => {
       if type_from_expr(symbol_tables, expr) == Type::BaseType(BaseType::Char) {
         return Ok(Type::BaseType(BaseType::Int));
@@ -109,7 +113,19 @@ fn type_from_expr(symbol_tables: &VecDeque<HashMap<String, Type>>, expr: &Expr) 
       Err(s) => panic!("{}", s),
     },
 
-    Expr::ArrayElem(_) => todo!(),
+    Expr::ArrayElem(elem) => {
+      if !elem.1.is_empty() {
+        let array_type = type_from_expr(symbol_tables, elem.1.first().unwrap());
+        for exp in elem.1.clone() {
+          if type_from_expr(symbol_tables, &exp) != array_type {
+            panic!("Mixed array types")
+          }
+        }
+        Type::Array(Box::new(array_type))
+      } else {
+        panic!("Array is empty.")
+      }
+    },
 
     Expr::UnaryApp(op, exp) => match type_from_unary_op(symbol_tables, op, exp) {
       Ok(t) => t,
@@ -121,18 +137,6 @@ fn type_from_expr(symbol_tables: &VecDeque<HashMap<String, Type>>, expr: &Expr) 
       Err(s) => panic!("{}", s),
     },
   }
-}
-
-fn pair_elem_fmt(pair_elem: &PairElem) -> String {
-  todo!()
-}
-
-fn array_elem_fmt(array_elem: &ArrayElem) -> String {
-  let array_name = &array_elem.0 .0;
-
-  for expr in &array_elem.1 {}
-
-  todo!();
 }
 
 // lookup: takes a string and symbol table and returns Ok(type) if found, Err if
