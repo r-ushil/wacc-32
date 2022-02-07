@@ -74,6 +74,7 @@ pub enum BaseType {
   Bool,
   Char,
   String,
+  Null,
 }
 
 #[derive(PartialEq, Debug, Clone)]
