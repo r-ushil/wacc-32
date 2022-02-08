@@ -280,6 +280,24 @@ mod tests {
   }
 
   #[test]
+  fn test_stat_dec_array_string() {
+    assert_eq!(
+      stat("string[] arr = [\"hello\",\"world\"]"),
+      Ok((
+        "",
+        Stat::Declaration(
+          Type::Array(Box::new(Type::BaseType(BaseType::String))),
+          Ident("arr".to_string()),
+          AssignRhs::ArrayLiter(ArrayLiter(vec![
+            Expr::StrLiter("hello".to_string()),
+            Expr::StrLiter("world".to_string())
+          ]))
+        )
+      ))
+    );
+  }
+
+  #[test]
   fn test_stat_dec_array_pair() {
     assert_eq!(
       stat("pair(int, int)[] arr = [null,null,null]"),
