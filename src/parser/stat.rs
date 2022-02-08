@@ -163,7 +163,7 @@ mod tests {
   }
 
   #[test]
-  fn test_stat_ass() {
+  fn test_stat_dec_int() {
     assert_eq!(
       stat("int x = 5"),
       Ok((
@@ -175,6 +175,93 @@ mod tests {
         )
       ))
     );
+  }
+
+  #[test]
+  fn test_stat_dec_bool() {
+    assert_eq!(
+      stat("bool x = true"),
+      Ok((
+        "",
+        Stat::Declaration(
+          Type::BaseType(BaseType::Bool),
+          Ident("x".to_string()),
+          AssignRhs::Expr(Expr::BoolLiter(true)),
+        )
+      ))
+    );
+
+    assert_eq!(
+      stat("bool x = false"),
+      Ok((
+        "",
+        Stat::Declaration(
+          Type::BaseType(BaseType::Bool),
+          Ident("x".to_string()),
+          AssignRhs::Expr(Expr::BoolLiter(false)),
+        )
+      ))
+    );
+  }
+
+  #[test]
+  fn test_stat_dec_char() {
+    assert_eq!(
+      stat("char x = 'a'"),
+      Ok((
+        "",
+        Stat::Declaration(
+          Type::BaseType(BaseType::Char),
+          Ident("x".to_string()),
+          AssignRhs::Expr(Expr::CharLiter('a')),
+        )
+      ))
+    );
+  }
+
+  #[test]
+  fn test_stat_dec_char_escape() {
+    assert_eq!(
+      stat("char x = '\n'"),
+      Ok((
+        "",
+        Stat::Declaration(
+          Type::BaseType(BaseType::Char),
+          Ident("x".to_string()),
+          AssignRhs::Expr(Expr::CharLiter('\n')),
+        )
+      ))
+    );
+  }
+
+  #[test]
+  fn test_stat_dec_str() {
+    assert_eq!(
+      stat("string x = \"hello world!\""),
+      Ok((
+        "",
+        Stat::Declaration(
+          Type::BaseType(BaseType::String),
+          Ident("x".to_string()),
+          AssignRhs::Expr(Expr::StrLiter("hello world!".to_string())),
+        )
+      ))
+    );
+  }
+
+  #[test]
+  fn test_stat_ass() {
+    assert_eq!(
+      stat("intx = 5"),
+      Ok((
+        "",
+        Stat::Assignment(
+          AssignLhs::Ident(Ident("intx".to_string())),
+          AssignRhs::Expr(Expr::IntLiter(5))
+        )
+      ))
+    );
+
     assert_eq!(
       stat("int[] arr = [1,2,3,4,5]"),
       Ok((
