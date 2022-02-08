@@ -1,6 +1,9 @@
 mod ast;
 mod parser;
 use std::env;
+use std::fs::File;
+use std::io::BufReader;
+use std::io::Read;
 use std::path::Path;
 use std::process::exit;
 
@@ -21,7 +24,11 @@ fn main() {
     exit(-1);
   }
 
-  // TODO: Load the file contents into the program string
+  let file = File::open(source_path).unwrap();
+
+  let mut buf_reader = BufReader::new(file);
+  let mut program = String::new();
+  buf_reader.read_to_string(&mut program).unwrap();
 
   // Parse the program
   // let ast = parser::parse(program);
