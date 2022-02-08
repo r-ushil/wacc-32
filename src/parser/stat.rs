@@ -250,6 +250,69 @@ mod tests {
   }
 
   #[test]
+  fn test_stat_dec_pair_int_int() {
+    assert_eq!(
+      stat("pair(int, int) x = newpair(1,2)"),
+      Ok((
+        "",
+        Stat::Declaration(
+          Type::Pair(
+            PairElemType::BaseType(BaseType::Int),
+            PairElemType::BaseType(BaseType::Int),
+          ),
+          Ident("x".to_string()),
+          AssignRhs::Pair(Expr::IntLiter(1), Expr::IntLiter(2)),
+        )
+      ))
+    );
+  }
+
+  #[test]
+  fn test_stat_dec_pair_pair() {
+    assert_eq!(
+      stat("pair(pair, pair) x = newpair(null, null)"),
+      Ok((
+        "",
+        Stat::Declaration(
+          Type::Pair(PairElemType::Pair, PairElemType::Pair),
+          Ident("x".to_string()),
+          AssignRhs::Pair(Expr::PairLiter, Expr::PairLiter),
+        )
+      ))
+    );
+  }
+
+  #[test]
+  fn test_stat_dec_pair_null() {
+    assert_eq!(
+      stat("pair(pair, pair) x = null"),
+      Ok((
+        "",
+        Stat::Declaration(
+          Type::Pair(PairElemType::Pair, PairElemType::Pair),
+          Ident("x".to_string()),
+          AssignRhs::Expr(Expr::PairLiter),
+        )
+      ))
+    );
+  }
+
+  #[test]
+  fn test_stat_dec_pair_int_pair() {
+    assert_eq!(
+      stat("pair(int, pair) x = newpair(1,null)"),
+      Ok((
+        "",
+        Stat::Declaration(
+          Type::Pair(PairElemType::BaseType(BaseType::Int), PairElemType::Pair),
+          Ident("x".to_string()),
+          AssignRhs::Pair(Expr::IntLiter(1), Expr::PairLiter),
+        )
+      ))
+    );
+  }
+
+  #[test]
   fn test_stat_ass() {
     assert_eq!(
       stat("intx = 5"),
