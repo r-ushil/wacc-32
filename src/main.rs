@@ -1,22 +1,25 @@
 mod ast;
 mod parser;
 use std::env;
+use std::path::Path;
 use std::process::exit;
 
 fn main() {
   let args: Vec<String> = env::args().collect();
-  let argc = args.len();
-  // Check the correct number of arguments
-  if argc != 2 {
-    // TODO: Print correct usage of the command
-    println!("Usage here. ");
+
+  if args.len() != 2 {
+    println!("Error: incorrect number of arguments. ");
+    // TODO: Print usage
     exit(-1);
   }
 
   let source_path = &args[1];
-  println!("Source path: {}", source_path);
 
-  // TODO: Check the given path is a file that exists
+  if !Path::new(source_path).exists() {
+    println!("Error: file does not exist. ");
+    // TODO: Print usage
+    exit(-1);
+  }
 
   // TODO: Load the file contents into the program string
 
