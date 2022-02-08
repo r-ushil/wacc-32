@@ -158,6 +158,8 @@ mod tests {
       ))
     );
     assert_eq!(stat("skip"), Ok(("", Stat::Skip)));
+    assert!(stat("sk ip").is_err());
+    assert!(stat("skiip").is_err());
   }
 
   #[test]
