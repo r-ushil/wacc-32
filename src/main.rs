@@ -14,7 +14,7 @@ fn main() {
   // Ensure that a single argument was given
   if args.len() != 2 {
     println!("Error: incorrect number of arguments. ");
-    // TODO: Print usage
+    print_usage();
     exit(-1);
   }
 
@@ -22,7 +22,7 @@ fn main() {
   let source_path = &args[1];
   if !Path::new(source_path).exists() {
     println!("Error: file does not exist. ");
-    // TODO: Print usage
+    print_usage();
     exit(-1);
   }
 
@@ -44,4 +44,8 @@ fn main() {
 
   // Print the generated abstract syntax tree
   println!("ast = {:?}", ast);
+}
+
+fn print_usage() {
+  println!("Usage: ./wacc_32 <file_path>")
 }
