@@ -12,10 +12,7 @@ begin
   int f() is
     return 3
   end
-  int f() is
-    return 4
-  end
 
-  bool f = true ;
+  f = 2 
 
 end
