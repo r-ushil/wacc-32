@@ -250,6 +250,54 @@ mod tests {
   }
 
   #[test]
+  fn test_stat_dec_array_int() {
+    assert_eq!(
+      stat("int[] arr = [1,2,3,4,5]"),
+      Ok((
+        "",
+        Stat::Declaration(
+          Type::Array(Box::new(Type::BaseType(BaseType::Int))),
+          Ident("arr".to_string()),
+          AssignRhs::ArrayLiter(ArrayLiter((1..=5).map(Expr::IntLiter).collect()))
+        )
+      ))
+    );
+  }
+
+  #[test]
+  fn test_stat_dec_array_char() {
+    assert_eq!(
+      stat("char[] arr = ['a','b','c','d','e']"),
+      Ok((
+        "",
+        Stat::Declaration(
+          Type::Array(Box::new(Type::BaseType(BaseType::Char))),
+          Ident("arr".to_string()),
+          AssignRhs::ArrayLiter(ArrayLiter(('a'..='e').map(Expr::CharLiter).collect()))
+        )
+      ))
+    );
+  }
+
+  #[test]
+  fn test_stat_dec_array_pair() {
+    assert_eq!(
+      stat("pair(int, int)[] arr = [null,null,null]"),
+      Ok((
+        "",
+        Stat::Declaration(
+          Type::Array(Box::new(Type::Pair(
+            PairElemType::BaseType(BaseType::Int),
+            PairElemType::BaseType(BaseType::Int)
+          ))),
+          Ident("arr".to_string()),
+          AssignRhs::ArrayLiter(ArrayLiter(vec![Expr::PairLiter; 3]))
+        )
+      ))
+    );
+  }
+
+  #[test]
   fn test_stat_dec_pair_int_int() {
     assert_eq!(
       stat("pair(int, int) x = newpair(1,2)"),
