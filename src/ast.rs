@@ -58,14 +58,7 @@ pub enum PairElem {
 pub enum Type {
   BaseType(BaseType),
   Array(Box<Type>),
-  Pair(PairElemType, PairElemType),
-}
-
-#[derive(PartialEq, Debug, Clone)]
-pub enum PairElemType {
-  BaseType(BaseType),
-  Array(Box<Type>),
-  Pair,
+  Pair(Box<Type>, Box<Type>),
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -74,7 +67,7 @@ pub enum BaseType {
   Bool,
   Char,
   String,
-  Null,
+  Any,
 }
 
 #[derive(PartialEq, Debug, Clone)]
