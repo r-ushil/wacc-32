@@ -2,8 +2,8 @@ extern crate nom;
 use nom::{
   branch::alt,
   bytes::complete::tag,
-  character::complete::{alpha1, alphanumeric1, anychar, multispace0},
-  combinator::{map, not, opt, recognize, verify},
+  character::complete::{alpha1, alphanumeric1, multispace0},
+  combinator::{map, opt, recognize},
   error::ParseError,
   multi::many0,
   sequence::{delimited, pair, terminated},
