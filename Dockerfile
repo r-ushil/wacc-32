@@ -4,5 +4,7 @@ WORKDIR ./wacc
 RUN make
 
 FROM builder AS test
-WORKDIR ./wacc
 RUN make test
+
+FROM builder AS release
+ENTRYPOINT ["/bin/sh", "-c", "./compile"]
