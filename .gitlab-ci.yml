@@ -17,7 +17,5 @@ test-job:     # This job runs in the test stage.
 release-job:
   stage: release
   script:
-    - docker build -t \
-          gitlab.doc.ic.ac.uk:4567/lab2122_spring/wacc_32:${CI_COMMIT_SHORT_SHA} \
-          --target release .
+    - docker build -t gitlab.doc.ic.ac.uk:4567/lab2122_spring/wacc_32:${CI_COMMIT_SHORT_SHA} --target release .
     - docker push gitlab.doc.ic.ac.uk:4567/lab2122_spring/wacc_32:${CI_COMMIT_SHORT_SHA}
