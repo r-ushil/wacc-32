@@ -16,7 +16,10 @@ impl HasType for Expr {
       Expr::BoolLiter(_) => Type::BaseType(BaseType::Bool),
       Expr::CharLiter(_) => Type::BaseType(BaseType::Char),
       Expr::StrLiter(_) => Type::BaseType(BaseType::String),
-      Expr::PairLiter => Type::BaseType(BaseType::Null),
+      Expr::PairLiter => Type::Pair(
+        Box::new(Type::BaseType(BaseType::Any)),
+        Box::new(Type::BaseType(BaseType::Any)),
+      ),
       Expr::Ident(id) => id.get_type(symbol_table)?,
       Expr::ArrayElem(elem) => elem.get_type(symbol_table)?,
       Expr::UnaryApp(op, exp) => match op {

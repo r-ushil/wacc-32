@@ -24,7 +24,7 @@ pub fn type_(input: &str) -> IResult<&str, Type> {
         pair_elem_type,
         tok(")"),
       )),
-      |(_, _, l, _, r, _)| Type::Pair(l, r),
+      |(_, _, l, _, r, _)| Type::Pair(Box::new(l), Box::new(r)),
     ),
   ))(input)?; // int [] [][][][]
 
@@ -50,13 +50,19 @@ fn base_type(input: &str) -> IResult<&str, BaseType> {
 }
 
 /* pair-elem-type ::= <base-type> | <array-type> | 'pair' */
-fn pair_elem_type(input: &str) -> IResult<&str, PairElemType> {
+fn pair_elem_type(input: &str) -> IResult<&str, Type> {
   /* Type logic reused for base types and arrays, because pairs
   are different we have to handle that edge case. */
   match type_(input) {
-    Ok((input, Type::BaseType(it))) => Ok((input, PairElemType::BaseType(it))),
-    Ok((input, Type::Array(it))) => Ok((input, PairElemType::Array(it))),
-    _ => value(PairElemType::Pair, tok("pair"))(input),
+    Ok((input, Type::BaseType(it))) => Ok((input, Type::BaseType(it))),
+    Ok((input, Type::Array(it))) => Ok((input, Type::Array(it))),
+    _ => value(
+      Type::Pair(
+        Box::new(Type::BaseType(BaseType::Any)),
+        Box::new(Type::BaseType(BaseType::Any)),
+      ),
+      tok("pair"),
+    )(input),
   }
 }
 
@@ -72,8 +78,8 @@ mod tests {
       Ok((
         "",
         Type::Array(Box::new(Type::Pair(
-          PairElemType::Array(Box::new(Type::BaseType(BaseType::Int))),
-          PairElemType::BaseType(BaseType::Int)
+          Box::new(Type::Array(Box::new(Type::BaseType(BaseType::Int)))),
+          Box::new(Type::BaseType(BaseType::Int))
         )))
       ))
     );
@@ -81,7 +87,23 @@ mod tests {
       type_("pair (pair , string)"),
       Ok((
         "",
-        Type::Pair(PairElemType::Pair, PairElemType::BaseType(BaseType::String))
+        Type::Pair(
+          Box::new(Type::Pair(
+            Box::new(Type::BaseType(BaseType::Any)),
+            Box::new(Type::BaseType(BaseType::Any))
+          )),
+          Box::new(Type::BaseType(BaseType::String)),
+        )
+      ))
+    );
+    assert_eq!(
+      type_("pair(int, int)[]"),
+      Ok((
+        "",
+        Type::Array(Box::new(Type::Pair(
+          Box::new(Type::BaseType(BaseType::Int)),
+          Box::new(Type::BaseType(BaseType::Int)),
+        )))
       ))
     );
     assert!(type_("pair(pair(int, int), string)").is_err());
@@ -91,30 +113,27 @@ mod tests {
   fn test_pair_elem_type() {
     assert_eq!(
       pair_elem_type("int"),
-      Ok(("", PairElemType::BaseType(BaseType::Int))),
+      Ok(("", Type::BaseType(BaseType::Int))),
     );
     assert_eq!(
       pair_elem_type("char[ ]"),
-      Ok((
-        "",
-        PairElemType::Array(Box::new(Type::BaseType(BaseType::Char)))
-      )),
-    );
-    assert_eq!(pair_elem_type("pair"), Ok(("", PairElemType::Pair)));
-    assert_eq!(
-      pair_elem_type("pair(int, int)"),
-      Ok(("(int, int)", PairElemType::Pair))
+      Ok(("", Type::Array(Box::new(Type::BaseType(BaseType::Char))))),
     );
     assert_eq!(
-      pair_elem_type("pair(int, int)[]"),
+      pair_elem_type("pair"),
       Ok((
         "",
-        PairElemType::Array(Box::new(Type::Pair(
-          PairElemType::BaseType(BaseType::Int),
-          PairElemType::BaseType(BaseType::Int),
-        )))
+        Type::Pair(
+          Box::new(Type::BaseType(BaseType::Any)),
+          Box::new(Type::BaseType(BaseType::Any))
+        )
       ))
     );
+    // assert_eq!(
+    //   pair_elem_type("pair(int, int)"),
+    //   Ok(("(int, int)", Type::BaseType(BaseType::Any)))
+    // ); //unneeded test? the pair_elem parser should never deal with pair with
+    // brackets...
   }
 
   #[test]
