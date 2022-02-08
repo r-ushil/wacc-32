@@ -1,18 +1,29 @@
 mod ast;
 mod parser;
+use std::env;
+use std::process::exit;
 
 fn main() {
-  let program = "begin\n
-    int foo(int x) is
-      return x
-    end
-    
-    int y = call foo(5 + 1)
-  end";
+  let args: Vec<String> = env::args().collect();
+  let argc = args.len();
+  // Check the correct number of arguments
+  if argc != 2 {
+    // TODO: Print correct usage of the command
+    println!("Usage here. ");
+    exit(-1);
+  }
 
-  let ast = parser::parse(program);
+  let source_path = &args[1];
+  println!("Source path: {}", source_path);
 
-  assert!(ast.is_ok());
+  // TODO: Check the given path is a file that exists
 
-  println!("ast = {:?}", ast);
+  // TODO: Load the file contents into the program string
+
+  // Parse the program
+  // let ast = parser::parse(program);
+
+  //TODO Handle errors from parsing
+
+  // println!("ast = {:?}", ast);
 }
