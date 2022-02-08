@@ -116,7 +116,7 @@ pub enum BinaryOper {
   Or,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Hash, Eq)]
 pub struct Ident(pub String);
 
 #[derive(PartialEq, Debug, Clone)]
