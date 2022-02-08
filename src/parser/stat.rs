@@ -149,9 +149,19 @@ mod tests {
   use super::*;
 
   #[test]
-  fn test_stat() {
-    assert_eq!(stat("skip @"), Ok(("@", Stat::Skip)));
+  fn test_stat_skip() {
+    assert_eq!(
+      stat("skip; skip"),
+      Ok((
+        "",
+        Stat::Sequence(Box::new(Stat::Skip), Box::new(Stat::Skip))
+      ))
+    );
+    assert_eq!(stat("skip"), Ok(("", Stat::Skip)));
+  }
 
+  #[test]
+  fn test_stat_ass() {
     assert_eq!(
       stat("int x = 5"),
       Ok((
@@ -196,26 +206,54 @@ mod tests {
         )
       ))
     );
+  }
 
+  #[test]
+  fn test_stat_read() {
     assert_eq!(
       stat("read test"),
       Ok(("", Stat::Read(AssignLhs::Ident("test".to_string()))))
     );
+  }
 
-    let e1 = Expr::IntLiter(5);
-    assert_eq!(stat("free 5"), Ok(("", Stat::Free(e1.clone()))));
-    assert_eq!(stat("return 5"), Ok(("", Stat::Return(e1.clone()))));
-    assert_eq!(stat("exit 5"), Ok(("", Stat::Exit(e1.clone()))));
-    assert_eq!(stat("print 5"), Ok(("", Stat::Print(e1.clone()))));
-    assert_eq!(stat("println 5"), Ok(("", Stat::Println(e1.clone()))));
+  #[test]
+  fn test_stat_free() {
+    assert_eq!(stat("free 5"), Ok(("", Stat::Free(Expr::IntLiter(5)),)));
+  }
 
-    let e2 = Expr::StrLiter("hello".to_string());
-    assert_eq!(stat("print \"hello\""), Ok(("", Stat::Print(e2.clone()))));
+  #[test]
+  fn test_stat_return() {
+    assert_eq!(stat("return 5"), Ok(("", Stat::Return(Expr::IntLiter(5)))));
+  }
+
+  #[test]
+  fn test_stat_exit() {
+    assert_eq!(stat("exit 5"), Ok(("", Stat::Exit(Expr::IntLiter(5)))));
+  }
+
+  #[test]
+  fn test_stat_print() {
+    assert_eq!(stat("print 5"), Ok(("", Stat::Print(Expr::IntLiter(5)))));
+    assert_eq!(
+      stat("print \"hello\""),
+      Ok(("", Stat::Print(Expr::StrLiter("hello".to_string()))))
+    );
+  }
+
+  #[test]
+  fn test_stat_println() {
+    assert_eq!(
+      stat("println 5"),
+      Ok(("", Stat::Println(Expr::IntLiter(5))))
+    );
     assert_eq!(
       stat("println \"hello\""),
-      Ok(("", Stat::Println(e2.clone())))
+      Ok(("", Stat::Println(Expr::StrLiter("hello".to_string()))))
     );
+  }
 
+  #[test]
+  fn test_stat_if() {
     assert_eq!(
       stat("if b == 2 then x = 5 else x = 6 fi"),
       Ok((
@@ -237,7 +275,10 @@ mod tests {
         )
       ))
     );
+  }
 
+  #[test]
+  fn test_stat_while() {
     assert_eq!(
       stat("while n != 0 do acc = acc * n; n = n - 1 done"),
       Ok((
@@ -269,7 +310,10 @@ mod tests {
         )
       ))
     );
+  }
 
+  #[test]
+  fn test_stat_scope() {
     assert_eq!(
       stat("begin skip end"),
       Ok(("", Stat::Scope(Box::new(Stat::Skip))))
