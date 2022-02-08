@@ -11,11 +11,16 @@ OUTPUT_DIR	 := target
 all:
 	cargo build --release
 
-test:
+test: test_unit test_integration
+
+test_unit:
 	cargo test
+
+test_integration:
+	./test_integration.sh
 
 # clean up all of the compiled files
 clean:
 	cargo clean
 
-.PHONY: all clean
+.PHONY: all clean test test_unit test_integration
