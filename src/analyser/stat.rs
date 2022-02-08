@@ -2,8 +2,12 @@ use super::{equal_types, expected_type, symbol_table::SymbolTable, AResult, HasT
 use crate::ast::*;
 
 impl HasType for AssignLhs {
-  fn get_type(&self, _symbol_table: &SymbolTable) -> AResult<Type> {
-    todo!();
+  fn get_type(&self, symbol_table: &SymbolTable) -> AResult<Type> {
+    Ok(match self {
+      AssignLhs::Ident(id) => id.get_type(symbol_table)?,
+      AssignLhs::ArrayElem(elem) => elem.get_type(symbol_table)?,
+      AssignLhs::PairElem(elem) => elem.get_type(symbol_table)?,
+    })
   }
 }
 

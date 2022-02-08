@@ -1,30 +1,7 @@
 use std::collections::HashMap;
 use std::collections::VecDeque;
-use std::slice::SliceIndex;
 
 use super::ast::*;
-
-fn assign_type_check(
-  symbol_tables: &VecDeque<HashMap<String, Type>>,
-  assignment: Stat,
-) -> Result<bool, String> {
-  match assignment {
-    Stat::Assignment(lhs, rhs) => {
-      let mut lhs_var = "".to_string();
-
-      //match lhs {
-      // AssignLhs::Ident(id) => lhs_var = id.0.to_owned(),
-      //AssignLhs::ArrayElem(elem) => lhs_var = array_elem_fmt(&elem),
-      //AssignLhs::PairElem(elem) => lhs_var = pair_elem_fmt(&elem),
-      //}
-
-      let lhs_type = table_lookup(symbol_tables, &lhs_var).unwrap();
-
-      return Ok(true);
-    },
-    _ => Err("Wrong type of statement".to_string()),
-  }
-}
 
 fn type_from_unary_op(
   symbol_tables: &VecDeque<HashMap<String, Type>>,
