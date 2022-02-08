@@ -1,3 +1,4 @@
+mod analyser;
 mod ast;
 mod parser;
 use std::env;
