@@ -1,4 +1,8 @@
-use super::{equal_types, expected_type, symbol_table::SymbolTable, AResult, HasType};
+use super::{
+  equal_types, expected_type,
+  symbol_table::{self, SymbolTable},
+  AResult, HasType,
+};
 use crate::ast::*;
 
 impl HasType for AssignLhs {
@@ -12,8 +16,16 @@ impl HasType for AssignLhs {
 }
 
 impl HasType for AssignRhs {
-  fn get_type(&self, _symbol_table: &SymbolTable) -> AResult<Type> {
-    todo!();
+  fn get_type(&self, symbol_table: &SymbolTable) -> AResult<Type> {
+    Ok(match self {
+      AssignRhs::Expr(exp) => exp.get_type(symbol_table)?,
+      AssignRhs::ArrayLiter(lit) => lit.get_type(symbol_table)?,
+      // AssignRhs::Pair(e1, e2) => Type::Pair(e1.get_type(symbol_table)?,
+      // e2.get_type(symbol_table)?), //need to make Pair take an elem Type, would work with Any
+      AssignRhs::Pair(e1, e2) => todo!(),
+      AssignRhs::PairElem(elem) => elem.get_type(symbol_table)?,
+      AssignRhs::Call(id, _) => id.get_type(symbol_table)?,
+    })
   }
 }
 
