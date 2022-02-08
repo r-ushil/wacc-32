@@ -1,6 +1,2 @@
-#!/usr/bin/ruby
-# Ruby front-end for your compiler.
-# You are free to change the language used for this script,
-# but do *not* change its name.
-
-puts "TODO: setup this script to call your WACC compiler"
+#!/bin/sh
+echo "TODO: setup this script to call your WACC compiler"
