@@ -38,8 +38,19 @@ impl HasType for PairElem {
 }
 
 impl HasType for ArrayLiter {
-  fn get_type(&self, _symbol_table: &SymbolTable) -> AResult<Type> {
-    todo!();
+  fn get_type(&self, symbol_table: &SymbolTable) -> AResult<Type> {
+    if self.0.is_empty() {
+      todo!("Handle empty array");
+    } else {
+      let first = self.0.first().unwrap().get_type(symbol_table)?;
+      for expr in &self.0[1..] {
+        if !(expr.get_type(symbol_table)? == first) {
+          break;
+        }
+      }
+    }
+
+    Err("Mismatched type".to_string())
   }
 }
 
