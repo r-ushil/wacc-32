@@ -91,8 +91,23 @@ impl HasType for Ident {
 }
 
 impl HasType for ArrayElem {
-  fn get_type(&self, _symbol_table: &SymbolTable) -> AResult<Type> {
-    todo!();
+  fn get_type(&self, symbol_table: &SymbolTable) -> AResult<Type> {
+    let ArrayElem(id, indexes) = self;
+
+    /* Gets type of the array being looked up. */
+    let mut curr_type = id.get_type(symbol_table)?;
+
+    /* For each index, unwrap the type by one array. */
+    /* x[1][2]: i32 where x: [[i32]] */
+    for index in indexes {
+      expected_type(symbol_table, &Type::BaseType(BaseType::Int), index)?;
+      curr_type = match curr_type {
+        Type::Array(t) => *t,
+        t => return Err(format!("Expected array, found {:?}", t)),
+      };
+    }
+
+    Ok(curr_type)
   }
 }
 
@@ -119,4 +134,45 @@ mod tests {
       .is_err());
   }
 
+  #[test]
+  fn array_elems() {
+    let id = Ident(String::from("x"));
+
+    let mut symbol_table = SymbolTable::new();
+
+    /* x: Array(Array(Int)) */
+    symbol_table.insert(
+      &id,
+      Type::Array(Box::new(Type::Array(Box::new(Type::BaseType(
+        BaseType::Int,
+      ))))),
+    );
+
+    /* x[5][2]: Int */
+    assert_eq!(
+      ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::IntLiter(2)]).get_type(&symbol_table),
+      Ok(Type::BaseType(BaseType::Int)),
+    );
+
+    /* x[5]['a'] is error */
+    assert!(
+      ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::CharLiter('a')])
+        .get_type(&symbol_table)
+        .is_err()
+    );
+
+    /* x[5]: Array(Int) */
+    assert_eq!(
+      ArrayElem(id.clone(), vec![Expr::IntLiter(5)]).get_type(&symbol_table),
+      Ok(Type::Array(Box::new(Type::BaseType(BaseType::Int)))),
+    );
+
+    /* x[5][2][1] is error */
+    assert!(ArrayElem(
+      id.clone(),
+      vec![Expr::IntLiter(5), Expr::IntLiter(2), Expr::IntLiter(1)]
+    )
+    .get_type(&symbol_table)
+    .is_err());
+  }
 }
