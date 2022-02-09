@@ -23,13 +23,13 @@ pub fn ws<'a, F: 'a, O, E: ParseError<&'a str>>(
 where
   F: Parser<&'a str, O, E>,
 {
-  delimited(multispace0, inner, multispace0)
+  terminated(inner, multispace0)
 }
 
 /* Consumes whitespace, matches tag, consumes whitespace.
 Returns tag. */
 pub fn tok<'a>(t: &'a str) -> impl FnMut(&'a str) -> IResult<&'a str, &'a str> {
-  delimited(multispace0, tag(t), multispace0)
+  terminated(tag(t), multispace0)
 }
 
 /* Like many0, but each of the elements are seperated by another parser,
