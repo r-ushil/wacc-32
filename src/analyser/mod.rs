@@ -101,4 +101,22 @@ impl HasType for ArrayElem {
 
 #[cfg(test)]
 
-mod tests {}
+mod tests {
+  use super::*;
+
+  #[test]
+  fn idents() {
+    let x = Ident(String::from("x"));
+    let x_type = Type::BaseType(BaseType::Int);
+    let mut symbol_table = SymbolTable::new();
+
+    /* x: BaseType(Int) */
+    symbol_table.insert(&x, x_type.clone());
+
+    assert_eq!(x.get_type(&symbol_table), Ok(x_type));
+    assert!(Ident(String::from("hello"))
+      .get_type(&symbol_table)
+      .is_err());
+  }
+
+}
