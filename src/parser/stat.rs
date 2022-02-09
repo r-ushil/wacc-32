@@ -150,7 +150,7 @@ mod tests {
 
   #[test]
   fn test_stat() {
-    assert_eq!(stat(" skip @"), Ok(("@", Stat::Skip)));
+    assert_eq!(stat("skip @"), Ok(("@", Stat::Skip)));
 
     assert_eq!(
       stat("int x = 5"),

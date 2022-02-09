@@ -150,9 +150,9 @@ mod tests {
 
   #[test]
   fn test_expr() {
-    assert_eq!(expr(" true   "), Ok(("", Expr::BoolLiter(true))));
-    assert_eq!(expr(" ( false)   "), Ok(("", Expr::BoolLiter(false))));
-    assert_eq!(expr(" ( - 5321)"), Ok(("", Expr::IntLiter(-5321))));
+    assert_eq!(expr("true   "), Ok(("", Expr::BoolLiter(true))));
+    assert_eq!(expr("( false)   "), Ok(("", Expr::BoolLiter(false))));
+    assert_eq!(expr("( - 5321)"), Ok(("", Expr::IntLiter(-5321))));
     assert_eq!(expr("+523"), Ok(("", Expr::IntLiter(523))));
     assert_eq!(expr("1"), Ok(("", Expr::IntLiter(1))));
     assert_eq!(expr("'a'"), Ok(("", Expr::CharLiter('a'))));
@@ -168,13 +168,13 @@ mod tests {
     );
     assert_eq!(expr("\"\""), Ok(("", Expr::StrLiter(String::from("")))));
     assert_eq!(expr("null"), Ok(("", Expr::PairLiter)));
-    assert_eq!(expr("  null  5"), Ok(("5", Expr::PairLiter)));
+    assert_eq!(expr("null  5"), Ok(("5", Expr::PairLiter)));
     assert_eq!(
-      expr(" hello "),
+      expr("hello "),
       Ok(("", Expr::Ident(Ident(String::from("hello")))))
     );
     assert_eq!(
-      expr(" hello  5"),
+      expr("hello  5"),
       Ok(("5", Expr::Ident(Ident(String::from("hello")))))
     );
     assert_eq!(
@@ -274,7 +274,7 @@ mod tests {
 
   #[test]
   fn test_binary_oper() {
-    assert_eq!(binary_oper("  *"), Ok(("", BinaryOper::Mul)));
+    assert_eq!(binary_oper("*"), Ok(("", BinaryOper::Mul)));
     assert_eq!(binary_oper("/  "), Ok(("", BinaryOper::Div)));
     assert_eq!(binary_oper("%"), Ok(("", BinaryOper::Mod)));
     assert_eq!(binary_oper("+"), Ok(("", BinaryOper::Add)));
@@ -282,13 +282,13 @@ mod tests {
     assert_eq!(binary_oper(">"), Ok(("", BinaryOper::Gt)));
     assert_eq!(binary_oper(">="), Ok(("", BinaryOper::Gte)));
     assert_eq!(binary_oper("<"), Ok(("", BinaryOper::Lt)));
-    assert_eq!(binary_oper(" <="), Ok(("", BinaryOper::Lte)));
-    assert_eq!(binary_oper(" == "), Ok(("", BinaryOper::Eq)));
+    assert_eq!(binary_oper("<="), Ok(("", BinaryOper::Lte)));
+    assert_eq!(binary_oper("== "), Ok(("", BinaryOper::Eq)));
     assert_eq!(binary_oper("!="), Ok(("", BinaryOper::Neq)));
     assert_eq!(binary_oper("&&"), Ok(("", BinaryOper::And)));
     assert_eq!(binary_oper("||"), Ok(("", BinaryOper::Or)));
 
-    assert_eq!(binary_oper(" < ="), Ok(("=", BinaryOper::Lt)));
+    assert_eq!(binary_oper("< ="), Ok(("=", BinaryOper::Lt)));
     assert_eq!(binary_oper("> ="), Ok(("=", BinaryOper::Gt)));
   }
 }
