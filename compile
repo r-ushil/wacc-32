@@ -1,3 +1,3 @@
 #!/bin/sh
 
-./target/release/wacc_32
+docker run -v $(pwd):/tmp/wacc/cwd -w /tmp/wacc/cwd wacc_32 $@

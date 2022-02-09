@@ -9,9 +9,14 @@ OUTPUT_DIR	 := target
 
 # run the antlr build script then attempts to compile all .java files within src/antlr
 all:
+	docker build -t wacc_32 --target release .
+
+wacc:
+	cargo build --release
+
+rust:
 	rustup install stable
 	rustup default stable
-	cargo build --release
 
 test: test_unit test_integration
 
