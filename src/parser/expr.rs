@@ -73,7 +73,7 @@ pub fn expr(input: &str) -> IResult<&str, Expr> {
 
 //〈int-liter〉::= (‘+’ | ‘-’) ? (‘0’-‘9’)
 fn int_liter(input: &str) -> IResult<&str, i32> {
-  let (input, (sign, digits)) = pair(opt(ws(alt((char_('+'), char_('-'))))), digit1)(input)?;
+  let (input, (sign, digits)) = pair(opt(ws(alt((char_('+'), char_('-'))))), ws(digit1))(input)?;
 
   /* Use builtin i32 parsing for digits. */
   let n = digits.parse::<i32>().unwrap();
