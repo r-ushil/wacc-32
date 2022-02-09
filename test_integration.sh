@@ -24,7 +24,7 @@ test_integration() {
 		
 	done < test_integration/test_list_exit_codes
 	
-	echo Passing $tests_passed of $tests_total tests
+	echo Passing $tests_passed of $tests_total integration tests.
 
 	[[ $tests_passed -eq $tests_total ]]
 }
