@@ -88,14 +88,44 @@ impl HasType for Expr {
 mod tests {
   use super::*;
 
-  fn example_symbol_table<'a>() -> SymbolTable<'a> {
-    let symbol_table = SymbolTable::new();
-
-    // populate symbol_table
-
-    symbol_table
+  /* Defines a scope with 10 variables, each starting with prefix and ending with 0..10 */
+  fn populate_symbol_table(symbol_table: &mut SymbolTable, prefix: &str) {
+    for i in 0..10 {
+      let ident = Ident(format!("{}{}", prefix, i));
+      let t = Type::BaseType(BaseType::Int);
+      symbol_table.insert(&ident, t);
+    }
   }
 
   #[test]
-  fn test_literals() {}
+  fn test_literals() {
+    let symbol_table = &SymbolTable::new();
+
+    assert_eq!(
+      Expr::IntLiter(5).get_type(symbol_table),
+      Ok(Type::BaseType(BaseType::Int))
+    );
+    assert_eq!(
+      Expr::BoolLiter(false).get_type(symbol_table),
+      Ok(Type::BaseType(BaseType::Bool))
+    );
+    assert_eq!(
+      Expr::CharLiter('a').get_type(symbol_table),
+      Ok(Type::BaseType(BaseType::Char))
+    );
+    assert_eq!(
+      Expr::PairLiter.get_type(symbol_table),
+      Ok(Type::Pair(
+        Box::new(Type::BaseType(BaseType::Any)),
+        Box::new(Type::BaseType(BaseType::Any))
+      )),
+    );
+  }
+
+  #[test]
+  fn test_ident() {
+    let mut outer = SymbolTable::new();
+    populate_symbol_table(&mut outer, "outer");
+    let _inner = outer.new_scope();
+  }
 }
