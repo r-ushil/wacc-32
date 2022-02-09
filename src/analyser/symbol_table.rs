@@ -9,6 +9,7 @@ pub struct SymbolTable<'a> {
   above_scopes: Option<&'a SymbolTable<'a>>,
 }
 
+#[allow(dead_code)]
 impl<'a> SymbolTable<'a> {
   /* Makes new Symbol table with initial global scope. */
   pub fn new() -> Self {
