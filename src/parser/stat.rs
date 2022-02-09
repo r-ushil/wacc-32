@@ -379,7 +379,7 @@ mod tests {
   }
 
   #[test]
-  fn test_stat_ass() {
+  fn test_stat_ass_idtype() {
     assert_eq!(
       stat("intx = 5"),
       Ok((
@@ -390,7 +390,10 @@ mod tests {
         )
       ))
     );
+  }
 
+  #[test]
+  fn test_stat_ass_arr() {
     assert_eq!(
       stat("int[] arr = [1,2,3,4,5]"),
       Ok((
@@ -402,7 +405,10 @@ mod tests {
         )
       ))
     );
+  }
 
+  #[test]
+  fn test_stat_ass_int2() {
     assert_eq!(
       stat("aaa = 123"),
       Ok((
@@ -413,7 +419,10 @@ mod tests {
         )
       ))
     );
+  }
 
+  #[test]
+  fn test_stat_ass_array_pair() {
     assert_eq!(
       stat("array[2] = newpair (1, 'a') restOfString"),
       Ok((
