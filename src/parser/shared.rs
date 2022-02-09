@@ -29,7 +29,7 @@ where
 /* Consumes whitespace, matches tag, consumes whitespace.
 Returns tag. */
 pub fn tok<'a>(t: &'a str) -> impl FnMut(&'a str) -> IResult<&'a str, &'a str> {
-  delimited(multispace0, tag(t), multispace0)
+  ws(tag(t))
 }
 
 /* Like many0, but each of the elements are seperated by another parser,
