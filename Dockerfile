@@ -6,8 +6,7 @@ WORKDIR /wacc
 FROM base AS dependencies
 COPY Cargo.lock .
 COPY Cargo.toml .
-RUN cargo build
-RUN cargo build --release
+RUN cargo fetch
 RUN rm -rf src/*.rs
 
 FROM dependencies AS builder
