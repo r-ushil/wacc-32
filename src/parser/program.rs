@@ -1,7 +1,7 @@
 extern crate nom;
 use nom::{
   multi::many0,
-  sequence::{delimited, pair, tuple},
+  sequence::{delimited, pair, preceded, tuple},
   IResult,
 };
 
@@ -12,8 +12,11 @@ use crate::ast::*;
 
 /* program ::= 'begin' <func>* <stat> 'end' */
 pub fn program(input: &str) -> IResult<&str, Program> {
-  let (input, (funcs, statement)) =
-    delimited(tok("begin"), pair(many0(func), stat), tok("end"))(input)?;
+  let (input, (funcs, statement)) = delimited(
+    preceded(comment_or_ws, tok("begin")),
+    pair(many0(func), stat),
+    tok("end"),
+  )(input)?;
 
   Ok((input, Program { funcs, statement }))
 }

@@ -30,7 +30,7 @@ fn comment<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, &'a s
   value("", pair(char_('#'), is_not("\n\r")))(input)
 }
 
-fn comment_or_ws<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, &'a str, E> {
+pub fn comment_or_ws<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, &'a str, E> {
   value(
     "",
     many0(alt((

@@ -16,7 +16,7 @@ test_integration() {
 		test_name=$(echo $in | cut -d, -f1)
 		expected_exit_code=$(echo $in | cut -d, -f2)
 		expected_test_status=$(echo $in | cut -d, -f3)
-		./target/release/wacc_32 ./test_integration/$test_name >> /dev/null
+		./target/release/wacc_32 ./test_integration/$test_name >>  /dev/null 2>&1
 		actual_exit_code=$?
 
 		if [ $expected_exit_code -eq $actual_exit_code ]
@@ -38,7 +38,7 @@ test_integration() {
 			  echo -e FAILED "\t" $expected_exit_code "\t" $actual_exit_code "\t" $test_name
 			  expected_failures=$((expected_failures + 1))
       else
-        echo -e FAILED "\t\t\t" $expected_exit_code "\t" $actual_exit_code "\t" $test_name "(unexpected)"
+        echo -e FAILED "\t" $expected_exit_code "\t" $actual_exit_code "\t" $test_name "(unexpected)"
 			  unexpected_failures=$((unexpected_failures + 1))
       fi
 			tests_failed=$((tests_failed + 1))
