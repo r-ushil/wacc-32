@@ -66,7 +66,7 @@ pub fn expr(input: &str) -> IResult<&str, Expr> {
   match opt(pair(binary_oper, expr))(input).unwrap() {
     (input, Some((op, expr2))) => {
       Ok((input, Expr::BinaryApp(Box::new(expr1), op, Box::new(expr2))))
-    }
+    },
     (input, None) => Ok((input, expr1)),
   }
 }

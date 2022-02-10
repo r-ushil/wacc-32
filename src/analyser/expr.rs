@@ -17,7 +17,7 @@ impl HasType for Expr {
       Expr::UnaryApp(op, exp) => match op {
         UnaryOper::Bang => {
           expected_type(symbol_table, &Type::BaseType(BaseType::Bool), exp)?.clone()
-        }
+        },
         UnaryOper::Neg => expected_type(symbol_table, &Type::BaseType(BaseType::Int), exp)?.clone(),
         UnaryOper::Len => match exp.get_type(symbol_table)? {
           Type::Array(_) => Type::BaseType(BaseType::Int),
@@ -26,16 +26,16 @@ impl HasType for Expr {
               "TYPE ERROR: Attempt to find length of non array\n\tExpected: Array\n\tActual: {:?}",
               t
             ))
-          }
+          },
         },
         UnaryOper::Ord => {
           expected_type(symbol_table, &Type::BaseType(BaseType::Char), exp)?;
           Type::BaseType(BaseType::Int)
-        }
+        },
         UnaryOper::Chr => {
           expected_type(symbol_table, &Type::BaseType(BaseType::Int), exp)?;
           Type::BaseType(BaseType::Char)
-        }
+        },
       },
 
       Expr::BinaryApp(exp1, op, exp2) => {
@@ -55,7 +55,7 @@ impl HasType for Expr {
                 "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
                 op, t
               ))
-            }
+            },
           },
           /* Any types can be compared. */
           BinaryOper::Gt
@@ -72,10 +72,10 @@ impl HasType for Expr {
                 "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
                 op, t
               ))
-            }
+            },
           },
         }
-      }
+      },
     })
   }
 }
@@ -84,11 +84,11 @@ impl HasType for Expr {
 mod tests {
   use std::fmt::Binary;
 
+  use super::*;
   use crate::analyser::symbol_table;
 
-  use super::*;
-
-  /* Defines a scope with 10 variables, each starting with prefix and ending with 0..10 */
+  /* Defines a scope with 10 variables, each starting with prefix and ending
+   * with 0..10 */
   fn populate_symbol_table(symbol_table: &mut SymbolTable, prefix: &str) {
     for i in 0..10 {
       let ident = Ident(format!("{}{}", prefix, i));
@@ -173,7 +173,7 @@ mod tests {
       Ok(Type::BaseType(BaseType::Int))
     );
 
-    /* -false: ERROR*/
+    /* -false: ERROR */
     assert!(
       Expr::UnaryApp(UnaryOper::Neg, Box::new(Expr::BoolLiter(false)))
         .get_type(symbol_table)

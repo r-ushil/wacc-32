@@ -101,15 +101,15 @@ pub fn stat(symbol_table: &mut SymbolTable, statement: &Stat) -> AResult<ReturnB
       expected_type(symbol_table, &expected, val)?;
 
       Ok(Never) /* Declarations never return. */
-    }
+    },
     Stat::Assignment(lhs, rhs) => {
       equal_types(symbol_table, lhs, rhs)?;
       Ok(Never) /* Assignments never return. */
-    } // x = [1,2,3]
+    }, // x = [1,2,3]
     Stat::Read(dest) => {
       expected_type(symbol_table, &Type::BaseType(BaseType::String), dest)?;
       Ok(Never) /* Reads never return. */
-    }
+    },
     Stat::Free(expr) => match expr.get_type(symbol_table)? {
       Type::Pair(_, _) | Type::Array(_) => Ok(Never), /* Frees never return. */
       actual_type => Err(format!(
@@ -121,11 +121,11 @@ pub fn stat(symbol_table: &mut SymbolTable, statement: &Stat) -> AResult<ReturnB
     Stat::Exit(expr) => {
       expected_type(symbol_table, &Type::BaseType(BaseType::Int), expr)?;
       Ok(Always(Type::BaseType(BaseType::Any))) /* Exit never return. */
-    }
+    },
     Stat::Print(expr) | Stat::Println(expr) => {
       expected_type(symbol_table, &Type::BaseType(BaseType::String), expr)?;
       Ok(Never) /* Prints never return. */
-    }
+    },
     Stat::If(cond, if_stat, else_stat) => {
       expected_type(symbol_table, &Type::BaseType(BaseType::Bool), cond)?;
 
@@ -157,7 +157,7 @@ pub fn stat(symbol_table: &mut SymbolTable, statement: &Stat) -> AResult<ReturnB
         /* Otherwise, the if statement can't be relied on to return. */
         Ok(Sometimes(return_type.clone()))
       }
-    }
+    },
     Stat::While(cond, body) => {
       expected_type(symbol_table, &Type::BaseType(BaseType::Bool), cond)?;
 
@@ -168,7 +168,7 @@ pub fn stat(symbol_table: &mut SymbolTable, statement: &Stat) -> AResult<ReturnB
         /* Otherwise white loop returns the same way it's body does. */
         b => b,
       })
-    }
+    },
     Stat::Scope(body) => return stat(symbol_table, body),
     Stat::Sequence(fst, snd) => {
       /* CHECK: no definite returns before last line. */
@@ -186,7 +186,7 @@ pub fn stat(symbol_table: &mut SymbolTable, statement: &Stat) -> AResult<ReturnB
         /* Otherwise the return behaviour is determined by the rhs. */
         rhs
       })
-    }
+    },
   }
 }
 
@@ -198,7 +198,7 @@ mod tests {
   fn assign_lhs() {
     let symbol_table = &mut SymbolTable::new();
 
-    /* Identifiers cause  */
+    /* Identifiers cause */
     let x_id = Ident(String::from("x"));
     let x_type = Type::Array(Box::new(Type::BaseType(BaseType::Int)));
     symbol_table.insert(&x_id, x_type.clone()).unwrap();
@@ -209,8 +209,8 @@ mod tests {
 
     /*  */
     // assert_eq!(
-    //   AssignLhs::ArrayElem(ArrayElem(x_id.clone(), vec!(Expr::IntLiter(5)))).get_type(symbol_table),
-    //   Ok(x_type.clone())
-    // );
+    //   AssignLhs::ArrayElem(ArrayElem(x_id.clone(),
+    // vec!(Expr::IntLiter(5)))).get_type(symbol_table),   Ok(x_type.
+    // clone()) );
   }
 }

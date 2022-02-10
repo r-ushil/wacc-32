@@ -47,9 +47,8 @@ fn program(symbol_table: &mut SymbolTable, program: &Program) -> AResult<()> {
 
 #[cfg(test)]
 mod tests {
-  use crate::analyser::symbol_table;
-
   use super::*;
+  use crate::analyser::symbol_table;
 
   #[test]
   fn func_parameters_checked() {
