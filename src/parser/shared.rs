@@ -1,11 +1,11 @@
 extern crate nom;
 use nom::{
   branch::alt,
-  bytes::complete::tag,
-  character::complete::{alpha1, alphanumeric1, multispace0},
-  combinator::{map, opt, recognize, verify},
+  bytes::complete::{is_not, tag},
+  character::complete::{alpha1, alphanumeric1, anychar, char as char_, multispace0},
+  combinator::{map, not, opt, recognize, value, verify},
   error::ParseError,
-  multi::many0,
+  multi::{many0, many1},
   sequence::{delimited, pair, terminated},
   IResult, Parser,
 };
@@ -23,7 +23,24 @@ pub fn ws<'a, F: 'a, O, E: ParseError<&'a str>>(
 where
   F: Parser<&'a str, O, E>,
 {
-  delimited(multispace0, inner, multispace0)
+  terminated(inner, comment_or_ws)
+}
+
+fn comment<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, &'a str, E> {
+  value("", pair(char_('#'), is_not("\n\r")))(input)
+}
+
+fn comment_or_ws<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, &'a str, E> {
+  value(
+    "",
+    many0(alt((
+      char_(' '),
+      char_('\n'),
+      char_('\r'),
+      char_('\t'),
+      value('a', comment),
+    ))),
+  )(input)
 }
 
 /* Consumes whitespace, matches tag, consumes whitespace.
@@ -101,5 +118,20 @@ mod tests {
     assert!(ident("read").is_err());
     assert!(ident("begin").is_err());
     assert_eq!(ident("lenx"), Ok(("", Ident("lenx".to_string()))));
+  }
+
+  #[test]
+  fn test_many0_multispace0() {
+    let input = "#hello \n   #a;sdkjf;lakdsjf\n  #hi there\nsomething";
+    let x: IResult<_, _> = many0(alt((
+      char_(' '),
+      char_('\n'),
+      char_('\r'),
+      char_('\t'),
+      value('a', comment),
+    )))(input);
+    let (input, _) = x.unwrap();
+
+    assert_eq!(input, "something");
   }
 }
