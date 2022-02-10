@@ -282,6 +282,32 @@ mod tests {
   }
 
   #[test]
+  fn test_stat_ass_binary_app_sum_mult() {
+    assert_eq!(
+      stat("a = w + x * y + z"),
+      Ok((
+        "",
+        Stat::Assignment(
+          AssignLhs::Ident("a".to_string()),
+          AssignRhs::Expr(Expr::BinaryApp(
+            Box::new(Expr::Ident("w".to_string())),
+            BinaryOper::Add,
+            Box::new(Expr::BinaryApp(
+              Box::new(Expr::BinaryApp(
+                Box::new(Expr::Ident("x".to_string())),
+                BinaryOper::Mul,
+                Box::new(Expr::Ident("y".to_string()))
+              )),
+              BinaryOper::Add,
+              Box::new(Expr::Ident("z".to_string())),
+            )),
+          ))
+        )
+      ))
+    )
+  }
+
+  #[test]
   fn test_pair_elem() {
     assert_eq!(
       pair_elem("fst 5"),

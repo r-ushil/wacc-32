@@ -259,22 +259,114 @@ mod tests {
   }
 
   #[test]
-  fn test_expr_binary_app() {
+  fn test_expr_binary_app_sum_mult() {
+    assert_eq!(
+      expr("w + x * y + z"),
+      Ok((
+        "",
+        Expr::BinaryApp(
+          Box::new(Expr::Ident("w".to_string())),
+          BinaryOper::Add,
+          Box::new(Expr::BinaryApp(
+            Box::new(Expr::BinaryApp(
+              Box::new(Expr::Ident("x".to_string())),
+              BinaryOper::Mul,
+              Box::new(Expr::Ident("y".to_string()))
+            )),
+            BinaryOper::Add,
+            Box::new(Expr::Ident("z".to_string())),
+          )),
+        )
+      ))
+    )
+  }
+
+  #[test]
+  fn test_expr_binary_app_add_products() {
     assert_eq!(
       expr("w * x + y * z"),
       Ok((
         "",
         Expr::BinaryApp(
           Box::new(Expr::BinaryApp(
-            Box::new(Expr::Ident(Ident("w".to_string()))),
+            Box::new(Expr::Ident("w".to_string())),
             BinaryOper::Mul,
-            Box::new(Expr::Ident(Ident("x".to_string()))),
+            Box::new(Expr::Ident("x".to_string())),
           )),
           BinaryOper::Add,
           Box::new(Expr::BinaryApp(
-            Box::new(Expr::Ident(Ident("y".to_string()))),
+            Box::new(Expr::Ident("y".to_string())),
             BinaryOper::Mul,
-            Box::new(Expr::Ident(Ident("z".to_string()))),
+            Box::new(Expr::Ident("z".to_string())),
+          )),
+        )
+      ))
+    )
+  }
+
+  #[test]
+  fn test_expr_binary_app_products_eq() {
+    assert_eq!(
+      expr("w * x == y * z"),
+      Ok((
+        "",
+        Expr::BinaryApp(
+          Box::new(Expr::BinaryApp(
+            Box::new(Expr::Ident("w".to_string())),
+            BinaryOper::Mul,
+            Box::new(Expr::Ident("x".to_string())),
+          )),
+          BinaryOper::Eq,
+          Box::new(Expr::BinaryApp(
+            Box::new(Expr::Ident("y".to_string())),
+            BinaryOper::Mul,
+            Box::new(Expr::Ident("z".to_string())),
+          )),
+        )
+      ))
+    )
+  }
+
+  #[test]
+  fn test_expr_binary_app_brackets() {
+    assert_eq!(
+      expr("w * (x == y) * z"),
+      Ok((
+        "",
+        Expr::BinaryApp(
+          Box::new(Expr::Ident("w".to_string())),
+          BinaryOper::Mul,
+          Box::new(Expr::BinaryApp(
+            Box::new(Expr::BinaryApp(
+              Box::new(Expr::Ident("x".to_string())),
+              BinaryOper::Eq,
+              Box::new(Expr::Ident("y".to_string()))
+            )),
+            BinaryOper::Mul,
+            Box::new(Expr::Ident("z".to_string())),
+          )),
+        )
+      ))
+    )
+  }
+
+  #[test]
+  fn test_expr_binary_app_brackets_desc() {
+    assert_eq!(
+      expr("w * (x + (y == z))"),
+      Ok((
+        "",
+        Expr::BinaryApp(
+          Box::new(Expr::Ident("w".to_string())),
+          BinaryOper::Mul,
+          Box::new(Expr::BinaryApp(
+            Box::new(Expr::Ident("x".to_string())),
+            BinaryOper::Add,
+            Box::new(Expr::BinaryApp(
+              Box::new(Expr::Ident("y".to_string())),
+              BinaryOper::Eq,
+              Box::new(Expr::Ident("z".to_string()))
+            ))
           )),
         )
       ))
