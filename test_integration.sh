@@ -24,14 +24,12 @@ test_integration() {
       if [ "$expected_test_status" = "pass" ]
       then
 			  echo -e PASSED "\t\t\t" $test_name
-			  expected_passes=$((tests_passed + 1))
+			  expected_passes=$((expected_passes + 1))
       else
         echo -e PASSED "\t\t\t" $test_name "(unexpected)"
 			  unexpected_passes=$((unexpected_passes + 1))
       fi
-
 			tests_passed=$((tests_passed + 1))
-
 		else
       if [ "$expected_test_status" = "fail" ]
       then
