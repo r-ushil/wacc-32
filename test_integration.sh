@@ -53,7 +53,13 @@ test_integration() {
   echo "Failed (unexpected) :" $unexpected_failures
   echo Passing $tests_passed of $tests_total tests.
 
-	[[ $unexpected_failures -ge 0 ]]
+  unexpected=$((unexpected_failures + unexpected_passes))
+
+	if [ $unexpected -gt 0 ]
+  then
+    echo Warning! Unexpected test results
+  fi
+	[[ $unexpected -eq 0 ]]
 }
 
 test_integration
