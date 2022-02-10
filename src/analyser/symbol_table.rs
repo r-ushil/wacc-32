@@ -57,16 +57,16 @@ mod tests {
   #[test]
   fn foo() {
     let mut a = SymbolTable::new();
-    a.insert(&Ident("foo".to_owned()), Type::BaseType(BaseType::Int));
+    a.insert(&("foo".to_owned()), Type::Int);
 
     let mut b = a.new_scope();
-    let b_ident = Ident("bar".to_owned());
-    let b_type = Type::BaseType(BaseType::Int);
+    let b_ident = "bar".to_owned();
+    let b_type = Type::Int;
     b.insert(&b_ident, b_type.clone());
 
     assert_eq!(b.get(&b_ident), Some(&b_type));
 
-    a.insert(&Ident("baz".to_owned()), Type::BaseType(BaseType::Int));
+    a.insert(&("baz".to_owned()), Type::Int);
   }
 
   #[test]
@@ -80,24 +80,24 @@ mod tests {
     //   let var2 = Ident(format!("{}{}", "y", i));
     //   let var3 = Ident(format!("{}{}", "z", i));
 
-    //   st.insert(&var1, Type::BaseType(BaseType::Bool));
-    //   st.insert(&var2, Type::BaseType(BaseType::Int));
-    //   st.insert(&var3, Type::BaseType(BaseType::String));
+    //   st.insert(&var1, Type::Bool);
+    //   st.insert(&var2, Type::Int);
+    //   st.insert(&var3, Type::String);
 
     //   st.new_scope();
     // }
 
     // assert_eq!(table_lookup(&vec, "x3"),
-    // Ok(Type::BaseType(BaseType::Bool)),);
+    // Ok(Type::Bool),);
 
     // assert_eq!(
     //   table_lookup(&vec, "z3"),
-    //   Ok(Type::BaseType(BaseType::String)),
+    //   Ok(Type::String),
     // );
 
     // assert_ne!(
     //   table_lookup(&vec, "v3"),
-    //   Ok(Type::BaseType(BaseType::String)),
+    //   Ok(Type::String),
     // );
 
     // assert_eq!(table_lookup(&vec, "random"), Err("not found".to_string()),);
@@ -116,9 +116,9 @@ mod tests {
     //   let var2 = format!("{}{}", "y", i);
     //   let var3 = format!("{}{}", "z", i);
 
-    //   curr.insert(var1, Type::BaseType(BaseType::Bool));
-    //   curr.insert(var2, Type::BaseType(BaseType::Int));
-    //   curr.insert(var3, Type::BaseType(BaseType::String));
+    //   curr.insert(var1, Type::Bool);
+    //   curr.insert(var2, Type::Int);
+    //   curr.insert(var3, Type::String);
 
     //   vec.push_front(curr.clone());
     // }
@@ -127,14 +127,14 @@ mod tests {
     // String] // [x3: Bool, y3: Int, z3: String]
 
     // assert_eq!(
-    //   table_update(&mut vec, "x1", Type::BaseType(BaseType::Char), true),
+    //   table_update(&mut vec, "x1", Type::Char, true),
     //   Ok(HashMap::from([
-    //     ("x1".to_string(), Type::BaseType(BaseType::Char)),
-    //     ("y1".to_string(), Type::BaseType(BaseType::Int)),
-    //     ("z1".to_string(), Type::BaseType(BaseType::String)),
+    //     ("x1".to_string(), Type::Char),
+    //     ("y1".to_string(), Type::Int),
+    //     ("z1".to_string(), Type::String),
     //   ]))
     // );
 
-    // assert_ne!(table_lookup(&vec, "x1"), Ok(Type::BaseType(BaseType::Bool)),)
+    // assert_ne!(table_lookup(&vec, "x1"), Ok(Type::Bool),)
   }
 }

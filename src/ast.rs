@@ -56,18 +56,13 @@ pub enum PairElem {
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum Type {
-  BaseType(BaseType),
-  Array(Box<Type>),
-  Pair(Box<Type>, Box<Type>),
-}
-
-#[derive(PartialEq, Debug, Clone)]
-pub enum BaseType {
   Int,
   Bool,
   Char,
   String,
   Any,
+  Array(Box<Type>),
+  Pair(Box<Type>, Box<Type>),
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -109,8 +104,9 @@ pub enum BinaryOper {
   Or,
 }
 
-#[derive(PartialEq, Debug, Clone, Hash, Eq)]
-pub struct Ident(pub String);
+// #[derive(PartialEq, Debug, Clone, Hash, Eq)]
+pub type Ident = String;
+// pub struct Ident(pub String);
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct ArrayElem(pub Ident, pub Vec<Expr>);

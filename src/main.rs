@@ -40,7 +40,7 @@ fn main() {
     Err(e) => {
       println!("{}", e);
       exit(100);
-    },
+    }
   };
 
   // Print the generated abstract syntax tree

@@ -66,7 +66,7 @@ pub fn expr(input: &str) -> IResult<&str, Expr> {
   match opt(pair(binary_oper, expr))(input).unwrap() {
     (input, Some((op, expr2))) => {
       Ok((input, Expr::BinaryApp(Box::new(expr1), op, Box::new(expr2))))
-    },
+    }
     (input, None) => Ok((input, expr1)),
   }
 }
@@ -169,22 +169,16 @@ mod tests {
     assert_eq!(expr("\"\""), Ok(("", Expr::StrLiter(String::from("")))));
     assert_eq!(expr("null"), Ok(("", Expr::PairLiter)));
     assert_eq!(expr("null  5"), Ok(("5", Expr::PairLiter)));
-    assert_eq!(
-      expr("hello "),
-      Ok(("", Expr::Ident(Ident(String::from("hello")))))
-    );
+    assert_eq!(expr("hello "), Ok(("", Expr::Ident(String::from("hello")))));
     assert_eq!(
       expr("hello  5"),
-      Ok(("5", Expr::Ident(Ident(String::from("hello")))))
+      Ok(("5", Expr::Ident(String::from("hello"))))
     );
     assert_eq!(
       expr("hello [ 2] "),
       Ok((
         "",
-        Expr::ArrayElem(ArrayElem(
-          Ident(String::from("hello")),
-          vec!(Expr::IntLiter(2)),
-        ))
+        Expr::ArrayElem(ArrayElem(String::from("hello"), vec!(Expr::IntLiter(2)),))
       ))
     );
     assert_eq!(
@@ -254,10 +248,7 @@ mod tests {
   fn test_array_elem() {
     assert_eq!(
       array_elem("array[2]"),
-      Ok((
-        "",
-        ArrayElem(Ident("array".to_string()), vec!(Expr::IntLiter(2)))
-      ))
+      Ok(("", ArrayElem("array".to_string(), vec!(Expr::IntLiter(2)))))
     );
 
     assert_eq!(
@@ -265,7 +256,7 @@ mod tests {
       Ok((
         "",
         ArrayElem(
-          Ident("otherArray".to_string()),
+          "otherArray".to_string(),
           vec!(Expr::IntLiter(1), Expr::IntLiter(2))
         )
       ))

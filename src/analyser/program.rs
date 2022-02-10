@@ -48,7 +48,6 @@ fn program(symbol_table: &mut SymbolTable, program: &Program) -> AResult<()> {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::analyser::symbol_table;
 
   #[test]
   fn func_parameters_checked() {
@@ -57,14 +56,11 @@ mod tests {
     /* Function */
     /* int double(int x) is return x * 2 end */
     let f = Func {
-      return_type: Type::BaseType(BaseType::Int),
-      ident: Ident(String::from("double")),
-      param_list: vec![Param(
-        Type::BaseType(BaseType::Int),
-        Ident(String::from("x")),
-      )],
+      return_type: Type::Int,
+      ident: (String::from("double")),
+      param_list: vec![Param(Type::Int, String::from("x"))],
       body: Stat::Return(Expr::BinaryApp(
-        Box::new(Expr::Ident(Ident(String::from("x")))),
+        Box::new(Expr::Ident(String::from("x"))),
         BinaryOper::Mul,
         Box::new(Expr::IntLiter(2)),
       )),
@@ -82,8 +78,8 @@ mod tests {
     /* Can compare parameter type with return type. */
     /* bool double(int x) is return x end */
     let mut f2 = f.clone();
-    f2.return_type = Type::BaseType(BaseType::Bool);
-    f2.body = Stat::Return(Expr::Ident(Ident(String::from("x"))));
+    f2.return_type = Type::Bool;
+    f2.body = Stat::Return(Expr::Ident(String::from("x")));
     assert!(func(symbol_table, &f2).is_err());
   }
 
@@ -94,14 +90,11 @@ mod tests {
     /* Function */
     /* int double(int x) is return x * 2 end */
     let f = Func {
-      return_type: Type::BaseType(BaseType::Int),
-      ident: Ident(String::from("double")),
-      param_list: vec![Param(
-        Type::BaseType(BaseType::Int),
-        Ident(String::from("x")),
-      )],
+      return_type: Type::Int,
+      ident: (String::from("double")),
+      param_list: vec![Param(Type::Int, String::from("x"))],
       body: Stat::Return(Expr::BinaryApp(
-        Box::new(Expr::Ident(Ident(String::from("x")))),
+        Box::new(Expr::Ident(String::from("x"))),
         BinaryOper::Mul,
         Box::new(Expr::IntLiter(2)),
       )),

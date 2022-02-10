@@ -4,38 +4,33 @@ use crate::ast::*;
 impl HasType for Expr {
   fn get_type(&self, symbol_table: &SymbolTable) -> AResult<Type> {
     Ok(match self {
-      Expr::IntLiter(_) => Type::BaseType(BaseType::Int),
-      Expr::BoolLiter(_) => Type::BaseType(BaseType::Bool),
-      Expr::CharLiter(_) => Type::BaseType(BaseType::Char),
-      Expr::StrLiter(_) => Type::BaseType(BaseType::String),
-      Expr::PairLiter => Type::Pair(
-        Box::new(Type::BaseType(BaseType::Any)),
-        Box::new(Type::BaseType(BaseType::Any)),
-      ),
+      Expr::IntLiter(_) => Type::Int,
+      Expr::BoolLiter(_) => Type::Bool,
+      Expr::CharLiter(_) => Type::Char,
+      Expr::StrLiter(_) => Type::String,
+      Expr::PairLiter => Type::Pair(Box::new(Type::Any), Box::new(Type::Any)),
       Expr::Ident(id) => id.get_type(symbol_table)?,
       Expr::ArrayElem(elem) => elem.get_type(symbol_table)?,
       Expr::UnaryApp(op, exp) => match op {
-        UnaryOper::Bang => {
-          expected_type(symbol_table, &Type::BaseType(BaseType::Bool), exp)?.clone()
-        },
-        UnaryOper::Neg => expected_type(symbol_table, &Type::BaseType(BaseType::Int), exp)?.clone(),
+        UnaryOper::Bang => expected_type(symbol_table, &Type::Bool, exp)?.clone(),
+        UnaryOper::Neg => expected_type(symbol_table, &Type::Int, exp)?.clone(),
         UnaryOper::Len => match exp.get_type(symbol_table)? {
-          Type::Array(_) => Type::BaseType(BaseType::Int),
+          Type::Array(_) => Type::Int,
           t => {
             return Err(format!(
               "TYPE ERROR: Attempt to find length of non array\n\tExpected: Array\n\tActual: {:?}",
               t
             ))
-          },
+          }
         },
         UnaryOper::Ord => {
-          expected_type(symbol_table, &Type::BaseType(BaseType::Char), exp)?;
-          Type::BaseType(BaseType::Int)
-        },
+          expected_type(symbol_table, &Type::Char, exp)?;
+          Type::Int
+        }
         UnaryOper::Chr => {
-          expected_type(symbol_table, &Type::BaseType(BaseType::Int), exp)?;
-          Type::BaseType(BaseType::Char)
-        },
+          expected_type(symbol_table, &Type::Int, exp)?;
+          Type::Char
+        }
       },
 
       Expr::BinaryApp(exp1, op, exp2) => {
@@ -49,13 +44,13 @@ impl HasType for Expr {
           | BinaryOper::Mod
           | BinaryOper::Add
           | BinaryOper::Sub => match expr_type {
-            Type::BaseType(BaseType::Int) => Type::BaseType(BaseType::Int),
+            Type::Int => Type::Int,
             t => {
               return Err(format!(
                 "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
                 op, t
               ))
-            },
+            }
           },
           /* Any types can be compared. */
           BinaryOper::Gt
@@ -63,36 +58,34 @@ impl HasType for Expr {
           | BinaryOper::Lt
           | BinaryOper::Lte
           | BinaryOper::Eq
-          | BinaryOper::Neq => Type::BaseType(BaseType::Bool),
+          | BinaryOper::Neq => Type::Bool,
           /* Boolean operators can only be applied to booleans. */
           BinaryOper::And | BinaryOper::Or => match expr_type {
-            Type::BaseType(BaseType::Bool) => Type::BaseType(BaseType::Bool),
+            Type::Bool => Type::Bool,
             t => {
               return Err(format!(
                 "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
                 op, t
               ))
-            },
+            }
           },
         }
-      },
+      }
     })
   }
 }
 
 #[cfg(test)]
 mod tests {
-  use std::fmt::Binary;
 
   use super::*;
-  use crate::analyser::symbol_table;
 
   /* Defines a scope with 10 variables, each starting with prefix and ending
    * with 0..10 */
   fn populate_symbol_table(symbol_table: &mut SymbolTable, prefix: &str) {
     for i in 0..10 {
-      let ident = Ident(format!("{}{}", prefix, i));
-      let t = Type::BaseType(BaseType::Int);
+      let ident = format!("{}{}", prefix, i);
+      let t = Type::Int;
       symbol_table.insert(&ident, t);
     }
   }
@@ -101,24 +94,15 @@ mod tests {
   fn literals() {
     let symbol_table = &SymbolTable::new();
 
-    assert_eq!(
-      Expr::IntLiter(5).get_type(symbol_table),
-      Ok(Type::BaseType(BaseType::Int))
-    );
+    assert_eq!(Expr::IntLiter(5).get_type(symbol_table), Ok(Type::Int));
     assert_eq!(
       Expr::BoolLiter(false).get_type(symbol_table),
-      Ok(Type::BaseType(BaseType::Bool))
+      Ok(Type::Bool)
     );
-    assert_eq!(
-      Expr::CharLiter('a').get_type(symbol_table),
-      Ok(Type::BaseType(BaseType::Char))
-    );
+    assert_eq!(Expr::CharLiter('a').get_type(symbol_table), Ok(Type::Char));
     assert_eq!(
       Expr::PairLiter.get_type(symbol_table),
-      Ok(Type::Pair(
-        Box::new(Type::BaseType(BaseType::Any)),
-        Box::new(Type::BaseType(BaseType::Any))
-      )),
+      Ok(Type::Pair(Box::new(Type::Any), Box::new(Type::Any))),
     );
   }
 
@@ -128,22 +112,22 @@ mod tests {
     populate_symbol_table(&mut symbol_table, "var");
 
     assert_eq!(
-      Expr::Ident(Ident(String::from("var1"))).get_type(&symbol_table),
-      Ok(Type::BaseType(BaseType::Int)),
+      Expr::Ident(String::from("var1")).get_type(&symbol_table),
+      Ok(Type::Int),
     );
   }
 
   #[test]
   fn array_elems() {
-    let x = Ident(String::from("x"));
-    let x_type = Type::Array(Box::new(Type::BaseType(BaseType::Int)));
+    let x = String::from("x");
+    let x_type = Type::Array(Box::new(Type::Int));
 
     let mut symbol_table = SymbolTable::new();
     symbol_table.insert(&x, x_type);
 
     assert_eq!(
       Expr::ArrayElem(ArrayElem(x, vec!(Expr::IntLiter(5)))).get_type(&symbol_table),
-      Ok(Type::BaseType(BaseType::Int))
+      Ok(Type::Int)
     );
   }
 
@@ -156,7 +140,7 @@ mod tests {
     /* !false: Bool */
     assert_eq!(
       Expr::UnaryApp(UnaryOper::Bang, Box::new(Expr::BoolLiter(false))).get_type(symbol_table),
-      Ok(Type::BaseType(BaseType::Bool))
+      Ok(Type::Bool)
     );
 
     /* !'a': ERROR */
@@ -170,7 +154,7 @@ mod tests {
     /* -5: Int */
     assert_eq!(
       Expr::UnaryApp(UnaryOper::Neg, Box::new(Expr::IntLiter(5))).get_type(symbol_table),
-      Ok(Type::BaseType(BaseType::Int))
+      Ok(Type::Int)
     );
 
     /* -false: ERROR */
@@ -182,12 +166,12 @@ mod tests {
 
     /* LEN */
     /* len [1,2,3]: Int */
-    let x = Ident(String::from("x"));
-    let x_type = Type::Array(Box::new(Type::BaseType(BaseType::Int)));
+    let x = String::from("x");
+    let x_type = Type::Array(Box::new(Type::Int));
     symbol_table.insert(&x, x_type);
     assert_eq!(
       Expr::UnaryApp(UnaryOper::Len, Box::new(Expr::Ident(x))).get_type(symbol_table),
-      Ok(Type::BaseType(BaseType::Int))
+      Ok(Type::Int)
     );
 
     /* len 5: ERROR */
@@ -199,7 +183,7 @@ mod tests {
     /* ord 'a': Int */
     assert_eq!(
       Expr::UnaryApp(UnaryOper::Ord, Box::new(Expr::CharLiter('a'))).get_type(symbol_table),
-      Ok(Type::BaseType(BaseType::Int))
+      Ok(Type::Int)
     );
 
     /* ord 5: ERROR */
@@ -211,7 +195,7 @@ mod tests {
     /* chr 5: Char */
     assert_eq!(
       Expr::UnaryApp(UnaryOper::Chr, Box::new(Expr::IntLiter(5))).get_type(symbol_table),
-      Ok(Type::BaseType(BaseType::Char))
+      Ok(Type::Char)
     );
 
     /* chr 'a': ERROR */
@@ -271,7 +255,7 @@ mod tests {
         Box::new(Expr::IntLiter(5)),
       )
       .get_type(symbol_table),
-      Ok(Type::BaseType(BaseType::Int)),
+      Ok(Type::Int),
     );
 
     /* 5 + 5: Int */
@@ -282,7 +266,7 @@ mod tests {
         Box::new(Expr::IntLiter(5)),
       )
       .get_type(symbol_table),
-      Ok(Type::BaseType(BaseType::Int)),
+      Ok(Type::Int),
     );
 
     /* MATH CANT BE DONE ON ANYTHING ELSE */
@@ -328,7 +312,7 @@ mod tests {
         assert_eq!(
           Expr::BinaryApp(Box::new(expr.clone()), oper, Box::new(expr.clone()))
             .get_type(symbol_table),
-          Ok(Type::BaseType(BaseType::Bool))
+          Ok(Type::Bool)
         );
       }
     }
@@ -360,7 +344,7 @@ mod tests {
         Box::new(Expr::BoolLiter(true)),
       )
       .get_type(symbol_table),
-      Ok(Type::BaseType(BaseType::Bool))
+      Ok(Type::Bool)
     );
   }
 }

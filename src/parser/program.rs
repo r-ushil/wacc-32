@@ -67,16 +67,16 @@ mod tests {
         "",
         Program {
           funcs: vec!(Func {
-            return_type: Type::BaseType(BaseType::Int),
-            ident: Ident("foo".to_string()),
-            param_list: vec!(Param(Type::BaseType(BaseType::Int), Ident("x".to_string()),)),
-            body: Stat::Return(Expr::Ident(Ident("x".to_string()))),
+            return_type: Type::Int,
+            ident: ("foo".to_string()),
+            param_list: vec!(Param(Type::Int, "x".to_string(),)),
+            body: Stat::Return(Expr::Ident("x".to_string())),
           }),
           statement: Stat::Declaration(
-            Type::BaseType(BaseType::Int),
-            Ident("y".to_string()),
+            Type::Int,
+            "y".to_string(),
             AssignRhs::Call(
-              Ident("foo".to_string()),
+              "foo".to_string(),
               vec!(Expr::BinaryApp(
                 Box::new(Expr::IntLiter(5)),
                 BinaryOper::Add,
@@ -96,16 +96,16 @@ mod tests {
       Ok((
         "",
         Func {
-          return_type: Type::BaseType(BaseType::Int),
-          ident: Ident("firstFunc".to_string()),
+          return_type: Type::Int,
+          ident: ("firstFunc".to_string()),
           param_list: vec!(
-            Param(Type::BaseType(BaseType::Int), Ident("x".to_string())),
-            Param(Type::BaseType(BaseType::Int), Ident("y".to_string()))
+            Param(Type::Int, "x".to_string()),
+            Param(Type::Int, "y".to_string())
           ),
           body: Stat::Return(Expr::BinaryApp(
-            Box::new(Expr::Ident(Ident("x".to_string()))),
+            Box::new(Expr::Ident("x".to_string())),
             BinaryOper::Add,
-            Box::new(Expr::Ident(Ident("y".to_string())))
+            Box::new(Expr::Ident("y".to_string()))
           ))
         }
       ))
@@ -116,8 +116,8 @@ mod tests {
       Ok((
         "",
         Func {
-          return_type: Type::BaseType(BaseType::Int),
-          ident: Ident("exitThree".to_string()),
+          return_type: Type::Int,
+          ident: ("exitThree".to_string()),
           param_list: vec!(),
           body: Stat::Exit(Expr::IntLiter(3))
         }
@@ -127,22 +127,14 @@ mod tests {
 
   #[test]
   fn test_param() {
-    assert_eq!(
-      param("int x"),
-      Ok((
-        "",
-        Param(Type::BaseType(BaseType::Int), Ident("x".to_string()))
-      ))
-    );
+    assert_eq!(param("int x"), Ok(("", Param(Type::Int, "x".to_string()))));
     assert_eq!(
       param("int [ ][ ] x"),
       Ok((
         "",
         Param(
-          Type::Array(Box::new(Type::Array(Box::new(Type::BaseType(
-            BaseType::Int
-          ))))),
-          Ident("x".to_string())
+          Type::Array(Box::new(Type::Array(Box::new(Type::Int)))),
+          "x".to_string()
         )
       ))
     );

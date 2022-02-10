@@ -95,10 +95,10 @@ pub fn ident(input: &str) -> IResult<&str, Ident> {
       alt((alpha1, tag("_"))),
       many0(alt((alphanumeric1, tag("_")))),
     )),
-    |s: &str| Ident(s.to_string()), /* Copy string into identifier. */
+    |s: &str| (s.to_string()), /* Copy string into identifier. */
   );
 
-  ws(verify(ident_parser, |Ident(id)| !is_keyword(id)))(input)
+  ws(verify(ident_parser, |id| !is_keyword(id)))(input)
 }
 
 #[cfg(test)]
@@ -107,17 +107,17 @@ mod tests {
 
   #[test]
   fn test_ident() {
-    assert_eq!(ident("_hello123"), Ok(("", Ident("_hello123".to_string()))));
+    assert_eq!(ident("_hello123"), Ok(("", ("_hello123".to_string()))));
     assert_eq!(
       ident("_hello123 test"),
-      Ok(("test", Ident("_hello123".to_string())))
+      Ok(("test", ("_hello123".to_string())))
     );
     assert!(ident("9test").is_err());
-    assert_eq!(ident("te@st"), Ok(("@st", Ident("te".to_string()))));
+    assert_eq!(ident("te@st"), Ok(("@st", ("te".to_string()))));
 
     assert!(ident("read").is_err());
     assert!(ident("begin").is_err());
-    assert_eq!(ident("lenx"), Ok(("", Ident("lenx".to_string()))));
+    assert_eq!(ident("lenx"), Ok(("", ("lenx".to_string()))));
   }
 
   #[test]

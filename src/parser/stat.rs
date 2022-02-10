@@ -157,8 +157,8 @@ mod tests {
       Ok((
         "",
         Stat::Declaration(
-          Type::BaseType(BaseType::Int),
-          Ident("x".to_string()),
+          Type::Int,
+          "x".to_string(),
           AssignRhs::Expr(Expr::IntLiter(5)),
         )
       ))
@@ -168,8 +168,8 @@ mod tests {
       Ok((
         "",
         Stat::Declaration(
-          Type::Array(Box::new(Type::BaseType(BaseType::Int))),
-          Ident("arr".to_string()),
+          Type::Array(Box::new(Type::Int)),
+          "arr".to_string(),
           AssignRhs::ArrayLiter(ArrayLiter((1..=5).map(Expr::IntLiter).collect()))
         )
       ))
@@ -180,7 +180,7 @@ mod tests {
       Ok((
         "",
         Stat::Assignment(
-          AssignLhs::Ident(Ident("aaa".to_string())),
+          AssignLhs::Ident("aaa".to_string()),
           AssignRhs::Expr(Expr::IntLiter(123))
         )
       ))
@@ -191,10 +191,7 @@ mod tests {
       Ok((
         "restOfString",
         Stat::Assignment(
-          AssignLhs::ArrayElem(ArrayElem(
-            Ident("array".to_string()),
-            vec!(Expr::IntLiter(2))
-          )),
+          AssignLhs::ArrayElem(ArrayElem("array".to_string(), vec!(Expr::IntLiter(2)))),
           AssignRhs::Pair(Expr::IntLiter(1), Expr::CharLiter('a'))
         )
       ))
@@ -202,7 +199,7 @@ mod tests {
 
     assert_eq!(
       stat("read test"),
-      Ok(("", Stat::Read(AssignLhs::Ident(Ident("test".to_string())))))
+      Ok(("", Stat::Read(AssignLhs::Ident("test".to_string()))))
     );
 
     let e1 = Expr::IntLiter(5);
@@ -225,16 +222,16 @@ mod tests {
         "",
         Stat::If(
           Expr::BinaryApp(
-            Box::new(Expr::Ident(Ident("b".to_string()))),
+            Box::new(Expr::Ident("b".to_string())),
             BinaryOper::Eq,
             Box::new(Expr::IntLiter(2)),
           ),
           Box::new(Stat::Assignment(
-            AssignLhs::Ident(Ident("x".to_string())),
+            AssignLhs::Ident("x".to_string()),
             AssignRhs::Expr(Expr::IntLiter(5)),
           )),
           Box::new(Stat::Assignment(
-            AssignLhs::Ident(Ident("x".to_string())),
+            AssignLhs::Ident("x".to_string()),
             AssignRhs::Expr(Expr::IntLiter(6)),
           )),
         )
@@ -247,23 +244,23 @@ mod tests {
         "",
         Stat::While(
           Expr::BinaryApp(
-            Box::new(Expr::Ident(Ident("n".to_string()))),
+            Box::new(Expr::Ident("n".to_string())),
             BinaryOper::Neq,
             Box::new(Expr::IntLiter(0)),
           ),
           Box::new(Stat::Sequence(
             Box::new(Stat::Assignment(
-              AssignLhs::Ident(Ident("acc".to_string())),
+              AssignLhs::Ident("acc".to_string()),
               AssignRhs::Expr(Expr::BinaryApp(
-                Box::new(Expr::Ident(Ident("acc".to_string()))),
+                Box::new(Expr::Ident("acc".to_string())),
                 BinaryOper::Mul,
-                Box::new(Expr::Ident(Ident("n".to_string()))),
+                Box::new(Expr::Ident("n".to_string())),
               )),
             )),
             Box::new(Stat::Assignment(
-              AssignLhs::Ident(Ident("n".to_string())),
+              AssignLhs::Ident("n".to_string()),
               AssignRhs::Expr(Expr::BinaryApp(
-                Box::new(Expr::Ident(Ident("n".to_string()))),
+                Box::new(Expr::Ident("n".to_string())),
                 BinaryOper::Sub,
                 Box::new(Expr::IntLiter(1)),
               )),
@@ -300,13 +297,13 @@ mod tests {
   fn test_assign_lhs() {
     assert_eq!(
       assign_lhs("foo"),
-      Ok(("", AssignLhs::Ident(Ident("foo".to_string())))),
+      Ok(("", AssignLhs::Ident("foo".to_string()))),
     );
     assert_eq!(
       assign_lhs("foo [ 5]"),
       Ok((
         "",
-        AssignLhs::ArrayElem(ArrayElem(Ident("foo".to_string()), vec!(Expr::IntLiter(5)))),
+        AssignLhs::ArrayElem(ArrayElem("foo".to_string(), vec!(Expr::IntLiter(5)))),
       ))
     );
     assert_eq!(
@@ -366,7 +363,7 @@ mod tests {
 
     assert_eq!(
       assign_rhs("call callee ()"),
-      Ok(("", AssignRhs::Call(Ident("callee".to_string()), vec!(),)))
+      Ok(("", AssignRhs::Call("callee".to_string(), vec!(),)))
     )
   }
 

@@ -10,22 +10,22 @@ fn type_from_unary_op(
 ) -> Result<Type, String> {
   match op {
     UnaryOper::Bang | &UnaryOper::Neg => {
-      if type_from_expr(symbol_tables, expr) == Type::BaseType(BaseType::Bool) {
-        return Ok(Type::BaseType(BaseType::Bool));
+      if type_from_expr(symbol_tables, expr) == Type::Bool {
+        return Ok(Type::Bool);
       }
     },
     UnaryOper::Len => match type_from_expr(symbol_tables, expr) {
-      Type::Array(_) => return Ok(Type::BaseType(BaseType::Int)),
+      Type::Array(_) => return Ok(Type::Int),
       _ => return Err("Invalid Unary Op".to_string()),
     },
     UnaryOper::Ord => {
-      if type_from_expr(symbol_tables, expr) == Type::BaseType(BaseType::Char) {
-        return Ok(Type::BaseType(BaseType::Int));
+      if type_from_expr(symbol_tables, expr) == Type::Char {
+        return Ok(Type::Int);
       }
     },
     UnaryOper::Chr => {
-      if type_from_expr(symbol_tables, expr) == Type::BaseType(BaseType::Int) {
-        return Ok(Type::BaseType(BaseType::Char));
+      if type_from_expr(symbol_tables, expr) == Type::Int {
+        return Ok(Type::Char);
       }
     },
   }
@@ -41,36 +41,36 @@ fn type_from_binary_op(
 ) -> Result<Type, String> {
   match op {
     BinaryOper::Mul | BinaryOper::Div | BinaryOper::Mod | BinaryOper::Add | BinaryOper::Sub => {
-      if type_from_expr(symbol_tables, exp1) == Type::BaseType(BaseType::Int)
-        && type_from_expr(symbol_tables, exp2) == Type::BaseType(BaseType::Int)
+      if type_from_expr(symbol_tables, exp1) == Type::Int
+        && type_from_expr(symbol_tables, exp2) == Type::Int
       {
-        return Ok(Type::BaseType(BaseType::Int));
+        return Ok(Type::Int);
       }
     },
 
     BinaryOper::Gt | BinaryOper::Gte | BinaryOper::Lt | BinaryOper::Lte => {
-      if (type_from_expr(symbol_tables, exp1) == Type::BaseType(BaseType::Int)
-        && type_from_expr(symbol_tables, exp2) == Type::BaseType(BaseType::Int))
-        || (type_from_expr(symbol_tables, exp1) == Type::BaseType(BaseType::Char)
-          && type_from_expr(symbol_tables, exp2) == Type::BaseType(BaseType::Char))
+      if (type_from_expr(symbol_tables, exp1) == Type::Int
+        && type_from_expr(symbol_tables, exp2) == Type::Int)
+        || (type_from_expr(symbol_tables, exp1) == Type::Char
+          && type_from_expr(symbol_tables, exp2) == Type::Char)
       {
-        return Ok(Type::BaseType(BaseType::Bool));
+        return Ok(Type::Bool);
       }
     },
 
     BinaryOper::Eq | BinaryOper::Neq => {
-      if type_from_expr(symbol_tables, exp1) == Type::BaseType(BaseType::Int)
-        && type_from_expr(symbol_tables, exp2) == Type::BaseType(BaseType::Int)
+      if type_from_expr(symbol_tables, exp1) == Type::Int
+        && type_from_expr(symbol_tables, exp2) == Type::Int
       {
-        return Ok(Type::BaseType(BaseType::Bool));
+        return Ok(Type::Bool);
       }
     },
 
     BinaryOper::And | BinaryOper::Or => {
-      if type_from_expr(symbol_tables, exp1) == Type::BaseType(BaseType::Bool)
-        && type_from_expr(symbol_tables, exp2) == Type::BaseType(BaseType::Bool)
+      if type_from_expr(symbol_tables, exp1) == Type::Bool
+        && type_from_expr(symbol_tables, exp2) == Type::Bool
       {
-        return Ok(Type::BaseType(BaseType::Bool));
+        return Ok(Type::Bool);
       }
     },
   }
@@ -80,10 +80,10 @@ fn type_from_binary_op(
 
 fn type_from_expr(symbol_tables: &VecDeque<HashMap<String, Type>>, expr: &Expr) -> Type {
   match expr {
-    Expr::IntLiter(_) => Type::BaseType(BaseType::Int),
-    Expr::BoolLiter(_) => Type::BaseType(BaseType::Bool),
-    Expr::CharLiter(_) => Type::BaseType(BaseType::Char),
-    Expr::StrLiter(_) => Type::BaseType(BaseType::String),
+    Expr::IntLiter(_) => Type::Int,
+    Expr::BoolLiter(_) => Type::Bool,
+    Expr::CharLiter(_) => Type::Char,
+    Expr::StrLiter(_) => Type::String,
     Expr::PairLiter => Type::BaseType(BaseType::Null),
     Expr::Ident(id) => match table_lookup(symbol_tables, &id.0) {
       Ok(t) => t,
@@ -176,24 +176,18 @@ mod tests {
       let var2 = format!("{}{}", "y", i);
       let var3 = format!("{}{}", "z", i);
 
-      curr.insert(var1, Type::BaseType(BaseType::Bool));
-      curr.insert(var2, Type::BaseType(BaseType::Int));
-      curr.insert(var3, Type::BaseType(BaseType::String));
+      curr.insert(var1, Type::Bool);
+      curr.insert(var2, Type::Int);
+      curr.insert(var3, Type::String);
 
       vec.push_front(curr.clone());
     }
 
-    assert_eq!(table_lookup(&vec, "x3"), Ok(Type::BaseType(BaseType::Bool)),);
+    assert_eq!(table_lookup(&vec, "x3"), Ok(Type::Bool),);
 
-    assert_eq!(
-      table_lookup(&vec, "z3"),
-      Ok(Type::BaseType(BaseType::String)),
-    );
+    assert_eq!(table_lookup(&vec, "z3"), Ok(Type::String),);
 
-    assert_ne!(
-      table_lookup(&vec, "v3"),
-      Ok(Type::BaseType(BaseType::String)),
-    );
+    assert_ne!(table_lookup(&vec, "v3"), Ok(Type::String),);
 
     assert_eq!(table_lookup(&vec, "random"), Err("not found".to_string()),);
   }
@@ -211,9 +205,9 @@ mod tests {
       let var2 = format!("{}{}", "y", i);
       let var3 = format!("{}{}", "z", i);
 
-      curr.insert(var1, Type::BaseType(BaseType::Bool));
-      curr.insert(var2, Type::BaseType(BaseType::Int));
-      curr.insert(var3, Type::BaseType(BaseType::String));
+      curr.insert(var1, Type::Bool);
+      curr.insert(var2, Type::Int);
+      curr.insert(var3, Type::String);
 
       vec.push_front(curr.clone());
     }
@@ -222,14 +216,14 @@ mod tests {
     // [x3: Bool, y3: Int, z3: String]
 
     assert_eq!(
-      table_update(&mut vec, "x1", Type::BaseType(BaseType::Char), true),
+      table_update(&mut vec, "x1", Type::Char, true),
       Ok(HashMap::from([
-        ("x1".to_string(), Type::BaseType(BaseType::Char)),
-        ("y1".to_string(), Type::BaseType(BaseType::Int)),
-        ("z1".to_string(), Type::BaseType(BaseType::String)),
+        ("x1".to_string(), Type::Char),
+        ("y1".to_string(), Type::Int),
+        ("z1".to_string(), Type::String),
       ]))
     );
 
-    assert_ne!(table_lookup(&vec, "x1"), Ok(Type::BaseType(BaseType::Bool)),)
+    assert_ne!(table_lookup(&vec, "x1"), Ok(Type::Bool),)
   }
 }
