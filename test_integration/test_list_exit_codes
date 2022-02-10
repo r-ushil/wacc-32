@@ -260,7 +260,7 @@ wacc_examples/invalid/syntaxErr/function/thisIsNotC.wacc,100,pass
 wacc_examples/invalid/syntaxErr/function/functionMissingType.wacc,100,pass
 wacc_examples/invalid/syntaxErr/function/funcExpr2.wacc,100,pass
 wacc_examples/invalid/syntaxErr/function/functionConditionalNoReturn.wacc,100,fail
-wacc_examples/invalid/syntaxErr/function/badlyNamed.wacc,100,fail
+wacc_examples/invalid/syntaxErr/function/badlyNamed.wacc,100,pass
 wacc_examples/invalid/syntaxErr/function/functionJunkAfterReturn.wacc,100,fail
 wacc_examples/invalid/syntaxErr/function/functionNoReturn.wacc,100,fail
 wacc_examples/invalid/syntaxErr/function/badlyPlaced.wacc,100,pass

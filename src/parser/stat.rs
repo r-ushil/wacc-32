@@ -163,6 +163,21 @@ mod tests {
   }
 
   #[test]
+  fn test_stat_dec_keyword() {
+    assert_eq!(
+      stat("int interesting = 5"),
+      Ok((
+        "",
+        Stat::Declaration(
+          Type::Int,
+          "interesting".to_string(),
+          AssignRhs::Expr(Expr::IntLiter(5)),
+        )
+      ))
+    );
+  }
+
+  #[test]
   fn test_stat_dec_int() {
     assert_eq!(
       stat("int x = 5"),
@@ -385,19 +400,19 @@ mod tests {
   }
 
   // TODO: https://gitlab.doc.ic.ac.uk/lab2122_spring/WACC_32/-/issues/2
-  // #[test]
-  // fn test_stat_ass_idtype() {
-  //   assert_eq!(
-  //     stat("intx = 5"),
-  //     Ok((
-  //       "",
-  //       Stat::Assignment(
-  //         AssignLhs::Ident("intx".to_string()),
-  //         AssignRhs::Expr(Expr::IntLiter(5))
-  //       )
-  //     ))
-  //   );
-  // }
+  #[test]
+  fn test_stat_ass_idtype() {
+    assert_eq!(
+      stat("intx = 5"),
+      Ok((
+        "",
+        Stat::Assignment(
+          AssignLhs::Ident("intx".to_string()),
+          AssignRhs::Expr(Expr::IntLiter(5))
+        )
+      ))
+    );
+  }
 
   #[test]
   fn test_stat_ass_arr() {
