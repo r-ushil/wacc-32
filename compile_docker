@@ -1,0 +1,3 @@
+#!/bin/sh
+
+docker run -v $(pwd):/tmp/wacc/cwd -w /tmp/wacc/cwd wacc_32 $@

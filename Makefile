@@ -8,7 +8,9 @@ OUTPUT_DIR	 := target
 # The make rules:
 
 # run the antlr build script then attempts to compile all .java files within src/antlr
-all:
+all: wacc
+
+wacc_docker:
 	docker build -t wacc_32 --target release .
 
 wacc:
