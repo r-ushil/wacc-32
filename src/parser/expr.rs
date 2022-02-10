@@ -12,6 +12,8 @@ use nom::{
 use super::shared::*;
 use crate::ast::*;
 
+const BINARY_OP_MAX_PREC: u8 = 6;
+
 /*〈expr〉 ::= 〈int-liter〉
 | 〈bool-liter〉 //〈bool-liter〉::= ‘true’ | ‘false’
 | 〈char-liter〉 //〈char-liter〉::= ‘'’〈character〉‘'’
@@ -23,6 +25,10 @@ use crate::ast::*;
 | 〈expr〉〈binary-oper〉〈expr〉  //〈binary-oper〉::= ‘*’ | ‘/’ | ‘%’ | ‘+’ | ‘-’ | ‘>’ | ‘>=’ | ‘<’ | ‘<=’ | ‘==’ | ‘!=’ | ‘&&’ | ‘||’
 | ‘(’〈expr〉‘)’ */
 pub fn expr(input: &str) -> IResult<&str, Expr> {
+  expr_binary_app(BINARY_OP_MAX_PREC, input)
+}
+
+fn expr_atom(input: &str) -> IResult<&str, Expr> {
   let bool_liter = alt((
     value(Expr::BoolLiter(true), tok("true")),
     value(Expr::BoolLiter(false), tok("false")),
@@ -46,8 +52,7 @@ pub fn expr(input: &str) -> IResult<&str, Expr> {
     Expr::UnaryApp(op, Box::new(expr))
   });
 
-  /* Run a parser for each of the enum variants except binary operators. */
-  let (input, expr1) = alt((
+  alt((
     map(int_liter, Expr::IntLiter),
     bool_liter,
     char_liter,
@@ -57,18 +62,22 @@ pub fn expr(input: &str) -> IResult<&str, Expr> {
     unary_app,
     map(ident, Expr::Ident),
     delimited(tok("("), expr, tok(")")),
-  ))(input)?;
+  ))(input)
+}
 
-  /* If we got this far, we know the input at least _starts with_ an expression,
-  but the input might continue on in the form of a binary application. */
-  /* So we try to parse a binary operator and a second expression, if it
-  succeeds, combine both expressions into a binary application. */
-  match opt(pair(binary_oper, expr))(input).unwrap() {
-    (input, Some((op, expr2))) => {
-      Ok((input, Expr::BinaryApp(Box::new(expr1), op, Box::new(expr2))))
-    }
-    (input, None) => Ok((input, expr1)),
+fn expr_binary_app(prec: u8, input: &str) -> IResult<&str, Expr> {
+  if prec == 0 {
+    return expr_atom(input);
   }
+
+  let (input, lhs) = expr_binary_app(prec - 1, input)?;
+  let (input, op) = match binary_oper_prec(prec)(input) {
+    Ok(op) => op,
+    _ => return Ok((input, lhs)),
+  };
+  let (input, rhs) = expr_binary_app(prec, input)?;
+
+  Ok((input, Expr::BinaryApp(Box::new(lhs), op, Box::new(rhs))))
 }
 
 //〈int-liter〉::= (‘+’ | ‘-’) ? (‘0’-‘9’)
@@ -95,22 +104,27 @@ fn unary_oper(input: &str) -> IResult<&str, UnaryOper> {
   ))(input)
 }
 
-fn binary_oper(input: &str) -> IResult<&str, BinaryOper> {
-  alt((
-    value(BinaryOper::Mul, tok("*")),
-    value(BinaryOper::Div, tok("/")),
-    value(BinaryOper::Mod, tok("%")),
-    value(BinaryOper::Add, tok("+")),
-    value(BinaryOper::Sub, tok("-")),
-    value(BinaryOper::Gte, tok(">=")),
-    value(BinaryOper::Gt, tok(">")),
-    value(BinaryOper::Lte, tok("<=")),
-    value(BinaryOper::Lt, tok("<")),
-    value(BinaryOper::Eq, tok("==")),
-    value(BinaryOper::Neq, tok("!=")),
-    value(BinaryOper::And, tok("&&")),
-    value(BinaryOper::Or, tok("||")),
-  ))(input)
+fn binary_oper_prec<'a>(prec: u8) -> impl FnMut(&'a str) -> IResult<&'a str, BinaryOper> {
+  use BinaryOper::*;
+
+  move |input| match prec {
+    1 => alt((
+      value(Mul, tok("*")),
+      value(Div, tok("/")),
+      value(Mod, tok("%")),
+    ))(input),
+    2 => alt((value(Add, tok("+")), value(Sub, tok("-"))))(input),
+    3 => alt((
+      value(Gte, tok(">=")),
+      value(Lte, tok("<=")),
+      value(Gt, tok(">")),
+      value(Lt, tok("<")),
+    ))(input),
+    4 => alt((value(Eq, tok("==")), value(Neq, tok("!="))))(input),
+    5 => value(And, tok("&&"))(input),
+    6 => value(Or, tok("||"))(input),
+    _ => unreachable!("No binary"),
+  }
 }
 
 /* 〈array-elem〉::=〈ident〉(‘[’〈expr〉‘]’)+ */
@@ -245,6 +259,29 @@ mod tests {
   }
 
   #[test]
+  fn test_expr_binary_app() {
+    assert_eq!(
+      expr("w * x + y * z"),
+      Ok((
+        "",
+        Expr::BinaryApp(
+          Box::new(Expr::BinaryApp(
+            Box::new(Expr::Ident(Ident("w".to_string()))),
+            BinaryOper::Mul,
+            Box::new(Expr::Ident(Ident("x".to_string()))),
+          )),
+          BinaryOper::Add,
+          Box::new(Expr::BinaryApp(
+            Box::new(Expr::Ident(Ident("y".to_string()))),
+            BinaryOper::Mul,
+            Box::new(Expr::Ident(Ident("z".to_string()))),
+          )),
+        )
+      ))
+    )
+  }
+
+  #[test]
   fn test_array_elem() {
     assert_eq!(
       array_elem("array[2]"),
@@ -265,21 +302,21 @@ mod tests {
 
   #[test]
   fn test_binary_oper() {
-    assert_eq!(binary_oper("*"), Ok(("", BinaryOper::Mul)));
-    assert_eq!(binary_oper("/  "), Ok(("", BinaryOper::Div)));
-    assert_eq!(binary_oper("%"), Ok(("", BinaryOper::Mod)));
-    assert_eq!(binary_oper("+"), Ok(("", BinaryOper::Add)));
-    assert_eq!(binary_oper("-  "), Ok(("", BinaryOper::Sub)));
-    assert_eq!(binary_oper(">"), Ok(("", BinaryOper::Gt)));
-    assert_eq!(binary_oper(">="), Ok(("", BinaryOper::Gte)));
-    assert_eq!(binary_oper("<"), Ok(("", BinaryOper::Lt)));
-    assert_eq!(binary_oper("<="), Ok(("", BinaryOper::Lte)));
-    assert_eq!(binary_oper("== "), Ok(("", BinaryOper::Eq)));
-    assert_eq!(binary_oper("!="), Ok(("", BinaryOper::Neq)));
-    assert_eq!(binary_oper("&&"), Ok(("", BinaryOper::And)));
-    assert_eq!(binary_oper("||"), Ok(("", BinaryOper::Or)));
+    assert_eq!(binary_oper_prec(1)("*"), Ok(("", BinaryOper::Mul)));
+    assert_eq!(binary_oper_prec(1)("/  "), Ok(("", BinaryOper::Div)));
+    assert_eq!(binary_oper_prec(1)("%"), Ok(("", BinaryOper::Mod)));
+    assert_eq!(binary_oper_prec(2)("+"), Ok(("", BinaryOper::Add)));
+    assert_eq!(binary_oper_prec(2)("-  "), Ok(("", BinaryOper::Sub)));
+    assert_eq!(binary_oper_prec(3)(">"), Ok(("", BinaryOper::Gt)));
+    assert_eq!(binary_oper_prec(3)(">="), Ok(("", BinaryOper::Gte)));
+    assert_eq!(binary_oper_prec(3)("<"), Ok(("", BinaryOper::Lt)));
+    assert_eq!(binary_oper_prec(3)("<="), Ok(("", BinaryOper::Lte)));
+    assert_eq!(binary_oper_prec(4)("== "), Ok(("", BinaryOper::Eq)));
+    assert_eq!(binary_oper_prec(4)("!="), Ok(("", BinaryOper::Neq)));
+    assert_eq!(binary_oper_prec(5)("&&"), Ok(("", BinaryOper::And)));
+    assert_eq!(binary_oper_prec(6)("||"), Ok(("", BinaryOper::Or)));
 
-    assert_eq!(binary_oper("< ="), Ok(("=", BinaryOper::Lt)));
-    assert_eq!(binary_oper("> ="), Ok(("=", BinaryOper::Gt)));
+    assert_eq!(binary_oper_prec(3)("< ="), Ok(("=", BinaryOper::Lt)));
+    assert_eq!(binary_oper_prec(3)("> ="), Ok(("=", BinaryOper::Gt)));
   }
 }
