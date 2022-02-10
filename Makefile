@@ -17,8 +17,8 @@ wacc:
 	cargo build --release
 
 rust:
-	rustup install stable
-	rustup default stable
+	sudo rustup install stable
+	sudo rustup default stable
 
 test: test_unit test_integration
 
