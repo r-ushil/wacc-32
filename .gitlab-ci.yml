@@ -1,19 +1,25 @@
 stages:       # List of stages for jobs, and their order of execution
   - build
-  - test
-  - release
+  - test_unit
   - test_integration
+  - release
 
 build-job:    # This job runs in the build stage, which runs first.
   stage: build
   script:
     - docker build -t wacc-compiler-build:${CI_COMMIT_SHORT_SHA} --target builder .
 
-test-job:     # This job runs in the test stage.
-  stage: test # It only starts when the job in the build stage completes successfully.
+test-unit-job:     # This job runs in the test stage.
+  stage: test_unit # It only starts when the job in the build stage completes successfully.
   script:
     - docker build -t wacc-compiler-test-unit:${CI_COMMIT_SHORT_SHA} --target test_unit .
     - docker run wacc-compiler-test-unit:${CI_COMMIT_SHORT_SHA}
+
+test-integration-job:
+  stage: test_integration
+  script:
+    - docker build -t wacc-compiler-test-integration:${CI_COMMIT_SHORT_SHA} --target test_integration .
+    - docker run wacc-compiler-test-integration:${CI_COMMIT_SHORT_SHA}
 
 release-job:
   stage: release
@@ -21,8 +27,3 @@ release-job:
     - docker build -t gitlab.doc.ic.ac.uk:4567/lab2122_spring/wacc_32:${CI_COMMIT_SHORT_SHA} --target release .
     - docker push gitlab.doc.ic.ac.uk:4567/lab2122_spring/wacc_32:${CI_COMMIT_SHORT_SHA}
 
-test-integration-job:
-  stage: test_integration
-  script:
-    - docker build -t wacc-compiler-test-integration:${CI_COMMIT_SHORT_SHA} --target test_integration .
-    - docker run wacc-compiler-test-integration:${CI_COMMIT_SHORT_SHA}
