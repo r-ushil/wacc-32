@@ -49,7 +49,7 @@ fn expected_type<'a, A: HasType>(
 
   if expected_type != &actual_type {
     Err(format!(
-      "TYPE ERROR: Unexpected type.\n\tExpected: {:?}Actual:\n\t{:?}",
+      "TYPE ERROR: Unexpected type.\n\tExpected: {:?}\n\tActual: {:?}",
       expected_type, actual_type
     ))
   } else {
@@ -109,6 +109,11 @@ impl HasType for ArrayElem {
 
     Ok(curr_type)
   }
+}
+
+pub fn analyse(program: &Program) -> AResult<()> {
+  let mut symbol_table = SymbolTable::new();
+  program::program(&mut symbol_table, program)
 }
 
 /* ======== Type Checkers ======== */

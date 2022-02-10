@@ -44,7 +44,18 @@ fn main() {
   };
 
   // Print the generated abstract syntax tree
-  println!("ast = {:?}", ast);
+  // println!("ast = {:?}", ast);
+
+  match analyser::analyse(&ast) {
+    Ok(()) => {
+      println!("Successful semantic analysis.");
+      exit(0);
+    }
+    Err(e) => {
+      println!("ERROR: {}", e);
+      exit(200);
+    }
+  }
 }
 
 fn print_usage() {

@@ -35,7 +35,7 @@ fn func(symbol_table: &mut SymbolTable, func: &Func) -> AResult<()> {
 /* Semantically checks an entire program. */
 /* This function initialises the symbol table and function table. */
 #[allow(dead_code)]
-fn program(symbol_table: &mut SymbolTable, program: &Program) -> AResult<()> {
+pub fn program(symbol_table: &mut SymbolTable, program: &Program) -> AResult<()> {
   program
     .funcs
     .iter()
