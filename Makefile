@@ -8,7 +8,7 @@ OUTPUT_DIR	 := target
 # The make rules:
 
 # run the antlr build script then attempts to compile all .java files within src/antlr
-all: wacc
+all: rust wacc
 
 wacc_docker:
 	docker build -t wacc_32 --target release .
@@ -32,4 +32,4 @@ test_integration: wacc
 clean:
 	cargo clean
 
-.PHONY: all clean test test_unit test_integration
+.PHONY: all clean rust test test_unit test_integration wacc wacc_docker
