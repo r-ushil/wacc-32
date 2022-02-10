@@ -184,8 +184,8 @@ mod tests {
       Ok((
         "",
         Stat::Declaration(
-          Type::BaseType(BaseType::Bool),
-          Ident("x".to_string()),
+          Type::Bool,
+          "x".to_string(),
           AssignRhs::Expr(Expr::BoolLiter(true)),
         )
       ))
@@ -196,8 +196,8 @@ mod tests {
       Ok((
         "",
         Stat::Declaration(
-          Type::BaseType(BaseType::Bool),
-          Ident("x".to_string()),
+          Type::Bool,
+          "x".to_string(),
           AssignRhs::Expr(Expr::BoolLiter(false)),
         )
       ))
@@ -211,8 +211,8 @@ mod tests {
       Ok((
         "",
         Stat::Declaration(
-          Type::BaseType(BaseType::Char),
-          Ident("x".to_string()),
+          Type::Char,
+          "x".to_string(),
           AssignRhs::Expr(Expr::CharLiter('a')),
         )
       ))
@@ -226,8 +226,8 @@ mod tests {
       Ok((
         "",
         Stat::Declaration(
-          Type::BaseType(BaseType::Char),
-          Ident("x".to_string()),
+          Type::Char,
+          "x".to_string(),
           AssignRhs::Expr(Expr::CharLiter('\n')),
         )
       ))
@@ -241,8 +241,8 @@ mod tests {
       Ok((
         "",
         Stat::Declaration(
-          Type::BaseType(BaseType::String),
-          Ident("x".to_string()),
+          Type::String,
+          "x".to_string(),
           AssignRhs::Expr(Expr::StrLiter("hello world!".to_string())),
         )
       ))
@@ -256,8 +256,8 @@ mod tests {
       Ok((
         "",
         Stat::Declaration(
-          Type::Array(Box::new(Type::BaseType(BaseType::Int))),
-          Ident("arr".to_string()),
+          Type::Array(Box::new(Type::Int)),
+          "arr".to_string(),
           AssignRhs::ArrayLiter(ArrayLiter((1..=5).map(Expr::IntLiter).collect()))
         )
       ))
@@ -271,8 +271,8 @@ mod tests {
       Ok((
         "",
         Stat::Declaration(
-          Type::Array(Box::new(Type::BaseType(BaseType::Char))),
-          Ident("arr".to_string()),
+          Type::Array(Box::new(Type::Char)),
+          "arr".to_string(),
           AssignRhs::ArrayLiter(ArrayLiter(('a'..='e').map(Expr::CharLiter).collect()))
         )
       ))
@@ -286,8 +286,8 @@ mod tests {
       Ok((
         "",
         Stat::Declaration(
-          Type::Array(Box::new(Type::BaseType(BaseType::String))),
-          Ident("arr".to_string()),
+          Type::Array(Box::new(Type::String)),
+          "arr".to_string(),
           AssignRhs::ArrayLiter(ArrayLiter(vec![
             Expr::StrLiter("hello".to_string()),
             Expr::StrLiter("world".to_string())
@@ -305,10 +305,10 @@ mod tests {
         "",
         Stat::Declaration(
           Type::Array(Box::new(Type::Pair(
-            PairElemType::BaseType(BaseType::Int),
-            PairElemType::BaseType(BaseType::Int)
+            Box::new(Type::Int),
+            Box::new(Type::Int)
           ))),
-          Ident("arr".to_string()),
+          "arr".to_string(),
           AssignRhs::ArrayLiter(ArrayLiter(vec![Expr::PairLiter; 3]))
         )
       ))
@@ -322,11 +322,8 @@ mod tests {
       Ok((
         "",
         Stat::Declaration(
-          Type::Pair(
-            PairElemType::BaseType(BaseType::Int),
-            PairElemType::BaseType(BaseType::Int),
-          ),
-          Ident("x".to_string()),
+          Type::Pair(Box::new(Type::Int), Box::new(Type::Int)),
+          "x".to_string(),
           AssignRhs::Pair(Expr::IntLiter(1), Expr::IntLiter(2)),
         )
       ))
@@ -340,8 +337,11 @@ mod tests {
       Ok((
         "",
         Stat::Declaration(
-          Type::Pair(PairElemType::Pair, PairElemType::Pair),
-          Ident("x".to_string()),
+          Type::Pair(
+            Box::new(Type::Pair(Box::new(Type::Any), Box::new(Type::Any))),
+            Box::new(Type::Pair(Box::new(Type::Any), Box::new(Type::Any)))
+          ),
+          "x".to_string(),
           AssignRhs::Pair(Expr::PairLiter, Expr::PairLiter),
         )
       ))
@@ -355,8 +355,11 @@ mod tests {
       Ok((
         "",
         Stat::Declaration(
-          Type::Pair(PairElemType::Pair, PairElemType::Pair),
-          Ident("x".to_string()),
+          Type::Pair(
+            Box::new(Type::Pair(Box::new(Type::Any), Box::new(Type::Any))),
+            Box::new(Type::Pair(Box::new(Type::Any), Box::new(Type::Any)))
+          ),
+          "x".to_string(),
           AssignRhs::Expr(Expr::PairLiter),
         )
       ))
@@ -370,27 +373,31 @@ mod tests {
       Ok((
         "",
         Stat::Declaration(
-          Type::Pair(PairElemType::BaseType(BaseType::Int), PairElemType::Pair),
-          Ident("x".to_string()),
+          Type::Pair(
+            Box::new(Type::Int),
+            Box::new(Type::Pair(Box::new(Type::Any), Box::new(Type::Any)))
+          ),
+          "x".to_string(),
           AssignRhs::Pair(Expr::IntLiter(1), Expr::PairLiter),
         )
       ))
     );
   }
 
-  #[test]
-  fn test_stat_ass_idtype() {
-    assert_eq!(
-      stat("intx = 5"),
-      Ok((
-        "",
-        Stat::Assignment(
-          AssignLhs::Ident(Ident("intx".to_string())),
-          AssignRhs::Expr(Expr::IntLiter(5))
-        )
-      ))
-    );
-  }
+  // TODO: https://gitlab.doc.ic.ac.uk/lab2122_spring/WACC_32/-/issues/2
+  // #[test]
+  // fn test_stat_ass_idtype() {
+  //   assert_eq!(
+  //     stat("intx = 5"),
+  //     Ok((
+  //       "",
+  //       Stat::Assignment(
+  //         AssignLhs::Ident("intx".to_string()),
+  //         AssignRhs::Expr(Expr::IntLiter(5))
+  //       )
+  //     ))
+  //   );
+  // }
 
   #[test]
   fn test_stat_ass_arr() {
