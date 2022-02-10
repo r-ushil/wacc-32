@@ -6,14 +6,16 @@ pub struct Program {
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Func {
-  pub return_type: Type,
   pub ident: Ident,
-  pub param_list: Vec<Param>,
+  pub signature: FuncSig,
   pub body: Stat,
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct Param(pub Type, pub Ident);
+pub struct FuncSig {
+  pub params: Vec<(Type, Ident)>,
+  pub return_type: Type,
+}
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum Stat {
@@ -63,6 +65,7 @@ pub enum Type {
   Any,
   Array(Box<Type>),
   Pair(Box<Type>, Box<Type>),
+  Func(Box<FuncSig>),
 }
 
 #[derive(PartialEq, Debug, Clone)]

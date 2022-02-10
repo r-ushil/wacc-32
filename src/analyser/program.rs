@@ -7,22 +7,23 @@ use crate::ast::*;
 
 fn func(symbol_table: &mut SymbolTable, func: &Func) -> AResult<()> {
   /* Add function's type to symbol table. */
-  // symbol_table.insert(func.ident, func.type_);
+  symbol_table.insert(&func.ident, Type::Func(Box::new(func.signature.clone())))?;
 
   /* Create new scope for function body. */
   let mut func_scope = symbol_table.new_scope();
 
   /* Add parameters to inner scope. */
   func
-    .param_list
+    .signature
+    .params
     .iter()
-    .try_for_each(|Param(pt, pi)| func_scope.insert(pi, pt.clone()))?;
+    .try_for_each(|(pt, pi)| func_scope.insert(pi, pt.clone()))?;
 
   /* Type check function body and make sure it returns value of correct type. */
   match stat(&mut func_scope, &func.body)? {
-    Always(t) if t != func.return_type => Err(format!(
+    Always(t) if t != func.signature.return_type => Err(format!(
       "Function body returns {:?} but function signature expects {:?}",
-      t, func.return_type
+      t, func.signature.return_type
     )),
     Always(_) => Ok(()),
     _ => Err(format!(
@@ -56,9 +57,11 @@ mod tests {
     /* Function */
     /* int double(int x) is return x * 2 end */
     let f = Func {
-      return_type: Type::Int,
-      ident: (String::from("double")),
-      param_list: vec![Param(Type::Int, String::from("x"))],
+      ident: String::from("double"),
+      signature: FuncSig {
+        params: vec![(Type::Int, String::from("x"))],
+        return_type: Type::Int,
+      },
       body: Stat::Return(Expr::BinaryApp(
         Box::new(Expr::Ident(String::from("x"))),
         BinaryOper::Mul,
@@ -78,21 +81,21 @@ mod tests {
     /* Can compare parameter type with return type. */
     /* bool double(int x) is return x end */
     let mut f2 = f.clone();
-    f2.return_type = Type::Bool;
+    f2.signature.return_type = Type::Bool;
     f2.body = Stat::Return(Expr::Ident(String::from("x")));
     assert!(func(symbol_table, &f2).is_err());
   }
 
   #[test]
   fn branching_return_types_checked() {
-    let symbol_table = &mut SymbolTable::new();
-
     /* Function */
     /* int double(int x) is return x * 2 end */
     let f = Func {
-      return_type: Type::Int,
-      ident: (String::from("double")),
-      param_list: vec![Param(Type::Int, String::from("x"))],
+      ident: String::from("double"),
+      signature: FuncSig {
+        params: vec![(Type::Int, String::from("x"))],
+        return_type: Type::Int,
+      },
       body: Stat::Return(Expr::BinaryApp(
         Box::new(Expr::Ident(String::from("x"))),
         BinaryOper::Mul,
@@ -110,7 +113,7 @@ mod tests {
       Box::new(Stat::Return(Expr::IntLiter(5))),
       Box::new(Stat::Return(Expr::IntLiter(2))),
     );
-    assert!(func(symbol_table, &f3).is_ok());
+    assert!(func(&mut SymbolTable::new(), &f3).is_ok());
 
     /* int double(int x) is
       if true then return false else return 2 fi
@@ -121,7 +124,8 @@ mod tests {
       Box::new(Stat::Return(Expr::BoolLiter(false))),
       Box::new(Stat::Return(Expr::IntLiter(2))),
     );
-    assert!(func(symbol_table, &f4).is_err());
+
+    assert!(func(&mut SymbolTable::new(), &f4).is_err());
 
     /* Only one statement has to return. */
     /* int double(int x) is
@@ -132,7 +136,8 @@ mod tests {
       Box::new(Stat::Print(Expr::StrLiter(String::from("hello world")))),
       Box::new(Stat::Return(Expr::IntLiter(5))),
     );
-    assert!(func(symbol_table, &f5).is_ok());
+    let x = func(&mut SymbolTable::new(), &f5);
+    assert!(x.is_ok());
 
     /* Spots erroneous returns. */
     /* int double(int x) is
@@ -148,7 +153,6 @@ mod tests {
       )),
       Box::new(Stat::Print(Expr::StrLiter(String::from("Hello World")))),
     );
-    println!("{:?}", func(symbol_table, &f6));
-    assert!(func(symbol_table, &f6).is_err());
+    assert!(func(&mut SymbolTable::new(), &f6).is_err());
   }
 }

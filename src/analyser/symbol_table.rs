@@ -5,6 +5,7 @@ use crate::ast::*;
 
 type Scope = HashMap<Ident, Type>;
 
+#[derive(Debug, Clone)]
 pub struct SymbolTable<'a> {
   current_scope: Scope,
   above_scopes: Option<&'a SymbolTable<'a>>,
