@@ -7,6 +7,7 @@ FROM base AS dependencies
 COPY Cargo.lock .
 COPY Cargo.toml .
 RUN cargo build
+RUN cargo build --release
 RUN rm -rf src/*.rs
 
 FROM dependencies AS builder
