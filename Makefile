@@ -9,7 +9,7 @@ OUTPUT_DIR	 := target
 
 # run the antlr build script then attempts to compile all .java files within src/antlr
 all:
-	rustup install latest
+	rustup install stable
 	rustup default stable
 	cargo build --release
 
