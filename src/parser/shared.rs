@@ -49,6 +49,14 @@ pub fn tok<'a>(t: &'a str) -> impl FnMut(&'a str) -> IResult<&'a str, &'a str> {
   ws(tag(t))
 }
 
+/* Same as tok, but token must be followed by a non-identifier character
+so identifiers don't get intpretted as keywords. */
+pub fn key<'a>(t: &'a str) -> impl FnMut(&'a str) -> IResult<&'a str, &'a str> {
+  let not_ident = not(verify(anychar, |c| c.is_alphanumeric() || *c == '_'));
+
+  delimited(multispace0, terminated(tag(t), not_ident), multispace0)
+}
+
 /* Like many0, but each of the elements are seperated by another parser,
 the result of which is thrown away. */
 pub fn many0_delimited<'a, O, O2, Ep: 'a, Dp: 'a, E>(

@@ -42,10 +42,10 @@ pub fn type_(input: &str) -> IResult<&str, Type> {
 /* base-type ::= 'int' | 'bool' | 'char' | 'string' */
 fn base_type(input: &str) -> IResult<&str, Type> {
   alt((
-    value(Type::Int, tok("int")),
-    value(Type::Bool, tok("bool")),
-    value(Type::Char, tok("char")),
-    value(Type::String, tok("string")),
+    value(Type::Int, key("int")),
+    value(Type::Bool, key("bool")),
+    value(Type::Char, key("char")),
+    value(Type::String, key("string")),
   ))(input)
 }
 

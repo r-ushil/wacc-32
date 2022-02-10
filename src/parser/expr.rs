@@ -98,9 +98,9 @@ fn unary_oper(input: &str) -> IResult<&str, UnaryOper> {
   alt((
     value(UnaryOper::Bang, tok("!")),
     value(UnaryOper::Neg, tok("-")),
-    value(UnaryOper::Len, tok("len")),
-    value(UnaryOper::Ord, tok("ord")),
-    value(UnaryOper::Chr, tok("chr")),
+    value(UnaryOper::Len, key("len")),
+    value(UnaryOper::Ord, key("ord")),
+    value(UnaryOper::Chr, key("chr")),
   ))(input)
 }
 
@@ -247,6 +247,8 @@ mod tests {
         )
       ))
     );
+
+    assert_eq!(expr("lenx"), Ok(("", Expr::Ident("lenx".to_string()))));
   }
 
   #[test]
