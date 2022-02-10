@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use super::AResult;
 use crate::ast::*;
 
 type Scope = HashMap<Ident, Type>;
@@ -32,8 +33,13 @@ impl<'a> SymbolTable<'a> {
 
   /* Sets type of ident to val, if ident already exists, updates it and
   returns old value. */
-  pub fn insert(&mut self, ident: &Ident, val: Type) -> Option<Type> {
-    self.current_scope.insert(ident.clone(), val)
+  pub fn insert(&mut self, ident: &Ident, val: Type) -> AResult<()> {
+    match self.current_scope.insert(ident.clone(), val) {
+      Some(_) => Err(format!(
+        "Attempt to change type of variable in current scope."
+      )),
+      None => Ok(()),
+    }
   }
 
   pub fn new_scope(&'a self) -> Self {
