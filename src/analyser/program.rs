@@ -47,7 +47,7 @@ pub fn program(symbol_table: &mut SymbolTable, program: &Program) -> AResult<()>
   match stat(&mut symbol_table.new_scope(), &program.statement)? {
     MidWay(t) | AtEnd(t) if t != Type::Any => {
       Err(format!("Cannot have 'return' statement in main"))
-    },
+    }
     _ => Ok(()),
   }
 }
