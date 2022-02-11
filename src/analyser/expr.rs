@@ -307,13 +307,21 @@ mod tests {
         Box::new(Expr::StrLiter(String::from("hello steve"))),
       ),
     ] {
+      for oper in vec![BinaryOper::Eq, BinaryOper::Neq] {
+        assert_eq!(
+          Expr::BinaryApp(Box::new(expr.clone()), oper, Box::new(expr.clone()))
+            .get_type(symbol_table),
+          Ok(Type::Bool)
+        );
+      }
+    }
+
+    for expr in vec![Expr::IntLiter(5), Expr::CharLiter('a')] {
       for oper in vec![
         BinaryOper::Gt,
         BinaryOper::Gte,
         BinaryOper::Lt,
         BinaryOper::Lte,
-        BinaryOper::Eq,
-        BinaryOper::Neq,
       ] {
         assert_eq!(
           Expr::BinaryApp(Box::new(expr.clone()), oper, Box::new(expr.clone()))
