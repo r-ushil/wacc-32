@@ -31,7 +31,10 @@ impl HasType for AssignRhs {
     Ok(match self {
       AssignRhs::Expr(exp) => exp.get_type(symbol_table)?,
       AssignRhs::ArrayLiter(lit) => lit.get_type(symbol_table)?,
-      AssignRhs::Pair(e1, e2) => todo!(),
+      AssignRhs::Pair(e1, e2) => Type::Pair(
+        Box::new(e1.get_type(symbol_table)?),
+        Box::new(e2.get_type(symbol_table)?),
+      ),
       AssignRhs::PairElem(elem) => elem.get_type(symbol_table)?,
       AssignRhs::Call(id, args) => match id.get_type(symbol_table)? {
         Type::Func(bx) => {
