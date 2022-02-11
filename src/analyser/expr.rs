@@ -53,12 +53,16 @@ impl HasType for Expr {
             }
           },
           /* Any types can be compared. */
-          BinaryOper::Gt
-          | BinaryOper::Gte
-          | BinaryOper::Lt
-          | BinaryOper::Lte
-          | BinaryOper::Eq
-          | BinaryOper::Neq => Type::Bool,
+          BinaryOper::Gt | BinaryOper::Gte | BinaryOper::Lt | BinaryOper::Lte => match expr_type {
+            Type::Int | Type::Char => Type::Bool,
+            t => {
+              return Err(format!(
+                "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
+                op, t
+              ))
+            }
+          },
+          BinaryOper::Eq | BinaryOper::Neq => Type::Bool,
           /* Boolean operators can only be applied to booleans. */
           BinaryOper::And | BinaryOper::Or => match expr_type {
             Type::Bool => Type::Bool,
