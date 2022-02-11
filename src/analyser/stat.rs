@@ -119,10 +119,10 @@ pub fn stat(symbol_table: &mut SymbolTable, statement: &Stat) -> AResult<ReturnB
   match statement {
     Stat::Skip => Ok(Never), /* Skips never return. */
     Stat::Declaration(expected, id, val) => {
+      expected_type(symbol_table, &expected, val)?;
+
       /* Adds identifier to symbol table. */
       symbol_table.insert(id, expected.clone())?;
-
-      expected_type(symbol_table, &expected, val)?;
 
       Ok(Never) /* Declarations never return. */
     }

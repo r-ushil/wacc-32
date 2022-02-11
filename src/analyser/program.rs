@@ -43,7 +43,7 @@ pub fn program(symbol_table: &mut SymbolTable, program: &Program) -> AResult<()>
     .try_for_each(|f| func(symbol_table, f))?;
 
   /* Program body must never return, but it can exit. */
-  match stat(symbol_table, &program.statement)? {
+  match stat(&mut symbol_table.new_scope(), &program.statement)? {
     MidWay(t) | AtEnd(t) if t != Type::Any => {
       Err(format!("Cannot have 'return' statement in main"))
     }
