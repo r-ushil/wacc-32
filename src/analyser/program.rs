@@ -6,9 +6,6 @@ use super::{
 use crate::ast::*;
 
 fn func(symbol_table: &mut SymbolTable, func: &Func) -> AResult<()> {
-  /* Add function's type to symbol table. */
-  symbol_table.insert(&func.ident, Type::Func(Box::new(func.signature.clone())))?;
-
   /* Create new scope for function body. */
   let mut func_scope = symbol_table.new_scope();
 
@@ -34,6 +31,11 @@ fn func(symbol_table: &mut SymbolTable, func: &Func) -> AResult<()> {
 /* This function initialises the symbol table and function table. */
 #[allow(dead_code)]
 pub fn program(symbol_table: &mut SymbolTable, program: &Program) -> AResult<()> {
+  /* Add all function signatures to global. */
+  program.funcs.iter().try_for_each(|func| {
+    symbol_table.insert(&func.ident, Type::Func(Box::new(func.signature.clone())))
+  })?;
+
   /* Add all functions to the symbol table. */
   program
     .funcs
