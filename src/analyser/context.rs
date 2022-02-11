@@ -91,87 +91,43 @@ impl<'a> Context<'a> {
 mod tests {
   use super::*;
 
-  // #[test]
-  // fn foo() {
-  //   let mut a = Context::new();
-  //   a.insert(&("foo".to_owned()), Type::Int);
+  fn make_context<'a>() -> Context<'a> {
+    let mut context = Context::new();
 
-  //   let mut b = a.new_context(String::from("Nested"));
-  //   let b_ident = "bar".to_owned();
-  //   let b_type = Type::Int;
-  //   b.insert(&b_ident, b_type.clone());
+    for i in 0..4 {
+      let mut curr: HashMap<String, Type> = HashMap::new();
 
-  //   assert_eq!(b.get(&b_ident), Some(&b_type));
+      let var1 = format!("{}{}", "x", i);
+      let var2 = format!("{}{}", "y", i);
+      let var3 = format!("{}{}", "z", i);
 
-  //   a.insert(&("baz".to_owned()), Type::Int);
-  // }
+      context.insert(&var1, Type::Bool);
+      context.insert(&var2, Type::Int);
+      context.insert(&var3, Type::String);
+
+      context.new_context(ContextLocation::Function);
+    }
+
+    context
+  }
 
   #[test]
   fn test_table_lookup() {
-    // let mut st = Context::new();
+    let mut context = make_context();
 
-    // for i in 0..4 {
-    //   let mut curr: HashMap<String, Type> = HashMap::new();
+    assert_eq!(context.get(&String::from("x3")), Some(&Type::Bool));
+    assert_eq!(context.get(&String::from("z3")), Some(&Type::String));
+    assert_ne!(context.get(&String::from("v3")), Some(&Type::String));
 
-    //   let var1 = Ident(format!("{}{}", "x", i));
-    //   let var2 = Ident(format!("{}{}", "y", i));
-    //   let var3 = Ident(format!("{}{}", "z", i));
-
-    //   st.insert(&var1, Type::Bool);
-    //   st.insert(&var2, Type::Int);
-    //   st.insert(&var3, Type::String);
-
-    //   st.new_context();
-    // }
-
-    // assert_eq!(table_lookup(&vec, "x3"),
-    // Ok(Type::Bool),);
-
-    // assert_eq!(
-    //   table_lookup(&vec, "z3"),
-    //   Ok(Type::String),
-    // );
-
-    // assert_ne!(
-    //   table_lookup(&vec, "v3"),
-    //   Ok(Type::String),
-    // );
-
-    // assert_eq!(table_lookup(&vec, "random"), Err("not found".to_string()),);
+    assert_eq!(context.get(&String::from("random")), None,);
   }
 
   #[test]
   fn test_table_update() {
-    // let table: HashMap<String, Type> = HashMap::new();
-    // let mut vec: Context = VecDeque::new();
-    // vec.push_front(table);
+    let context = make_context();
 
-    // for i in 0..4 {
-    //   let mut curr: HashMap<String, Type> = HashMap::new();
+    assert_eq!(context.insert(&String::from("x1"), Type::Char), Some(()));
 
-    //   let var1 = format!("{}{}", "x", i);
-    //   let var2 = format!("{}{}", "y", i);
-    //   let var3 = format!("{}{}", "z", i);
-
-    //   curr.insert(var1, Type::Bool);
-    //   curr.insert(var2, Type::Int);
-    //   curr.insert(var3, Type::String);
-
-    //   vec.push_front(curr.clone());
-    // }
-
-    // // before tests = [x1: Bool, y1: Int, z1: String][x2: Bool, y2: Int, z2:
-    // String] // [x3: Bool, y3: Int, z3: String]
-
-    // assert_eq!(
-    //   table_update(&mut vec, "x1", Type::Char, true),
-    //   Ok(HashMap::from([
-    //     ("x1".to_string(), Type::Char),
-    //     ("y1".to_string(), Type::Int),
-    //     ("z1".to_string(), Type::String),
-    //   ]))
-    // );
-
-    // assert_ne!(table_lookup(&vec, "x1"), Ok(Type::Bool),)
+    assert_ne!(context.get(&String::from("x1")), Some(&Type::Bool));
   }
 }
