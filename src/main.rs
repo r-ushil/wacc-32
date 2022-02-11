@@ -13,6 +13,14 @@ use nom_supreme::error::ErrorTree;
 use nom_supreme::final_parser::Location;
 use nom_supreme::final_parser::RecreateContext;
 
+fn is_syntax(error: &SemanticError) -> bool {
+  match error {
+    SemanticError::Syntax(_) => true,
+    SemanticError::Normal(_) => false,
+    SemanticError::Nested(_, b) => is_syntax(&*b),
+  }
+}
+
 fn main() {
   // Get all arguments passed to the compiler
   let args: Vec<String> = env::args().collect();
@@ -58,13 +66,17 @@ fn main() {
       println!("Successful semantic analysis.");
       exit(0);
     }
-    Err(SemanticError::Syntax(e)) => {
-      println!("SYNTAX ERROR: at line: and column: {}", e);
-      exit(100);
-    }
-    Err(SemanticError::Normal(e)) => {
-      println!("SEMANTIC ERROR: {}", e);
-      exit(200);
+    Err(errors) => {
+      let mut syntax_errors = false;
+      for error in errors {
+        println!("ERROR: {}", error);
+
+        if is_syntax(&error) {
+          syntax_errors = true;
+        }
+      }
+
+      exit(if syntax_errors { 100 } else { 200 });
     }
   }
 }
