@@ -1,6 +1,7 @@
 mod analyser;
 mod ast;
 mod parser;
+use std::cmp::min;
 use std::env;
 use std::fs::File;
 use std::io::BufReader;
@@ -9,6 +10,9 @@ use std::path::Path;
 use std::process::exit;
 
 use analyser::SemanticError;
+use nom_supreme::error::ErrorTree;
+use nom_supreme::final_parser::Location;
+use nom_supreme::final_parser::RecreateContext;
 
 fn main() {
   // Get all arguments passed to the compiler
@@ -35,15 +39,45 @@ fn main() {
   let mut program = String::new();
   buf_reader.read_to_string(&mut program).unwrap();
 
+  let p_str = program.as_str();
+
   // Attempt to parse the contents of this file, if an error encountered
   // then return it and exit with status 100
-  let ast = match parser::parse(&program) {
+  let ast = match parser::parse(p_str) {
     Ok(ast) => ast,
     Err(e) => {
-      println!("{}", e);
+      pretty_print(p_str, &e);
       exit(100);
     }
   };
+
+  fn pretty_print(program: &str, err_tree: &ErrorTree<&str>) {
+    match err_tree {
+      ErrorTree::Base { location, kind } => {
+        let context = Location::recreate_context(program, *location);
+        let location_str = location.to_string();
+        let length = location_str.len();
+        let bound = 30.min(length);
+        println!(
+          "line {}, column {}: {} \nStart of error input: {}\n",
+          context.line,
+          context.column,
+          kind,
+          &location_str[..bound]
+        );
+      }
+      ErrorTree::Stack { base, contexts } => {
+        for _ctx in contexts {
+          pretty_print(program, base);
+        }
+      }
+      ErrorTree::Alt(errors) => {
+        for error in errors {
+          pretty_print(program, error);
+        }
+      }
+    }
+  }
 
   // Print the generated abstract syntax tree
   // println!("ast = {:?}", ast);
@@ -54,7 +88,7 @@ fn main() {
       exit(0);
     }
     Err(SemanticError::Syntax(e)) => {
-      println!("SYNTAX ERROR: {}", e);
+      println!("SYNTAX ERROR: at line: and column: {}", e);
       exit(100);
     }
     Err(SemanticError::Normal(e)) => {

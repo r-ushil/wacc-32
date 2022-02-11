@@ -4,12 +4,16 @@ use nom::{
   sequence::{delimited, pair, preceded, tuple},
   IResult,
 };
-use nom_supreme::error::ErrorTree;
+use nom_supreme::{error::ErrorTree, final_parser};
 
 use super::shared::*;
 use super::stat::*;
 use super::type_::*;
 use crate::ast::*;
+
+pub fn final_program_parser(input: &str) -> Result<Program, ErrorTree<&str>> {
+  final_parser::final_parser(program)(input)
+}
 
 /* program ::= 'begin' <func>* <stat> 'end' */
 pub fn program(input: &str) -> IResult<&str, Program, ErrorTree<&str>> {
