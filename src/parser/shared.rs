@@ -27,7 +27,7 @@ where
 }
 
 fn comment<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, &'a str, E> {
-  value("", pair(char_('#'), is_not("\n\r")))(input)
+  value("", pair(char_('#'), opt(is_not("\n\r"))))(input)
 }
 
 pub fn comment_or_ws<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, &'a str, E> {
@@ -126,6 +126,12 @@ mod tests {
     assert!(ident("read").is_err());
     assert!(ident("begin").is_err());
     assert_eq!(ident("lenx"), Ok(("", ("lenx".to_string()))));
+  }
+
+  #[test]
+  fn test_comment_no_content() {
+    assert_eq!(comment::<()>("#"), Ok(("", "")));
+    assert_eq!(comment_or_ws::<()>("#\n"), Ok(("", "")));
   }
 
   #[test]

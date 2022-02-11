@@ -158,7 +158,7 @@ wacc_examples/valid/runtimeErr/integerOverflow/intJustOverflow.wacc,0,pass
 wacc_examples/valid/runtimeErr/integerOverflow/intnegateOverflow3.wacc,0,pass
 wacc_examples/valid/runtimeErr/integerOverflow/intnegateOverflow4.wacc,0,pass
 wacc_examples/valid/runtimeErr/integerOverflow/intnegateOverflow.wacc,0,fail
-wacc_examples/valid/advanced/ticTacToe.wacc,0,fail
+wacc_examples/valid/advanced/ticTacToe.wacc,0,pass
 wacc_examples/valid/advanced/hashTable.wacc,0,pass
 wacc_examples/valid/advanced/binarySortTree.wacc,0,pass
 wacc_examples/valid/IO/IOSequence.wacc,0,pass
