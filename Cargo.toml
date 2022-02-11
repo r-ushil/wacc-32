@@ -7,6 +7,7 @@ edition = "2018"
 
 [dependencies]
 nom = "7.1.0"
+nom-supreme = "0.6.0"
 
 [dev-dependencies]
 rusty-hook = "^0.11.2"
