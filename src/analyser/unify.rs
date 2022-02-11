@@ -14,6 +14,7 @@ impl Unifiable for Type {
         Box::new((*x1).unify(*y1)?),
         Box::new((*x2).unify(*y2)?),
       )),
+      (Array(t1), Array(t2)) => Some(Array(Box::new((*t1).unify(*t2)?))),
       _ => None,
     }
   }
@@ -57,6 +58,22 @@ mod tests {
     assert_eq!(
       Pair(Box::new(Any), Box::new(Any)).unify(Pair(Box::new(Any), Box::new(Any))),
       Some(Pair(Box::new(Any), Box::new(Any)))
+    );
+    assert_eq!(
+      Array(Box::new(Int)).unify(Array(Box::new(Int))),
+      Some(Array(Box::new(Int)))
+    );
+    assert_eq!(
+      Array(Box::new(Int)).unify(Array(Box::new(Any))),
+      Some(Array(Box::new(Int)))
+    );
+    assert_eq!(
+      Array(Box::new(Any)).unify(Array(Box::new(Any))),
+      Some(Array(Box::new(Any)))
+    );
+    assert_eq!(
+      Array(Box::new(Pair(Box::new(Any), Box::new(Int)))).unify(Array(Box::new(Any))),
+      Some(Array(Box::new(Pair(Box::new(Any), Box::new(Int)))))
     );
     // assert_eq!(Int.unify(Int), Some(Int)); // Some means ==
     // assert_eq!(Int.unify(Char), None); // None means !=
