@@ -9,6 +9,7 @@ use nom::{
   sequence::{delimited, pair, terminated},
   IResult, Parser,
 };
+use nom_supreme::error::ErrorTree;
 
 use crate::ast::*;
 
@@ -45,13 +46,17 @@ pub fn comment_or_ws<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a 
 
 /* Consumes whitespace, matches tag, consumes whitespace.
 Returns tag. */
-pub fn tok<'a>(t: &'a str) -> impl FnMut(&'a str) -> IResult<&'a str, &'a str> {
+pub fn tok<'a, E: 'a + ParseError<&'a str>>(
+  t: &'a str,
+) -> impl FnMut(&'a str) -> IResult<&'a str, &'a str, E> {
   ws(tag(t))
 }
 
 /* Same as tok, but token must be followed by a non-identifier character
 so identifiers don't get intpretted as keywords. */
-pub fn key<'a>(t: &'a str) -> impl FnMut(&'a str) -> IResult<&'a str, &'a str> {
+pub fn key<'a, E: 'a + ParseError<&'a str>>(
+  t: &'a str,
+) -> impl FnMut(&'a str) -> IResult<&'a str, &'a str, E> {
   let not_ident = not(verify(anychar, |c| c.is_alphanumeric() || *c == '_'));
 
   delimited(multispace0, terminated(tag(t), not_ident), multispace0)
@@ -96,7 +101,7 @@ pub fn is_keyword(ident: &str) -> bool {
   }
 }
 
-pub fn ident(input: &str) -> IResult<&str, Ident> {
+pub fn ident(input: &str) -> IResult<&str, Ident, ErrorTree<&str>> {
   let ident_parser = map(
     /* Then recognise will return the part of the input that got consumed. */
     recognize(pair(
@@ -116,23 +121,22 @@ mod tests {
 
   #[test]
   fn test_ident() {
-    assert_eq!(ident("_hello123"), Ok(("", ("_hello123".to_string()))));
-    assert_eq!(
+    assert!(matches!(ident("_hello123"), Ok(("", ast)) if ast == "_hello123".to_string()));
+    assert!(matches!(
       ident("_hello123 test"),
-      Ok(("test", ("_hello123".to_string())))
-    );
+      Ok(("test", ast)) if ast == ("_hello123".to_string())));
     assert!(ident("9test").is_err());
-    assert_eq!(ident("te@st"), Ok(("@st", ("te".to_string()))));
+    assert!(matches!(ident("te@st"), Ok(("@st", ast)) if ast == "te".to_string()));
 
     assert!(ident("read").is_err());
     assert!(ident("begin").is_err());
-    assert_eq!(ident("lenx"), Ok(("", ("lenx".to_string()))));
+    assert!(matches!(ident("lenx"), Ok(("", ast)) if ast == "lenx".to_string()));
   }
 
   #[test]
   fn test_comment_no_content() {
-    assert_eq!(comment::<()>("#"), Ok(("", "")));
-    assert_eq!(comment_or_ws::<()>("#\n"), Ok(("", "")));
+    assert!(comment::<()>("#").is_ok());
+    assert!(comment_or_ws::<()>("#\n").is_ok());
   }
 
   #[test]
