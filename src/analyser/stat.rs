@@ -1,28 +1,17 @@
 use super::{equal_types, expected_type, symbol_table::SymbolTable, AResult, HasType};
 use crate::ast::*;
 
-/* -1 => Never returns */
-/* 0 => Sometimes returns */
-/* 1 => Always returns */
 pub enum ReturnBehaviour {
-  Never,
-  Sometimes(Type),
-  Always(Type),
+  Never,        /* Statement never returns. */
+  MidWay(Type), /* Statement returns at least sometimes, but not at the end. */
+  AtEnd(Type),  /* Statement always returns at the end. */
 }
 
 impl ReturnBehaviour {
   fn same_return(&self, other: &ReturnBehaviour) -> bool {
     use ReturnBehaviour::*;
 
-    if let (Sometimes(true_type) | Always(true_type), Sometimes(false_type) | Always(false_type)) =
-      (self, other)
-    {
-      if true_type != false_type {
-        return false;
-      }
-    }
-
-    true
+    !matches!((self, other), (MidWay(true_type) | AtEnd(true_type), MidWay(false_type) | AtEnd(false_type)) if true_type != false_type)
   }
 }
 
@@ -144,13 +133,13 @@ pub fn stat(symbol_table: &mut SymbolTable, statement: &Stat) -> AResult<ReturnB
         actual_type
       )),
     },
-    Stat::Return(expr) => Ok(Always(expr.get_type(symbol_table)?)), /* Returns always return. */
+    Stat::Return(expr) => Ok(AtEnd(expr.get_type(symbol_table)?)), /* Returns always return. */
     Stat::Exit(expr) => {
       /* Exit codes must be integers. */
       expected_type(symbol_table, &Type::Int, expr)?;
       /* Exits can be concidered to return because they will never return the
       wrong type, by using any it won't collide with another type. */
-      Ok(Always(Type::Any))
+      Ok(AtEnd(Type::Any))
     }
     Stat::Print(expr) | Stat::Println(expr) => {
       /* Any type can be printed. */
@@ -179,16 +168,16 @@ pub fn stat(symbol_table: &mut SymbolTable, statement: &Stat) -> AResult<ReturnB
         /* If both branches never return, if statement never returns. */
         (Never, Never) => return Ok(Never),
         /* Otherwise, if statement returns the same type as one of its branches. */
-        (Sometimes(t) | Always(t), _) | (_, Sometimes(t) | Always(t)) => t,
+        (MidWay(t) | AtEnd(t), _) | (_, MidWay(t) | AtEnd(t)) => t,
       };
 
       /* Determine how often that return type is returned. */
-      if let (Always(_), Always(_)) = (&true_behaviour, &false_behaviour) {
-        /* If both branches always return, the if statement always returns. */
-        Ok(Always(return_type.clone()))
+      if let (AtEnd(_), AtEnd(_)) = (&true_behaviour, &false_behaviour) {
+        /* If both branches end in returns, the if statement ends in a return. */
+        Ok(AtEnd(return_type.clone()))
       } else {
-        /* Otherwise, the if statement can't be relied on to return. */
-        Ok(Sometimes(return_type.clone()))
+        /* Otherwise, the if statement doesn't end with a return. */
+        Ok(MidWay(return_type.clone()))
       }
     }
     Stat::While(cond, body) => {
@@ -197,7 +186,7 @@ pub fn stat(symbol_table: &mut SymbolTable, statement: &Stat) -> AResult<ReturnB
       Ok(match stat(symbol_table, body)? {
         /* If the body always returns, while loop might still not return
         because the cond might always be false and the body never run. */
-        Always(t) => Sometimes(t),
+        AtEnd(t) => MidWay(t),
         /* Otherwise white loop returns the same way it's body does. */
         b => b,
       })
@@ -206,17 +195,13 @@ pub fn stat(symbol_table: &mut SymbolTable, statement: &Stat) -> AResult<ReturnB
     Stat::Sequence(fst, snd) => {
       /* CHECK: no definite returns before last line. */
       let lhs = stat(symbol_table, fst)?;
-      if let Always(_) = &lhs {
-        return Err(format!("Return before end of function"));
-      }
-
       let rhs = stat(symbol_table, snd)?;
-      Ok(if let (Sometimes(_), Never) = (&lhs, &rhs) {
-        /* If lhs sometimes returns the expression might still return
-        even if the rhs never returns. */
-        lhs
+
+      /* Even if RHS never returns, the statement overall might still return
+      if the LHS returns some or all of the time. */
+      Ok(if let (Never, MidWay(t) | AtEnd(t)) = (&rhs, lhs) {
+        MidWay(t)
       } else {
-        /* Otherwise the return behaviour is determined by the rhs. */
         rhs
       })
     }
