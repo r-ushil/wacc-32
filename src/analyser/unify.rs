@@ -1,7 +1,7 @@
 use crate::ast::Type::{self, *};
 use std::option::Option;
 
-trait Unifiable {
+pub trait Unifiable {
   fn unify(self, t: Type) -> Option<Type>;
 }
 

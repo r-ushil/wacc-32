@@ -5,6 +5,7 @@ mod symbol_table;
 mod unify;
 
 use symbol_table::SymbolTable;
+use unify::Unifiable;
 
 use crate::ast::*;
 
@@ -30,13 +31,13 @@ fn equal_types<L: HasType, R: HasType>(
   let lhs_type = lhs.get_type(symbol_table)?;
   let rhs_type = rhs.get_type(symbol_table)?;
 
-  if lhs_type != rhs_type {
+  if let Some(t) = lhs_type.clone().unify(rhs_type.clone()) {
+    Ok(t)
+  } else {
     Err(format!(
       "TYPE ERROR: Type mismatch between.\n\tType 1: {:?}Type 2:\n\t{:?}",
       lhs_type, rhs_type
     ))
-  } else {
-    Ok(lhs_type)
   }
 }
 
@@ -48,13 +49,13 @@ fn expected_type<'a, A: HasType>(
 ) -> AResult<&'a Type> {
   let actual_type = actual.get_type(symbol_table)?;
 
-  if expected_type != &actual_type {
+  if let Some(t) = expected_type.clone().unify(actual_type.clone()) {
+    Ok(expected_type)
+  } else {
     Err(format!(
       "TYPE ERROR: Unexpected type.\n\tExpected: {:?}\n\tActual: {:?}",
       expected_type, actual_type
     ))
-  } else {
-    Ok(expected_type)
   }
 }
 
@@ -132,7 +133,7 @@ mod tests {
     let mut symbol_table = SymbolTable::new();
 
     /* x: BaseType(Int) */
-    symbol_table.insert(&x, x_type.clone());
+    symbol_table.insert(&x, x_type.clone()).unwrap();
 
     assert_eq!(x.get_type(&symbol_table), Ok(x_type));
     assert!(String::from("hello").get_type(&symbol_table).is_err());
