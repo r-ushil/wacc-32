@@ -82,18 +82,25 @@ impl HasType for PairElem {
 
 impl HasType for ArrayLiter {
   fn get_type(&self, symbol_table: &SymbolTable) -> AResult<Type> {
-    if self.0.is_empty() {
-      todo!("Handle empty array");
-    } else {
-      let first = self.0.first().unwrap().get_type(symbol_table)?;
-      for expr in &self.0[1..] {
-        if !(expr.get_type(symbol_table)? == first) {
-          break;
-        }
-      }
-    }
+    let ArrayLiter(exprs) = self;
 
-    Err("Mismatched type".to_string())
+    Ok(Type::Array(Box::new(match exprs.first() {
+      None => Type::Any,
+      Some(first) => {
+        /* Take first element as source of truth. */
+        let first_type = first.get_type(symbol_table)?;
+
+        /* Ensure every other element has same type. */
+        for expr in &exprs[1..] {
+          let expr_type = expr.get_type(symbol_table)?;
+          if first_type != expr_type {
+            return Err(format!("Array literal value has wrong type\n\tValue: {:?}\n\tExpected Type: {:?}\n\tActual Type: {:?}", expr, first_type, expr_type));
+          }
+        }
+
+        first_type
+      }
+    })))
   }
 }
 
