@@ -2,6 +2,7 @@ mod expr;
 mod program;
 mod stat;
 mod symbol_table;
+mod unify;
 
 use symbol_table::SymbolTable;
 
