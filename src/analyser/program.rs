@@ -80,109 +80,109 @@ pub fn program(
 mod tests {
   use super::*;
 
-  // #[test]
-  // fn func_parameters_checked() {
-  //   let context = &mut Context::new();
+  #[test]
+  fn func_parameters_checked() {
+    let context = &mut Context::new();
 
-  //   /* Function */
-  //   /* int double(int x) is return x * 2 end */
-  //   let f = Func {
-  //     ident: String::from("double"),
-  //     signature: FuncSig {
-  //       params: vec![(Type::Int, String::from("x"))],
-  //       return_type: Type::Int,
-  //     },
-  //     body: Stat::Return(Expr::BinaryApp(
-  //       Box::new(Expr::Ident(String::from("x"))),
-  //       BinaryOper::Mul,
-  //       Box::new(Expr::IntLiter(2)),
-  //     )),
-  //   };
+    /* Function */
+    /* int double(int x) is return x * 2 end */
+    let f = Func {
+      ident: String::from("double"),
+      signature: FuncSig {
+        params: vec![(Type::Int, String::from("x"))],
+        return_type: Type::Int,
+      },
+      body: Stat::Return(Expr::BinaryApp(
+        Box::new(Expr::Ident(String::from("x"))),
+        BinaryOper::Mul,
+        Box::new(Expr::IntLiter(2)),
+      )),
+    };
 
-  //   /* Works in it's default form. */
-  //   assert!(func(context, &f).is_ok());
+    /* Works in it's default form. */
+    assert!(func(context, &mut vec![], &f).is_some());
 
-  //   /* Doesn't work if wrong type returned. */
-  //   /* int double(int x) is return false end */
-  //   let mut f1 = f.clone();
-  //   f1.body = Stat::Return(Expr::BoolLiter(false));
-  //   assert!(func(context, &f1).is_err());
+    /* Doesn't work if wrong type returned. */
+    /* int double(int x) is return false end */
+    let mut f1 = f.clone();
+    f1.body = Stat::Return(Expr::BoolLiter(false));
+    assert!(func(context, &mut vec![], &f1).is_none());
 
-  //   /* Can compare parameter type with return type. */
-  //   /* bool double(int x) is return x end */
-  //   let mut f2 = f.clone();
-  //   f2.signature.return_type = Type::Bool;
-  //   f2.body = Stat::Return(Expr::Ident(String::from("x")));
-  //   assert!(func(context, &f2).is_err());
-  // }
+    /* Can compare parameter type with return type. */
+    /* bool double(int x) is return x end */
+    let mut f2 = f.clone();
+    f2.signature.return_type = Type::Bool;
+    f2.body = Stat::Return(Expr::Ident(String::from("x")));
+    assert!(func(context, &mut vec![], &f2).is_none());
+  }
 
-  // #[test]
-  // fn branching_return_types_checked() {
-  //   /* Function */
-  //   /* int double(int x) is return x * 2 end */
-  //   let f = Func {
-  //     ident: String::from("double"),
-  //     signature: FuncSig {
-  //       params: vec![(Type::Int, String::from("x"))],
-  //       return_type: Type::Int,
-  //     },
-  //     body: Stat::Return(Expr::BinaryApp(
-  //       Box::new(Expr::Ident(String::from("x"))),
-  //       BinaryOper::Mul,
-  //       Box::new(Expr::IntLiter(2)),
-  //     )),
-  //   };
+  #[test]
+  fn branching_return_types_checked() {
+    /* Function */
+    /* int double(int x) is return x * 2 end */
+    let f = Func {
+      ident: String::from("double"),
+      signature: FuncSig {
+        params: vec![(Type::Int, String::from("x"))],
+        return_type: Type::Int,
+      },
+      body: Stat::Return(Expr::BinaryApp(
+        Box::new(Expr::Ident(String::from("x"))),
+        BinaryOper::Mul,
+        Box::new(Expr::IntLiter(2)),
+      )),
+    };
 
-  //   /* Both branches of if statements must return correct type. */
-  //   /* int double(int x) is
-  //     if true then return 5 else return 2 fi
-  //   end */
-  //   let mut f3 = f.clone();
-  //   f3.body = Stat::If(
-  //     Expr::BoolLiter(false),
-  //     Box::new(Stat::Return(Expr::IntLiter(5))),
-  //     Box::new(Stat::Return(Expr::IntLiter(2))),
-  //   );
-  //   assert!(func(&mut Context::new(), &f3).is_ok());
+    /* Both branches of if statements must return correct type. */
+    /* int double(int x) is
+      if true then return 5 else return 2 fi
+    end */
+    let mut f3 = f.clone();
+    f3.body = Stat::If(
+      Expr::BoolLiter(false),
+      Box::new(Stat::Return(Expr::IntLiter(5))),
+      Box::new(Stat::Return(Expr::IntLiter(2))),
+    );
+    assert!(func(&mut Context::new(), &mut vec![], &f3).is_some());
 
-  //   /* int double(int x) is
-  //     if true then return false else return 2 fi
-  //   end */
-  //   let mut f4 = f.clone();
-  //   f4.body = Stat::If(
-  //     Expr::BoolLiter(false),
-  //     Box::new(Stat::Return(Expr::BoolLiter(false))),
-  //     Box::new(Stat::Return(Expr::IntLiter(2))),
-  //   );
+    /* int double(int x) is
+      if true then return false else return 2 fi
+    end */
+    let mut f4 = f.clone();
+    f4.body = Stat::If(
+      Expr::BoolLiter(false),
+      Box::new(Stat::Return(Expr::BoolLiter(false))),
+      Box::new(Stat::Return(Expr::IntLiter(2))),
+    );
 
-  //   assert!(func(&mut Context::new(), &f4).is_err());
+    assert!(func(&mut Context::new(), &mut vec![], &f4).is_none());
 
-  //   /* Only one statement has to return. */
-  //   /* int double(int x) is
-  //     print "hello world"; return 5
-  //   end*/
-  //   let mut f5 = f.clone();
-  //   f5.body = Stat::Sequence(
-  //     Box::new(Stat::Print(Expr::StrLiter(String::from("hello world")))),
-  //     Box::new(Stat::Return(Expr::IntLiter(5))),
-  //   );
-  //   let x = func(&mut Context::new(), &f5);
-  //   assert!(x.is_ok());
+    /* Only one statement has to return. */
+    /* int double(int x) is
+      print "hello world"; return 5
+    end*/
+    let mut f5 = f.clone();
+    f5.body = Stat::Sequence(
+      Box::new(Stat::Print(Expr::StrLiter(String::from("hello world")))),
+      Box::new(Stat::Return(Expr::IntLiter(5))),
+    );
+    let x = func(&mut Context::new(), &mut vec![], &f5);
+    assert!(x.is_some());
 
-  //   /* Spots erroneous returns. */
-  //   /* int double(int x) is
-  //     if true then return true else skip fi;
-  //     return 5
-  //   end*/
-  //   let mut f6 = f.clone();
-  //   f6.body = Stat::Sequence(
-  //     Box::new(Stat::If(
-  //       Expr::BoolLiter(true),
-  //       Box::new(Stat::Return(Expr::BoolLiter(true))),
-  //       Box::new(Stat::Skip),
-  //     )),
-  //     Box::new(Stat::Print(Expr::StrLiter(String::from("Hello World")))),
-  //   );
-  //   assert!(func(&mut Context::new(), &f6).is_err());
-  // }
+    /* Spots erroneous returns. */
+    /* int double(int x) is
+      if true then return true else skip fi;
+      return 5
+    end*/
+    let mut f6 = f.clone();
+    f6.body = Stat::Sequence(
+      Box::new(Stat::If(
+        Expr::BoolLiter(true),
+        Box::new(Stat::Return(Expr::BoolLiter(true))),
+        Box::new(Stat::Skip),
+      )),
+      Box::new(Stat::Print(Expr::StrLiter(String::from("Hello World")))),
+    );
+    assert!(func(&mut Context::new(), &mut vec![], &f6).is_none());
+  }
 }

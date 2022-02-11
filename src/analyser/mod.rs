@@ -133,10 +133,17 @@ impl HasType for Ident {
 impl HasType for ArrayElem {
   fn get_type(&self, context: &Context, errors: &mut Vec<SemanticError>) -> Option<Type> {
     let ArrayElem(id, indexes) = self;
+    let mut errored = false;
 
     /* Ensure all indexes are ints */
     for index in indexes {
-      expected_type(context, errors, &Type::Int, index);
+      if index.get_type(context, errors) != Some(Type::Int) {
+        errored = true;
+      }
+    }
+
+    if errored {
+      return None;
     }
 
     /* Gets type of the array being looked up. */
@@ -179,53 +186,79 @@ pub fn analyse(program: &Program) -> Result<(), Vec<SemanticError>> {
 mod tests {
   use super::*;
 
-  // #[test]
-  // fn idents() {
-  //   let x = String::from("x");
-  //   let x_type = Type::Int;
-  //   let mut context = Context::new();
+  #[test]
+  fn charlie_test() {
+    let id = String::from("x");
 
-  //   /* x: BaseType(Int) */
-  //   context.insert(&x, x_type.clone()).unwrap();
+    let mut context = Context::new();
 
-  //   assert_eq!(x.get_type(&context), Ok(x_type));
-  //   assert!(String::from("hello").get_type(&context).is_err());
-  // }
+    /* x: Array(Array(Int)) */
+    context.insert(&id, Type::Array(Box::new(Type::Array(Box::new(Type::Int)))));
 
-  // #[test]
-  // fn array_elems() {
-  //   let id = String::from("x");
+    /* x[5]['a'] is error */
+    println!("{:?}", id.clone().get_type(&context, &mut vec!()));
+    println!(
+      "{:?}",
+      ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::CharLiter('a')])
+        .get_type(&context, &mut vec![])
+    );
+    assert!(
+      ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::CharLiter('a')])
+        .get_type(&context, &mut vec![])
+        .is_none()
+    );
+  }
 
-  //   let mut context = Context::new();
+  #[test]
+  fn idents() {
+    let x = String::from("x");
+    let x_type = Type::Int;
+    let mut context = Context::new();
 
-  //   /* x: Array(Array(Int)) */
-  //   context.insert(&id, Type::Array(Box::new(Type::Array(Box::new(Type::Int)))));
+    /* x: BaseType(Int) */
+    context.insert(&x, x_type.clone()).unwrap();
 
-  //   /* x[5][2]: Int */
-  //   assert_eq!(
-  //     ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::IntLiter(2)]).get_type(&context),
-  //     Ok(Type::Int),
-  //   );
+    assert_eq!(x.get_type(&context, &mut vec![]), Some(x_type));
+    assert!(String::from("hello")
+      .get_type(&context, &mut vec![])
+      .is_none());
+  }
 
-  //   /* x[5]['a'] is error */
-  //   assert!(
-  //     ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::CharLiter('a')])
-  //       .get_type(&context)
-  //       .is_err()
-  //   );
+  #[test]
+  fn array_elems() {
+    let id = String::from("x");
 
-  //   /* x[5]: Array(Int) */
-  //   assert_eq!(
-  //     ArrayElem(id.clone(), vec![Expr::IntLiter(5)]).get_type(&context),
-  //     Ok(Type::Array(Box::new(Type::Int))),
-  //   );
+    let mut context = Context::new();
 
-  //   /* x[5][2][1] is error */
-  //   assert!(ArrayElem(
-  //     id.clone(),
-  //     vec![Expr::IntLiter(5), Expr::IntLiter(2), Expr::IntLiter(1)]
-  //   )
-  //   .get_type(&context)
-  //   .is_err());
-  // }
+    /* x: Array(Array(Int)) */
+    context.insert(&id, Type::Array(Box::new(Type::Array(Box::new(Type::Int)))));
+
+    /* x[5][2]: Int */
+    assert_eq!(
+      ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::IntLiter(2)])
+        .get_type(&context, &mut vec![]),
+      Some(Type::Int),
+    );
+
+    /* x[5]['a'] is error */
+    assert!(
+      ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::CharLiter('a')])
+        .get_type(&context, &mut vec![])
+        .is_none()
+    );
+
+    /* x[5]: Array(Int) */
+    assert_eq!(
+      ArrayElem(id.clone(), vec![Expr::IntLiter(5)]).get_type(&context, &mut vec![]),
+      Some(Type::Array(Box::new(Type::Int))),
+    );
+
+    /* x[5][2][1] is error */
+    assert!(ArrayElem(
+      id.clone(),
+      vec![Expr::IntLiter(5), Expr::IntLiter(2), Expr::IntLiter(1)]
+    )
+    .get_type(&context, &mut vec![])
+    .is_none());
+  }
 }

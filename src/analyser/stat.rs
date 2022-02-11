@@ -356,16 +356,16 @@ mod tests {
 
     assert!(AssignRhs::PairElem(PairElem::Fst(Expr::PairLiter))
       .get_type(context, &mut vec![])
-      .is_some());
+      .is_none());
 
     assert!(AssignRhs::PairElem(PairElem::Fst(Expr::PairLiter))
       .get_type(context, &mut vec![])
-      .is_some());
+      .is_none());
 
     assert_eq!(
       AssignLhs::ArrayElem(ArrayElem(x_id.clone(), vec!(Expr::IntLiter(5))))
         .get_type(context, &mut vec![]),
-      Some(x_type.clone())
+      Some(Type::Int)
     );
   }
 }

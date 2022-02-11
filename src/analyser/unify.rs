@@ -20,17 +20,6 @@ impl Unifiable for Type {
   }
 }
 
-// pub enum Type {
-//   Int,
-//   Bool,
-//   Char,
-//   String,
-//   Any,
-//   Array(Box<Type>),
-//   Pair(Box<Type>, Box<Type>),
-//   Func(Box<FuncSig>),
-// }
-
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -75,17 +64,17 @@ mod tests {
       Array(Box::new(Pair(Box::new(Any), Box::new(Int)))).unify(Array(Box::new(Any))),
       Some(Array(Box::new(Pair(Box::new(Any), Box::new(Int)))))
     );
-    // assert_eq!(Int.unify(Int), Some(Int)); // Some means ==
-    // assert_eq!(Int.unify(Char), None); // None means !=
-    // assert_eq!(Int.unify(Any), Some(Int)); // Any unifies with anything
-    // assert_eq!(Any.unify(Int), Some(Any)); // Its commutativitiytyty
-    // assert_eq!(
-    //   Pair(Box::new(Any), Box::new(Int)).unify(Pair(Box::new(Int), Box::new(Int))),
-    //   Some(Pair(Box::new(Int), Box::new(Int)))
-    // ); // Anys get overridden by other things recursive
-    // assert_eq!(
-    //   Array(Box::new(Int)).unify(Array(Box::new(Any))),
-    //   Some(Array(Box::new(Int)))
-    // )
+    assert_eq!(Int.unify(Int), Some(Int)); // Some means ==
+    assert_eq!(Int.unify(Char), None); // None means !=
+    assert_eq!(Int.unify(Any), Some(Int)); // Any unifies with anything
+    assert_ne!(Any.unify(Int), Some(Any)); // Its commutativitiytyty
+    assert_eq!(
+      Pair(Box::new(Any), Box::new(Int)).unify(Pair(Box::new(Int), Box::new(Int))),
+      Some(Pair(Box::new(Int), Box::new(Int)))
+    ); // Anys get overridden by other things recursive
+    assert_eq!(
+      Array(Box::new(Int)).unify(Array(Box::new(Any))),
+      Some(Array(Box::new(Int)))
+    )
   }
 }

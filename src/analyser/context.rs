@@ -113,7 +113,7 @@ mod tests {
 
   #[test]
   fn test_table_lookup() {
-    let mut context = make_context();
+    let context = make_context();
 
     assert_eq!(context.get(&String::from("x3")), Some(&Type::Bool));
     assert_eq!(context.get(&String::from("z3")), Some(&Type::String));
@@ -124,10 +124,10 @@ mod tests {
 
   #[test]
   fn test_table_update() {
-    let context = make_context();
+    let mut context = make_context();
 
-    assert_eq!(context.insert(&String::from("x1"), Type::Char), Some(()));
+    assert_eq!(context.insert(&String::from("g"), Type::Char), Some(()));
 
-    assert_ne!(context.get(&String::from("x1")), Some(&Type::Bool));
+    assert_ne!(context.get(&String::from("g")), Some(&Type::Bool));
   }
 }

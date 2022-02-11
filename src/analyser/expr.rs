@@ -243,8 +243,8 @@ mod tests {
       BinaryOper::Add,
       Box::new(Expr::BoolLiter(false))
     )
-    .get_type(context, &mut vec!())
-    .is_some());
+    .get_type(context, &mut vec![])
+    .is_none());
 
     /* 5 * 'a': ERROR */
     assert!(Expr::BinaryApp(
@@ -252,8 +252,8 @@ mod tests {
       BinaryOper::Mul,
       Box::new(Expr::CharLiter('a'))
     )
-    .get_type(context, &mut vec!())
-    .is_some());
+    .get_type(context, &mut vec![])
+    .is_none());
 
     /* false / "hello": ERROR */
     assert!(Expr::BinaryApp(
@@ -261,8 +261,8 @@ mod tests {
       BinaryOper::Div,
       Box::new(Expr::StrLiter(String::from("hello")))
     )
-    .get_type(context, &mut vec!())
-    .is_some());
+    .get_type(context, &mut vec![])
+    .is_none());
 
     /* false && 6: ERROR */
     assert!(Expr::BinaryApp(
@@ -270,8 +270,8 @@ mod tests {
       BinaryOper::And,
       Box::new(Expr::IntLiter(6))
     )
-    .get_type(context, &mut vec!())
-    .is_some());
+    .get_type(context, &mut vec![])
+    .is_none());
 
     /* MATH CAN BE DONE ON INTS. */
     /* 5 * 5: Int */
@@ -281,7 +281,7 @@ mod tests {
         BinaryOper::Mul,
         Box::new(Expr::IntLiter(5)),
       )
-      .get_type(context, &mut vec!()),
+      .get_type(context, &mut vec![]),
       Some(Type::Int),
     );
 
@@ -292,7 +292,7 @@ mod tests {
         BinaryOper::Add,
         Box::new(Expr::IntLiter(5)),
       )
-      .get_type(context, &mut vec!()),
+      .get_type(context, &mut vec![]),
       Some(Type::Int),
     );
 
@@ -303,8 +303,8 @@ mod tests {
       BinaryOper::Add,
       Box::new(Expr::CharLiter('b'))
     )
-    .get_type(context, &mut vec!())
-    .is_some());
+    .get_type(context, &mut vec![])
+    .is_none());
 
     /* false + false: ERROR */
     assert!(Expr::BinaryApp(
@@ -312,8 +312,8 @@ mod tests {
       BinaryOper::Add,
       Box::new(Expr::BoolLiter(false))
     )
-    .get_type(context, &mut vec!())
-    .is_some());
+    .get_type(context, &mut vec![])
+    .is_none());
 
     /* Any type can be comapred to itself. */
     for expr in vec![
@@ -331,7 +331,7 @@ mod tests {
       for oper in vec![BinaryOper::Eq, BinaryOper::Neq] {
         assert_eq!(
           Expr::BinaryApp(Box::new(expr.clone()), oper, Box::new(expr.clone()))
-            .get_type(context, &mut vec!()),
+            .get_type(context, &mut vec![]),
           Some(Type::Bool)
         );
       }
@@ -360,7 +360,7 @@ mod tests {
       Box::new(Expr::IntLiter(5)),
     )
     .get_type(context, &mut vec!())
-    .is_some());
+    .is_none());
 
     /* 'a' || 'a': ERROR */
     assert!(Expr::BinaryApp(
@@ -369,7 +369,7 @@ mod tests {
       Box::new(Expr::CharLiter('a')),
     )
     .get_type(context, &mut vec!())
-    .is_some());
+    .is_none());
 
     /* true && true: bool */
     assert_eq!(
