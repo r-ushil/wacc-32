@@ -12,7 +12,6 @@ begin
   int f() is
     return 3
   end
-
-  f = 2 
-
+  
+  f = 2
 end

@@ -2,7 +2,7 @@
 
 # Creates a list of all test files and directories from wacc_examples
 function create_test_list() {
-	find wacc_examples -type f -exec echo "'{}'" >> test_list \;
+	find wacc_examples -type f -exec echo "{}" >> test_list \;
 }
 
 # Creates an identical list, in csv with appended expected exit codes
@@ -18,14 +18,15 @@ function create_exit_codes_list() {
 	
 		if [ $syntax_error -eq 1 ]
 		then
-			echo 100 >> test_list_exit_codes
+			echo -n "100," >> test_list_exit_codes
 		elif [ $semantic_error -eq 1 ]
 		then
-			echo 200 >> test_list_exit_codes
+			echo -n "200," >> test_list_exit_codes
 		else
-			echo 0 >> test_list_exit_codes
+			echo -n "0," >> test_list_exit_codes
 		fi
+    echo fail >> test_list_exit_codes
 	done < test_list
 }
 
-read_exit_codes
+create_exit_codes_list

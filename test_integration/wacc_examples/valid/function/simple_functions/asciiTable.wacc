@@ -1,7 +1,7 @@
-# print out a lookup table for ascii character representations
+# print out a lookup table for Ascii character representations
 
 # Output:
-# Asci character lookup table:
+# Ascii character lookup table:
 # -------------
 # |   32 =    |
 # |   33 = !  |
@@ -128,7 +128,7 @@ begin
     return true
   end
 
-  println "Asci character lookup table:" ;
+  println "Ascii character lookup table:" ;
   bool r = call printLine(13) ;
   int num = ord ' ' ;
   while num < 127 do
