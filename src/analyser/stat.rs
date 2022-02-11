@@ -130,10 +130,12 @@ pub fn stat(symbol_table: &mut SymbolTable, statement: &Stat) -> AResult<ReturnB
     Stat::Assignment(lhs, rhs) => {
       equal_types(symbol_table, lhs, rhs)?;
       Ok(Never) /* Assignments never return. */
-    } // x = [1,2,3]
+    }
     Stat::Read(dest) => {
-      expected_type(symbol_table, &Type::String, dest)?;
-      Ok(Never) /* Reads never return. */
+      /* Any type can be read. */
+      dest.get_type(symbol_table)?;
+      /* Reads never return. */
+      Ok(Never)
     }
     Stat::Free(expr) => match expr.get_type(symbol_table)? {
       Type::Pair(_, _) | Type::Array(_) => Ok(Never), /* Frees never return. */
@@ -144,12 +146,18 @@ pub fn stat(symbol_table: &mut SymbolTable, statement: &Stat) -> AResult<ReturnB
     },
     Stat::Return(expr) => Ok(Always(expr.get_type(symbol_table)?)), /* Returns always return. */
     Stat::Exit(expr) => {
+      /* Exit codes must be integers. */
       expected_type(symbol_table, &Type::Int, expr)?;
-      Ok(Always(Type::Any)) /* Exit never return. */
+      /* Exits can be concidered to return because they will never return the
+      wrong type, by using any it won't collide with another type. */
+      Ok(Always(Type::Any))
     }
     Stat::Print(expr) | Stat::Println(expr) => {
-      expected_type(symbol_table, &Type::String, expr)?;
-      Ok(Never) /* Prints never return. */
+      /* Any type can be printed. */
+      expr.get_type(symbol_table)?;
+
+      /* Prints never return. */
+      Ok(Never)
     }
     Stat::If(cond, if_stat, else_stat) => {
       expected_type(symbol_table, &Type::Bool, cond)?;
