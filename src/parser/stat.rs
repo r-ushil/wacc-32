@@ -640,40 +640,66 @@ mod tests {
   }
 
   #[test]
-  fn test_assign_rhs() {
+  fn test_assign_rhs1() {
     assert!(matches!(
       assign_rhs("5"),
       Ok(("", AssignRhs::Expr(Expr::IntLiter(5))))
     ));
+  }
+
+  #[test]
+  fn test_assign_rhs2() {
     assert!(matches!(
       assign_rhs("[1, 2 ,3 ,4,5]"),
       Ok((
         "",
         ast)) if ast == AssignRhs::ArrayLiter(ArrayLiter((1..=5).map(Expr::IntLiter).collect()))
     ));
+  }
+
+  #[test]
+  fn test_assign_rhs3() {
     assert!(matches!(
       assign_rhs("[1, 'c']"),
       Ok((
         "",
         ast)) if ast == AssignRhs::ArrayLiter(ArrayLiter(vec!(Expr::IntLiter(1), Expr::CharLiter('c'))))
     ));
+  }
+
+  #[test]
+  fn test_assign_rhs4() {
     assert!(matches!(
       assign_rhs("[]"),
       Ok(("", ast)) if ast == AssignRhs::ArrayLiter(ArrayLiter(vec!()))
     ));
+  }
+  #[test]
+  fn test_assign_rhs5() {
     assert!(matches!(
       assign_rhs("newpair (1, 2)"),
       Ok(("", AssignRhs::Pair(Expr::IntLiter(1), Expr::IntLiter(2))))
     ));
+  }
 
+  #[test]
+  fn test_assign_rhs6() {
     assert!(matches!(
       assign_rhs("fst 5"),
       Ok(("", AssignRhs::PairElem(PairElem::Fst(Expr::IntLiter(5)))))
     ));
+  }
+
+  #[test]
+  fn test_assign_rhs7() {
     assert!(matches!(
       assign_rhs("snd null"),
       Ok(("", AssignRhs::PairElem(PairElem::Snd(Expr::PairLiter))))
     ));
+  }
+
+  #[test]
+  fn test_assign_rhs8() {
     assert!(matches!(
       assign_rhs("fst 1 ; snd 2"),
       Ok((
@@ -681,12 +707,17 @@ mod tests {
         AssignRhs::PairElem(PairElem::Fst(Expr::IntLiter(1)))
       ))
     ));
+  }
 
+  #[test]
+  fn test_assign_rhs9() {
     assert!(matches!(
       assign_rhs("call callee ()"),
       Ok(("", ast)) if ast == AssignRhs::Call("callee".to_string(), vec!())
     ));
-
+  }
+  #[test]
+  fn test_assign_rhs10() {
     assert!(matches!(
       assign_rhs("[ false, true ]"),
       Ok((
