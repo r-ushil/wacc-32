@@ -276,7 +276,7 @@ wacc_examples/invalid/syntaxErr/function/functionJunkAfterReturn.wacc,100,pass
 wacc_examples/invalid/syntaxErr/function/functionNoReturn.wacc,100,pass
 wacc_examples/invalid/syntaxErr/function/badlyPlaced.wacc,100,pass
 wacc_examples/invalid/syntaxErr/function/funcExpr.wacc,100,pass
-wacc_examples/invalid/syntaxErr/function/functionMissingParam.wacc,100,fail
+wacc_examples/invalid/syntaxErr/function/functionMissingParam.wacc,100,pass
 wacc_examples/invalid/syntaxErr/function/mutualRecursionNoReturn.wacc,100,pass
 wacc_examples/invalid/syntaxErr/function/functionMissingCall.wacc,100,pass
 wacc_examples/invalid/syntaxErr/function/functionReturnInLoop.wacc,100,pass

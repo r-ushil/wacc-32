@@ -69,12 +69,13 @@ where
   Dp: Parser<&'a str, O2, E>,
 {
   map(
-    pair(many0(terminated(element, delimeter)), opt(element)),
-    |(mut elements, optlast)| {
-      if let Some(last) = optlast {
+    opt(pair(many0(terminated(element, delimeter)), element)),
+    |x| match x {
+      Some((mut elements, last)) => {
         elements.push(last);
+        elements
       }
-      elements
+      None => Vec::new(),
     },
   )
 }
