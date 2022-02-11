@@ -82,13 +82,15 @@ fn expr_binary_app(prec: u8, input: &str) -> IResult<&str, Expr> {
 
 //〈int-liter〉::= (‘+’ | ‘-’) ? (‘0’-‘9’)
 fn int_liter(input: &str) -> IResult<&str, i32> {
+  use std::convert::TryFrom;
+
   let (input, (sign, digits)) = pair(opt(ws(alt((char_('+'), char_('-'))))), ws(digit1))(input)?;
 
   /* Use builtin i32 parsing for digits. */
-  let n = digits.parse::<i32>().unwrap();
+  let n = digits.parse::<i64>().unwrap();
 
   /* Negate if negative sign present. */
-  let n = if sign == Some('-') { -n } else { n };
+  let n: i32 = i32::try_from(if sign == Some('-') { -n } else { n }).unwrap();
 
   Ok((input, n))
 }
