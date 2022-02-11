@@ -79,11 +79,17 @@ impl HasType for PairElem {
   fn get_type(&self, symbol_table: &SymbolTable) -> AResult<Type> {
     Ok(match self {
       PairElem::Fst(p) => match p.get_type(symbol_table)? {
-        Type::Pair(left, _) => *left,
+        Type::Pair(left, _) => match *left {
+          Type::Any => return Err(format!("TYPE ERROR:\n\tExpected: BaseType\n\tActual: Null")),
+          t => t,
+        },
         t => return Err(format!("TYPE ERROR:\n\tExpected: Pair\n\tActual:{:?}", t)),
       },
       PairElem::Snd(p) => match p.get_type(symbol_table)? {
-        Type::Pair(_, right) => *right,
+        Type::Pair(_, right) => match *right {
+          Type::Any => return Err(format!("TYPE ERROR:\n\tExpected: BaseType\n\tActual: Null")),
+          t => t,
+        },
         t => return Err(format!("TYPE ERROR:\n\tExpected: Pair\n\tActual:{:?}", t)),
       },
     })
@@ -241,6 +247,14 @@ mod tests {
       AssignLhs::Ident(x_id.clone()).get_type(symbol_table),
       Ok(x_type.clone())
     );
+
+    assert!(AssignRhs::PairElem(PairElem::Fst(Expr::PairLiter))
+      .get_type(symbol_table)
+      .is_err(),);
+
+    assert!(AssignRhs::PairElem(PairElem::Fst(Expr::PairLiter))
+      .get_type(symbol_table)
+      .is_err(),);
 
     /*  */
     // assert_eq!(
