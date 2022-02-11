@@ -56,13 +56,13 @@ impl HasType for AssignRhs {
           }
 
           return_type
-        }
+        },
         t => {
           return Err(format!(
             "TYPE ERROR:\n\tExpected: Function\n\tActual: {:?}",
             t
           ))
-        }
+        },
       },
     })
   }
@@ -125,17 +125,17 @@ pub fn stat(symbol_table: &mut SymbolTable, statement: &Stat) -> AResult<ReturnB
       symbol_table.insert(id, expected.clone())?;
 
       Ok(Never) /* Declarations never return. */
-    }
+    },
     Stat::Assignment(lhs, rhs) => {
       equal_types(symbol_table, lhs, rhs)?;
       Ok(Never) /* Assignments never return. */
-    }
+    },
     Stat::Read(dest) => {
       /* Any type can be read. */
       dest.get_type(symbol_table)?;
       /* Reads never return. */
       Ok(Never)
-    }
+    },
     Stat::Free(expr) => match expr.get_type(symbol_table)? {
       Type::Pair(_, _) | Type::Array(_) => Ok(Never), /* Frees never return. */
       actual_type => Err(format!(
@@ -150,21 +150,21 @@ pub fn stat(symbol_table: &mut SymbolTable, statement: &Stat) -> AResult<ReturnB
       /* Exits can be concidered to return because they will never return the
       wrong type, by using any it won't collide with another type. */
       Ok(AtEnd(Type::Any))
-    }
+    },
     Stat::Print(expr) | Stat::Println(expr) => {
       /* Any type can be printed. */
       expr.get_type(symbol_table)?;
 
       /* Prints never return. */
       Ok(Never)
-    }
+    },
     Stat::If(cond, if_stat, else_stat) => {
       expected_type(symbol_table, &Type::Bool, cond)?;
 
       /* If both branches return the same type, the if statement can
       be relied on to return that type. */
-      let true_behaviour = stat(symbol_table, if_stat)?;
-      let false_behaviour = stat(symbol_table, else_stat)?;
+      let true_behaviour = stat(&mut symbol_table.new_scope(), if_stat)?;
+      let false_behaviour = stat(&mut symbol_table.new_scope(), else_stat)?;
 
       /* If branches return with different types, if statement is error. */
       if !true_behaviour.same_return(&false_behaviour) {
@@ -189,19 +189,19 @@ pub fn stat(symbol_table: &mut SymbolTable, statement: &Stat) -> AResult<ReturnB
         /* Otherwise, the if statement doesn't end with a return. */
         Ok(MidWay(return_type.clone()))
       }
-    }
+    },
     Stat::While(cond, body) => {
       expected_type(symbol_table, &Type::Bool, cond)?;
 
-      Ok(match stat(symbol_table, body)? {
+      Ok(match stat(&mut symbol_table.new_scope(), body)? {
         /* If the body always returns, while loop might still not return
         because the cond might always be false and the body never run. */
         AtEnd(t) => MidWay(t),
         /* Otherwise white loop returns the same way it's body does. */
         b => b,
       })
-    }
-    Stat::Scope(body) => return stat(symbol_table, body),
+    },
+    Stat::Scope(body) => return stat(&mut symbol_table.new_scope(), body),
     Stat::Sequence(fst, snd) => {
       /* CHECK: no definite returns before last line. */
       let lhs = stat(symbol_table, fst)?;
@@ -214,7 +214,7 @@ pub fn stat(symbol_table: &mut SymbolTable, statement: &Stat) -> AResult<ReturnB
       } else {
         rhs
       })
-    }
+    },
   }
 }
 
