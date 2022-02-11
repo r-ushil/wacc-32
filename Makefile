@@ -8,7 +8,7 @@ OUTPUT_DIR	 := target
 # The make rules:
 
 # run the antlr build script then attempts to compile all .java files within src/antlr
-all: rust wacc
+all: wacc
 
 wacc_docker:
 	docker build -t wacc_32 --target release .
@@ -16,20 +16,16 @@ wacc_docker:
 wacc:
 	cargo build --release
 
-rust:
-	sudo rustup install stable
-	sudo rustup default stable
-
 test: test_unit test_integration
 
 test_unit:
 	cargo test
 
 test_integration: wacc
-	./test_integration.sh
+	bash ./test_integration.sh
 
 # clean up all of the compiled files
 clean:
 	cargo clean
 
-.PHONY: all clean rust test test_unit test_integration wacc wacc_docker
+.PHONY: all clean test test_unit test_integration wacc wacc_docker
