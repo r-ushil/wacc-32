@@ -54,11 +54,11 @@ fn main() {
       exit(0);
     }
     Err(SemanticError::Syntax(e)) => {
-      println!("ERROR: {}", e);
+      println!("SYNTAX ERROR: {}", e);
       exit(100);
     }
     Err(SemanticError::Normal(e)) => {
-      println!("ERROR: {}", e);
+      println!("SEMANTIC ERROR: {}", e);
       exit(200);
     }
   }

@@ -87,10 +87,13 @@ fn int_liter(input: &str) -> IResult<&str, i32> {
   let (input, (sign, digits)) = pair(opt(ws(alt((char_('+'), char_('-'))))), ws(digit1))(input)?;
 
   /* Use builtin i32 parsing for digits. */
-  let n = digits.parse::<i64>().unwrap();
+  let n = digits
+    .parse::<i64>()
+    .map_err(|_| nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Digit)))?; // nom::error::ErrorKind::Digit))?;
 
   /* Negate if negative sign present. */
-  let n: i32 = i32::try_from(if sign == Some('-') { -n } else { n }).unwrap();
+  let n: i32 = i32::try_from(if sign == Some('-') { -n } else { n })
+    .map_err(|_| nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Digit)))?;
 
   Ok((input, n))
 }

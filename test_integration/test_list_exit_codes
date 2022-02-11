@@ -291,7 +291,7 @@ wacc_examples/invalid/syntaxErr/pairs/badLookup02.wacc,100,pass
 wacc_examples/invalid/syntaxErr/pairs/badLookup01.wacc,100,pass
 wacc_examples/invalid/syntaxErr/variables/varNoName.wacc,100,pass
 wacc_examples/invalid/syntaxErr/variables/badintAssignments1.wacc,100,pass
-wacc_examples/invalid/syntaxErr/variables/bigIntAssignment.wacc,100,fail
+wacc_examples/invalid/syntaxErr/variables/bigIntAssignment.wacc,100,pass
 wacc_examples/invalid/syntaxErr/variables/badintAssignments2.wacc,100,pass
 wacc_examples/invalid/syntaxErr/variables/badintAssignments.wacc,100,pass
 wacc_examples/invalid/syntaxErr/if/ifNofi.wacc,100,pass
