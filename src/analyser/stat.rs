@@ -42,11 +42,36 @@ impl HasType for AssignRhs {
     Ok(match self {
       AssignRhs::Expr(exp) => exp.get_type(symbol_table)?,
       AssignRhs::ArrayLiter(lit) => lit.get_type(symbol_table)?,
-      // AssignRhs::Pair(e1, e2) => Type::Pair(e1.get_type(symbol_table)?,
-      // e2.get_type(symbol_table)?), //need to make Pair take an elem Type, would work with Any
       AssignRhs::Pair(e1, e2) => todo!(),
       AssignRhs::PairElem(elem) => elem.get_type(symbol_table)?,
-      AssignRhs::Call(id, _) => id.get_type(symbol_table)?,
+      AssignRhs::Call(id, args) => match id.get_type(symbol_table)? {
+        Type::Func(bx) => {
+          let FuncSig {
+            params,
+            return_type,
+          } = *bx;
+
+          /* Must be same amount of args as parameters */
+          if params.len() != args.len() {
+            return Err(format!("Function called with wrong amount of arguments."));
+          }
+
+          /* Types must be pairwise the same. */
+          for (arg, (param_type, param_id)) in args.iter().zip(params.iter()) {
+            if &arg.get_type(symbol_table)? != param_type {
+              return Err(format!("Incorrect type passed to function."));
+            }
+          }
+
+          return_type
+        }
+        t => {
+          return Err(format!(
+            "TYPE ERROR:\n\tExpected: Function\n\tActual: {:?}",
+            t
+          ))
+        }
+      },
     })
   }
 }
