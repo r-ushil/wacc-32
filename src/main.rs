@@ -8,6 +8,8 @@ use std::io::Read;
 use std::path::Path;
 use std::process::exit;
 
+use analyser::SemanticError;
+
 fn main() {
   // Get all arguments passed to the compiler
   let args: Vec<String> = env::args().collect();
@@ -51,7 +53,11 @@ fn main() {
       println!("Successful semantic analysis.");
       exit(0);
     }
-    Err(e) => {
+    Err(SemanticError::Syntax(e)) => {
+      println!("ERROR: {}", e);
+      exit(100);
+    }
+    Err(SemanticError::Normal(e)) => {
       println!("ERROR: {}", e);
       exit(200);
     }

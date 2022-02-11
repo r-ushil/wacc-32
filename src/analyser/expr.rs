@@ -1,4 +1,6 @@
-use super::{equal_types, expected_type, symbol_table::SymbolTable, AResult, HasType};
+use super::{
+  equal_types, expected_type, symbol_table::SymbolTable, AResult, HasType, SemanticError,
+};
 use crate::ast::*;
 
 impl HasType for Expr {
@@ -17,10 +19,10 @@ impl HasType for Expr {
         UnaryOper::Len => match exp.get_type(symbol_table)? {
           Type::Array(_) => Type::Int,
           t => {
-            return Err(format!(
+            return Err(SemanticError::Normal(format!(
               "TYPE ERROR: Attempt to find length of non array\n\tExpected: Array\n\tActual: {:?}",
               t
-            ))
+            )))
           }
         },
         UnaryOper::Ord => {
@@ -46,20 +48,20 @@ impl HasType for Expr {
           | BinaryOper::Sub => match expr_type {
             Type::Int => Type::Int,
             t => {
-              return Err(format!(
+              return Err(SemanticError::Normal(format!(
                 "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
                 op, t
-              ))
+              )))
             }
           },
           /* Any types can be compared. */
           BinaryOper::Gt | BinaryOper::Gte | BinaryOper::Lt | BinaryOper::Lte => match expr_type {
             Type::Int | Type::Char => Type::Bool,
             t => {
-              return Err(format!(
+              return Err(SemanticError::Normal(format!(
                 "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
                 op, t
-              ))
+              )))
             }
           },
           BinaryOper::Eq | BinaryOper::Neq => Type::Bool,
@@ -67,10 +69,10 @@ impl HasType for Expr {
           BinaryOper::And | BinaryOper::Or => match expr_type {
             Type::Bool => Type::Bool,
             t => {
-              return Err(format!(
+              return Err(SemanticError::Normal(format!(
                 "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
                 op, t
-              ))
+              )))
             }
           },
         }

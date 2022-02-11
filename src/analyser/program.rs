@@ -2,7 +2,7 @@ use super::{
   stat::{ReturnBehaviour::*, *},
   symbol_table::SymbolTable,
   unify::Unifiable,
-  AResult,
+  AResult, SemanticError,
 };
 use crate::ast::*;
 
@@ -19,12 +19,16 @@ fn func(symbol_table: &mut SymbolTable, func: &Func) -> AResult<()> {
 
   /* Type check function body and make sure it returns value of correct type. */
   match stat(&mut func_scope, &func.body)? {
-    AtEnd(t) if t.clone().unify(func.signature.return_type.clone()) == None => Err(format!(
-      "Function body returns {:?} but function signature expects {:?}",
-      t, func.signature.return_type
-    )),
+    AtEnd(t) if t.clone().unify(func.signature.return_type.clone()) == None => {
+      Err(SemanticError::Normal(format!(
+        "Function body returns {:?} but function signature expects {:?}",
+        t, func.signature.return_type
+      )))
+    }
     AtEnd(_) => Ok(()),
-    _ => Err(format!("The last statement should be a return or exit.")),
+    _ => Err(SemanticError::Syntax(format!(
+      "The last statement should be a return or exit."
+    ))),
   }
 }
 
@@ -45,9 +49,9 @@ pub fn program(symbol_table: &mut SymbolTable, program: &Program) -> AResult<()>
 
   /* Program body must never return, but it can exit. */
   match stat(&mut symbol_table.new_scope(), &program.statement)? {
-    MidWay(t) | AtEnd(t) if t != Type::Any => {
-      Err(format!("Cannot have 'return' statement in main"))
-    }
+    MidWay(t) | AtEnd(t) if t != Type::Any => Err(SemanticError::Normal(format!(
+      "Cannot have 'return' statement in main"
+    ))),
     _ => Ok(()),
   }
 }

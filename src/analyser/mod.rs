@@ -4,13 +4,28 @@ mod stat;
 mod symbol_table;
 mod unify;
 
+use std::fmt::Display;
+
 use symbol_table::SymbolTable;
 use unify::Unifiable;
 
 use crate::ast::*;
 
 /* Represents the result of a semantic analyse. */
-type SemanticError = String;
+#[derive(PartialEq, Eq, Debug)]
+pub enum SemanticError {
+  Normal(String),
+  Syntax(String),
+}
+
+impl Display for SemanticError {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      SemanticError::Normal(s) | SemanticError::Syntax(s) => s.fmt(f),
+    }
+  }
+}
+
 type AResult<T> = Result<T, SemanticError>;
 
 /* The semantic analyser has ONE jobs:
@@ -34,10 +49,10 @@ fn equal_types<L: HasType, R: HasType>(
   if let Some(t) = lhs_type.clone().unify(rhs_type.clone()) {
     Ok(t)
   } else {
-    Err(format!(
+    Err(SemanticError::Normal(format!(
       "TYPE ERROR: Type mismatch between.\n\tType 1: {:?}Type 2:\n\t{:?}",
       lhs_type, rhs_type
-    ))
+    )))
   }
 }
 
@@ -52,10 +67,10 @@ fn expected_type<'a, A: HasType>(
   if expected_type.clone().unify(actual_type.clone()).is_some() {
     Ok(expected_type)
   } else {
-    Err(format!(
+    Err(SemanticError::Normal(format!(
       "TYPE ERROR: Unexpected type.\n\tExpected: {:?}\n\tActual: {:?}",
       expected_type, actual_type
-    ))
+    )))
   }
 }
 
@@ -87,7 +102,10 @@ impl HasType for Ident {
   fn get_type(&self, symbol_table: &SymbolTable) -> AResult<Type> {
     match symbol_table.get(self) {
       Some(t) => Ok(t.clone()),
-      None => Err(format!("Use of undeclared variable: {:?}", self)),
+      None => Err(SemanticError::Normal(format!(
+        "Use of undeclared variable: {:?}",
+        self
+      ))),
     }
   }
 }
@@ -105,7 +123,12 @@ impl HasType for ArrayElem {
       expected_type(symbol_table, &Type::Int, index)?;
       curr_type = match curr_type {
         Type::Array(t) => *t,
-        t => return Err(format!("Expected array, found {:?}", t)),
+        t => {
+          return Err(SemanticError::Normal(format!(
+            "Expected array, found {:?}",
+            t
+          )))
+        }
       };
     }
 

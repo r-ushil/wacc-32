@@ -1,5 +1,6 @@
 use super::{
   equal_types, expected_type, symbol_table::SymbolTable, unify::Unifiable, AResult, HasType,
+  SemanticError,
 };
 use crate::ast::*;
 
@@ -47,7 +48,9 @@ impl HasType for AssignRhs {
 
           /* Must be same amount of args as parameters */
           if params.len() != args.len() {
-            return Err(format!("Function called with wrong amount of arguments."));
+            return Err(SemanticError::Normal(format!(
+              "Function called with wrong amount of arguments."
+            )));
           }
 
           /* Types must be pairwise the same. */
@@ -58,17 +61,19 @@ impl HasType for AssignRhs {
               .unify(param_type.clone())
               .is_none()
             {
-              return Err(format!("Incorrect type passed to function."));
+              return Err(SemanticError::Normal(format!(
+                "Incorrect type passed to function."
+              )));
             }
           }
 
           return_type
         }
         t => {
-          return Err(format!(
+          return Err(SemanticError::Normal(format!(
             "TYPE ERROR:\n\tExpected: Function\n\tActual: {:?}",
             t
-          ))
+          )))
         }
       },
     })
@@ -80,11 +85,21 @@ impl HasType for PairElem {
     Ok(match self {
       PairElem::Fst(p) => match p.get_type(symbol_table)? {
         Type::Pair(left, _) => *left,
-        t => return Err(format!("TYPE ERROR:\n\tExpected: Pair\n\tActual:{:?}", t)),
+        t => {
+          return Err(SemanticError::Normal(format!(
+            "TYPE ERROR:\n\tExpected: Pair\n\tActual:{:?}",
+            t
+          )))
+        }
       },
       PairElem::Snd(p) => match p.get_type(symbol_table)? {
         Type::Pair(_, right) => *right,
-        t => return Err(format!("TYPE ERROR:\n\tExpected: Pair\n\tActual:{:?}", t)),
+        t => {
+          return Err(SemanticError::Normal(format!(
+            "TYPE ERROR:\n\tExpected: Pair\n\tActual:{:?}",
+            t
+          )))
+        }
       },
     })
   }
@@ -104,7 +119,7 @@ impl HasType for ArrayLiter {
         for expr in &exprs[1..] {
           let expr_type = expr.get_type(symbol_table)?;
           if first_type != expr_type {
-            return Err(format!("Array literal value has wrong type\n\tValue: {:?}\n\tExpected Type: {:?}\n\tActual Type: {:?}", expr, first_type, expr_type));
+            return Err(SemanticError::Normal(format!("Array literal value has wrong type\n\tValue: {:?}\n\tExpected Type: {:?}\n\tActual Type: {:?}", expr, first_type, expr_type)));
           }
         }
 
@@ -142,15 +157,17 @@ pub fn stat(symbol_table: &mut SymbolTable, statement: &Stat) -> AResult<ReturnB
       match dest.get_type(symbol_table)? {
         /* Reads never return. */
         Type::Int | Type::Char => Ok(Never),
-        _ => Err(format!("Read statements must read char or int.")), /*  */
+        _ => Err(SemanticError::Normal(format!(
+          "Read statements must read char or int."
+        ))), /*  */
       }
     }
     Stat::Free(expr) => match expr.get_type(symbol_table)? {
       Type::Pair(_, _) | Type::Array(_) => Ok(Never), /* Frees never return. */
-      actual_type => Err(format!(
+      actual_type => Err(SemanticError::Normal(format!(
         "TYPE ERROR: Expected Type\n\tExpected: Pair or Array\n\tActual:{:?}",
         actual_type
-      )),
+      ))),
     },
     Stat::Return(expr) => Ok(AtEnd(expr.get_type(symbol_table)?)), /* Returns always return. */
     Stat::Exit(expr) => {
@@ -177,9 +194,9 @@ pub fn stat(symbol_table: &mut SymbolTable, statement: &Stat) -> AResult<ReturnB
 
       /* If branches return with different types, if statement is error. */
       if !true_behaviour.same_return(&false_behaviour) {
-        return Err(format!(
+        return Err(SemanticError::Normal(format!(
           "Branches of if statement return values of different types."
-        ));
+        )));
       }
 
       /* Get return type. */

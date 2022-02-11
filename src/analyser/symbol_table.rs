@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::AResult;
+use super::{AResult, SemanticError};
 use crate::ast::*;
 
 type Scope = HashMap<Ident, Type>;
@@ -36,9 +36,9 @@ impl<'a> SymbolTable<'a> {
   returns old value. */
   pub fn insert(&mut self, ident: &Ident, val: Type) -> AResult<()> {
     match self.current_scope.insert(ident.clone(), val) {
-      Some(_) => Err(format!(
+      Some(_) => Err(SemanticError::Normal(format!(
         "Attempt to change type of variable in current scope."
-      )),
+      ))),
       None => Ok(()),
     }
   }
