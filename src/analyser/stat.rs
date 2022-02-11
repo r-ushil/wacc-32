@@ -52,7 +52,12 @@ impl HasType for AssignRhs {
 
           /* Types must be pairwise the same. */
           for (arg, (param_type, param_id)) in args.iter().zip(params.iter()) {
-            if &arg.get_type(symbol_table)? != param_type {
+            if arg
+              .clone()
+              .get_type(symbol_table)?
+              .unify(param_type.clone())
+              .is_none()
+            {
               return Err(format!("Incorrect type passed to function."));
             }
           }

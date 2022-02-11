@@ -49,7 +49,7 @@ fn expected_type<'a, A: HasType>(
 ) -> AResult<&'a Type> {
   let actual_type = actual.get_type(symbol_table)?;
 
-  if let Some(_) = expected_type.clone().unify(actual_type.clone()) {
+  if expected_type.clone().unify(actual_type.clone()).is_some() {
     Ok(expected_type)
   } else {
     Err(format!(
