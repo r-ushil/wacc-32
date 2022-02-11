@@ -572,6 +572,21 @@ mod tests {
     //   "ifx theskipelseskipfi",
     //   format!("{:?}", stat("ifx theskipelseskipfi"))
     // );
+
+    assert_eq!(
+      stat("bool[] bools = [ false, true ]"),
+      Ok((
+        "",
+        Stat::Declaration(
+          Type::Array(Box::new(Type::Bool)),
+          String::from("bools"),
+          AssignRhs::ArrayLiter(ArrayLiter(vec!(
+            Expr::BoolLiter(false),
+            Expr::BoolLiter(true)
+          )))
+        )
+      ))
+    );
   }
 
   #[test]
@@ -683,7 +698,18 @@ mod tests {
     assert_eq!(
       assign_rhs("call callee ()"),
       Ok(("", AssignRhs::Call("callee".to_string(), vec!(),)))
-    )
+    );
+
+    assert_eq!(
+      assign_rhs("[ false, true ]"),
+      Ok((
+        "",
+        AssignRhs::ArrayLiter(ArrayLiter(vec!(
+          Expr::BoolLiter(false),
+          Expr::BoolLiter(true)
+        )))
+      ))
+    );
   }
 
   #[test]
