@@ -22,7 +22,7 @@ impl HasType for Expr {
             return Err(SemanticError::Normal(format!(
               "TYPE ERROR: Attempt to find length of non array\n\tExpected: Array\n\tActual: {:?}",
               t
-            ))
+            )))
           }
         },
         UnaryOper::Ord => {
@@ -51,7 +51,7 @@ impl HasType for Expr {
               return Err(SemanticError::Normal(format!(
                 "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
                 op, t
-              ))
+              )))
             }
           },
           /* Any types can be compared. */
@@ -72,7 +72,7 @@ impl HasType for Expr {
               return Err(SemanticError::Normal(format!(
                 "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
                 op, t
-              ))
+              )))
             }
           },
         }
