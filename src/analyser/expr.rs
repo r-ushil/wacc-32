@@ -23,16 +23,16 @@ impl HasType for Expr {
               "TYPE ERROR: Attempt to find length of non array\n\tExpected: Array\n\tActual: {:?}",
               t
             ))
-          },
+          }
         },
         UnaryOper::Ord => {
           expected_type(symbol_table, &Type::Char, exp)?;
           Type::Int
-        },
+        }
         UnaryOper::Chr => {
           expected_type(symbol_table, &Type::Int, exp)?;
           Type::Char
-        },
+        }
       },
 
       Expr::BinaryApp(exp1, op, exp2) => {
@@ -52,7 +52,7 @@ impl HasType for Expr {
                 "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
                 op, t
               ))
-            },
+            }
           },
           /* Any types can be compared. */
           BinaryOper::Gt | BinaryOper::Gte | BinaryOper::Lt | BinaryOper::Lte => match expr_type {
@@ -73,10 +73,10 @@ impl HasType for Expr {
                 "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
                 op, t
               ))
-            },
+            }
           },
         }
-      },
+      }
     })
   }
 }
