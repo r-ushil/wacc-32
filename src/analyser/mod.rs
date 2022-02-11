@@ -4,7 +4,7 @@ mod program;
 mod stat;
 mod unify;
 
-use std::{collections::HashMap, fmt::Display};
+use std::fmt::Display;
 
 use context::{Context, ContextLocation};
 use unify::Unifiable;

@@ -5,7 +5,7 @@ use nom::{
   character::complete::{alpha1, alphanumeric1, anychar, char as char_, multispace0},
   combinator::{map, not, opt, recognize, value, verify},
   error::ParseError,
-  multi::{many0, many1},
+  multi::many0,
   sequence::{delimited, pair, terminated},
   IResult, Parser,
 };

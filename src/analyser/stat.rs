@@ -1,5 +1,3 @@
-use std::array;
-
 use super::{
   context::{Context, ContextLocation},
   equal_types, expected_type,

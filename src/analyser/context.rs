@@ -14,8 +14,6 @@ pub enum ContextLocation {
 
 type SymbolTable = HashMap<Ident, Type>;
 
-type Errors = Vec<SemanticError>;
-
 #[derive(Debug)]
 pub enum Context<'a> {
   Global {
