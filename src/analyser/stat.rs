@@ -341,31 +341,31 @@ pub fn stat(
 mod tests {
   use super::*;
 
-  // #[test]
-  // fn assign_lhs() {
-  //   let context = &mut Context::new();
+  #[test]
+  fn assign_lhs() {
+    let context = &mut Context::new();
 
-  //   /* Identifiers cause */
-  //   let x_id = String::from("x");
-  //   let x_type = Type::Array(Box::new(Type::Int));
-  //   context.insert(&x_id, x_type.clone()).unwrap();
-  //   assert_eq!(
-  //     AssignLhs::Ident(x_id.clone()).get_type(context, errors),
-  //     Ok(x_type.clone())
-  //   );
+    /* Identifiers cause */
+    let x_id = String::from("x");
+    let x_type = Type::Array(Box::new(Type::Int));
+    context.insert(&x_id, x_type.clone()).unwrap();
+    assert_eq!(
+      AssignLhs::Ident(x_id.clone()).get_type(context, &mut vec![]),
+      Some(x_type.clone())
+    );
 
-  //   assert!(AssignRhs::PairElem(PairElem::Fst(Expr::PairLiter))
-  //     .get_type(context, errors)
-  //     .is_err(),);
+    assert!(AssignRhs::PairElem(PairElem::Fst(Expr::PairLiter))
+      .get_type(context, &mut vec![])
+      .is_some());
 
-  //   assert!(AssignRhs::PairElem(PairElem::Fst(Expr::PairLiter))
-  //     .get_type(context, errors)
-  //     .is_err(),);
+    assert!(AssignRhs::PairElem(PairElem::Fst(Expr::PairLiter))
+      .get_type(context, &mut vec![])
+      .is_some());
 
-  //   /*  */
-  //   // assert_eq!(
-  //   //   AssignLhs::ArrayElem(ArrayElem(x_id.clone(),
-  //   // vec!(Expr::IntLiter(5)))).get_type(context, errors),   Ok(x_type.
-  //   // clone()) );
-  // }
+    assert_eq!(
+      AssignLhs::ArrayElem(ArrayElem(x_id.clone(), vec!(Expr::IntLiter(5))))
+        .get_type(context, &mut vec![]),
+      Some(x_type.clone())
+    );
+  }
 }
