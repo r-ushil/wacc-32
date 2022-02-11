@@ -139,9 +139,11 @@ pub fn stat(symbol_table: &mut SymbolTable, statement: &Stat) -> AResult<ReturnB
     }
     Stat::Read(dest) => {
       /* Any type can be read. */
-      dest.get_type(symbol_table)?;
-      /* Reads never return. */
-      Ok(Never)
+      match dest.get_type(symbol_table)? {
+        /* Reads never return. */
+        Type::Int | Type::Char => Ok(Never),
+        _ => Err(format!("Read statements must read char or int.")), /*  */
+      }
     }
     Stat::Free(expr) => match expr.get_type(symbol_table)? {
       Type::Pair(_, _) | Type::Array(_) => Ok(Never), /* Frees never return. */
