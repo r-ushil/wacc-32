@@ -1,5 +1,3 @@
-use std::error::Error;
-
 use nom_supreme::error::ErrorTree;
 
 use crate::ast::Program;

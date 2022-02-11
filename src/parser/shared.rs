@@ -91,14 +91,41 @@ where
  * ‘0’-‘9’)* */
 
 pub fn is_keyword(ident: &str) -> bool {
-  match ident {
-    "begin" | "end" | "is" | "skip" | "read" | "free" | "return" | "exit" | "print" | "println"
-    | "if" | "then" | "else" | "fi" | "while" | "do" | "done" | "newpair" | "call" | "fst"
-    | "snd" | "int" | "bool" | "char" | "string" | "pair" | "len" | "ord" | "chr" | "true"
-    | "false" | "null" => true,
-
-    _ => false,
-  }
+  matches!(
+    ident,
+    "begin"
+      | "end"
+      | "is"
+      | "skip"
+      | "read"
+      | "free"
+      | "return"
+      | "exit"
+      | "print"
+      | "println"
+      | "if"
+      | "then"
+      | "else"
+      | "fi"
+      | "while"
+      | "do"
+      | "done"
+      | "newpair"
+      | "call"
+      | "fst"
+      | "snd"
+      | "int"
+      | "bool"
+      | "char"
+      | "string"
+      | "pair"
+      | "len"
+      | "ord"
+      | "chr"
+      | "true"
+      | "false"
+      | "null"
+  )
 }
 
 pub fn ident(input: &str) -> IResult<&str, Ident, ErrorTree<&str>> {

@@ -1,7 +1,6 @@
 mod analyser;
 mod ast;
 mod parser;
-use std::cmp::min;
 use std::env;
 use std::fs::File;
 use std::io::BufReader;
@@ -36,48 +35,20 @@ fn main() {
   // Read the contents of this file
   let file = File::open(source_path).unwrap();
   let mut buf_reader = BufReader::new(file);
-  let mut program = String::new();
-  buf_reader.read_to_string(&mut program).unwrap();
+  let mut program_buf = String::new();
+  buf_reader.read_to_string(&mut program_buf).unwrap();
 
-  let p_str = program.as_str();
+  let program = program_buf.as_str();
 
   // Attempt to parse the contents of this file, if an error encountered
   // then return it and exit with status 100
-  let ast = match parser::parse(p_str) {
+  let ast = match parser::parse(program) {
     Ok(ast) => ast,
-    Err(e) => {
-      pretty_print(p_str, &e);
+    Err(err_tree) => {
+      pretty_print_err_tree(program, &err_tree);
       exit(100);
     }
   };
-
-  fn pretty_print(program: &str, err_tree: &ErrorTree<&str>) {
-    match err_tree {
-      ErrorTree::Base { location, kind } => {
-        let context = Location::recreate_context(program, *location);
-        let location_str = location.to_string();
-        let length = location_str.len();
-        let bound = 30.min(length);
-        println!(
-          "line {}, column {}: {} \nStart of error input: {}\n",
-          context.line,
-          context.column,
-          kind,
-          &location_str[..bound]
-        );
-      }
-      ErrorTree::Stack { base, contexts } => {
-        for _ctx in contexts {
-          pretty_print(program, base);
-        }
-      }
-      ErrorTree::Alt(errors) => {
-        for error in errors {
-          pretty_print(program, error);
-        }
-      }
-    }
-  }
 
   // Print the generated abstract syntax tree
   // println!("ast = {:?}", ast);
@@ -94,6 +65,36 @@ fn main() {
     Err(SemanticError::Normal(e)) => {
       println!("SEMANTIC ERROR: {}", e);
       exit(200);
+    }
+  }
+}
+
+const EXCERPT_SIZE: usize = 30;
+
+fn pretty_print_err_tree(program: &str, err_tree: &ErrorTree<&str>) {
+  match err_tree {
+    ErrorTree::Base { location, kind } => {
+      let context = Location::recreate_context(program, *location);
+
+      let l = location.to_string();
+      let l_len = l.len();
+
+      let context_excerpt = &l[..EXCERPT_SIZE.min(l_len)];
+
+      println!(
+        "line {}, column {}: {} \nStart of error input: {}\n",
+        context.line, context.column, kind, context_excerpt,
+      );
+    }
+    ErrorTree::Stack { base, contexts } => {
+      for _ctx in contexts {
+        pretty_print_err_tree(program, base);
+      }
+    }
+    ErrorTree::Alt(errors) => {
+      for error in errors {
+        pretty_print_err_tree(program, error);
+      }
     }
   }
 }

@@ -27,7 +27,7 @@ pub fn type_(input: &str) -> IResult<&str, Type, ErrorTree<&str>> {
       )),
       |(_, _, l, _, r, _)| Type::Pair(Box::new(l), Box::new(r)),
     ),
-  ))(input)?; // int [] [][][][]
+  ))(input)?;
 
   /* Counts how many '[]' trail. */
   let (input, arrs) = many0(pair(tok("["), tok("]")))(input)?;

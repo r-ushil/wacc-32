@@ -8,7 +8,7 @@ use nom::{
   sequence::{delimited, pair, preceded},
   IResult,
 };
-use nom_supreme::error::{ErrorTree, Expectation};
+use nom_supreme::error::ErrorTree;
 
 use super::shared::*;
 use crate::ast::*;
@@ -37,7 +37,7 @@ fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
 
   let char_liter = ws(delimited(
     tag("'"),
-    map(character, |c| Expr::CharLiter(c)),
+    map(character, Expr::CharLiter),
     tag("'"),
   ));
 
@@ -83,7 +83,7 @@ fn expr_binary_app(prec: u8, input: &str) -> IResult<&str, Expr, ErrorTree<&str>
 
 //〈int-liter〉::= (‘+’ | ‘-’) ? (‘0’-‘9’)
 fn int_liter(input: &str) -> IResult<&str, i32, ErrorTree<&str>> {
-  use nom_supreme::error::BaseErrorKind;
+  use nom_supreme::error::{BaseErrorKind, Expectation};
   use std::convert::TryFrom;
 
   let (input, (sign, digits)) = pair(opt(ws(alt((char_('+'), char_('-'))))), ws(digit1))(input)?;
