@@ -1,6 +1,7 @@
 use super::{
   stat::{ReturnBehaviour::*, *},
   symbol_table::SymbolTable,
+  unify::Unifiable,
   AResult,
 };
 use crate::ast::*;
@@ -18,7 +19,7 @@ fn func(symbol_table: &mut SymbolTable, func: &Func) -> AResult<()> {
 
   /* Type check function body and make sure it returns value of correct type. */
   match stat(&mut func_scope, &func.body)? {
-    AtEnd(t) if t != func.signature.return_type => Err(format!(
+    AtEnd(t) if t.clone().unify(func.signature.return_type.clone()) == None => Err(format!(
       "Function body returns {:?} but function signature expects {:?}",
       t, func.signature.return_type
     )),
@@ -46,7 +47,7 @@ pub fn program(symbol_table: &mut SymbolTable, program: &Program) -> AResult<()>
   match stat(&mut symbol_table.new_scope(), &program.statement)? {
     MidWay(t) | AtEnd(t) if t != Type::Any => {
       Err(format!("Cannot have 'return' statement in main"))
-    }
+    },
     _ => Ok(()),
   }
 }

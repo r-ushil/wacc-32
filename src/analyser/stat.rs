@@ -1,4 +1,6 @@
-use super::{equal_types, expected_type, symbol_table::SymbolTable, AResult, HasType};
+use super::{
+  equal_types, expected_type, symbol_table::SymbolTable, unify::Unifiable, AResult, HasType,
+};
 use crate::ast::*;
 
 pub enum ReturnBehaviour {
@@ -11,7 +13,7 @@ impl ReturnBehaviour {
   fn same_return(&self, other: &ReturnBehaviour) -> bool {
     use ReturnBehaviour::*;
 
-    !matches!((self, other), (MidWay(true_type) | AtEnd(true_type), MidWay(false_type) | AtEnd(false_type)) if true_type != false_type)
+    !matches!((self, other), (MidWay(true_type) | AtEnd(true_type), MidWay(false_type) | AtEnd(false_type)) if true_type.clone().unify(false_type.clone()) == None)
   }
 }
 
@@ -102,7 +104,7 @@ impl HasType for ArrayLiter {
         }
 
         first_type
-      }
+      },
     })))
   }
 }
