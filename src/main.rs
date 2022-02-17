@@ -1,5 +1,7 @@
 mod analyser;
+mod asm;
 mod ast;
+mod generator;
 mod parser;
 use std::env;
 use std::fs::File;
