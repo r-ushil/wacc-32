@@ -4,6 +4,7 @@ pub type RegNum = u8;
 pub type ExitCode = u8;
 pub type Branch = String;
 pub type Imm = i32;
+pub type Label = String;
 
 impl Display for Op2 {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -94,6 +95,7 @@ pub struct MemAddress {
 }
 
 pub enum Instr {
+  Label(Label),
   LoadImm(Reg, Imm),
   Mov(Reg, Op2, CondCode),
 
@@ -124,6 +126,8 @@ pub enum Instr {
 impl Display for Instr {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
+      Instr::Label(label) => write!(f, "{}:", label),
+
       Instr::LoadImm(reg, val) => write!(f, "LDR {}, ={}", reg, val),
 
       Instr::Pop => write!(f, "POP {{pc}}"),
