@@ -5,12 +5,21 @@ pub type ExitCode = u8;
 pub type Branch = String;
 pub type Imm = i32;
 
+impl Display for Op2 {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      Op2::Imm(val) => write!(f, "={}", val),
+      Op2::Reg(reg) => write!(f, "{}", reg),
+      Op2::LeftShiftedReg(reg, shift_val) => write!(f, "{}, LSL #{}", reg, shift_val),
+      Op2::RightShiftedReg(reg, shift_val) => write!(f, "{}, ASR #{}", reg, shift_val),
+    }
+  }
+}
 pub enum Op2 {
+  Reg(Reg),
   Imm(Imm),
-  RegNum(RegNum),
-  LeftShiftedReg(RegNum, Imm),
-  RightShiftedReg(RegNum, Imm),
-  StackPointer,
+  LeftShiftedReg(Reg, Imm),
+  RightShiftedReg(Reg, Imm),
 }
 
 impl Display for Reg {
@@ -24,6 +33,15 @@ impl Display for Reg {
 pub enum Reg {
   RegNum(RegNum),
   StackPointer,
+}
+
+impl Display for MemAddress {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self.offset {
+      Some(val) => write!(f, "[{}, #{}", self.reg, val),
+      None => write!(f, "[{}]", self.reg),
+    }
+  }
 }
 
 pub struct MemAddress {
@@ -72,36 +90,30 @@ impl Display for Instr {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       Instr::LoadImm(reg, val) => write!(f, "LDR {}, ={}", reg, val),
-      Instr::Mov(_, _) => todo!(),
-      Instr::Branch(_) => todo!(),
-      Instr::Pop => todo!(),
-      Instr::Assemble => todo!(),
-      Instr::StoreByte(_, _) => todo!(),
-      Instr::Store(_, _) => todo!(),
-      Instr::LoadMemByte(_, _) => todo!(),
-      Instr::Add(_, _, _) => todo!(),
-      Instr::Sub(_, _, _) => todo!(),
-      Instr::And(_, _, _) => todo!(),
-      Instr::Or(_, _, _) => todo!(),
-      Instr::Cmp(_, _) => todo!(),
-      Instr::MovEq(_, _) => todo!(),
-      Instr::MovNe(_, _) => todo!(),
-      Instr::MovGe(_, _) => todo!(),
-      Instr::MovLt(_, _) => todo!(),
-      Instr::MovGt(_, _) => todo!(),
-      Instr::MovLe(_, _) => todo!(),
-      Instr::BranchOverflow(_) => todo!(),
-      Instr::AddFlags(_, _, _) => todo!(),
-      Instr::SubFlags(_, _, _) => todo!(),
-      Instr::Multiply(_, _, _, _) => todo!(),
-      Instr::BranchNotEqual(_) => todo!(),
-      Instr::ReverseSubtract(_, _, _) => todo!(),
+      Instr::Mov(reg, op2) => write!(f, "MOV {}, {}", reg, op2),
+      Instr::Branch(branch) => write!(f, "BL {}", branch),
+      Instr::Pop => write!(f, "POP {{pc}}"),
+      Instr::Assemble => write!(f, ".ltorg"),
+      Instr::StoreByte(reg, mem_addr) => write!(f, "STRB {}, {}", reg, mem_addr),
+      Instr::Store(reg, mem_addr) => write!(f, "STRB {}, {}", reg, mem_addr),
+      Instr::LoadMemByte(reg, mem_addr) => write!(f, "LDRSB {}, {}", reg, mem_addr),
+      Instr::Add(r1, r2, op2) => write!(f, "ADD {}, {}, {}", r1, r2, op2),
+      Instr::Sub(r1, r2, op2) => write!(f, "SUB {}, {}, {}", r1, r2, op2),
+      Instr::And(r1, r2, op2) => write!(f, "AND {}, {}, {}", r1, r2, op2),
+      Instr::Or(r1, r2, op2) => write!(f, "ORR {}, {}, {}", r1, r2, op2),
+      Instr::Cmp(reg, op2) => write!(f, "CMP {}, {}", reg, op2),
+      Instr::MovEq(reg, op2) => write!(f, "MOVEQ {}, {}", reg, op2),
+      Instr::MovNe(reg, op2) => write!(f, "MOVNE {}, {}", reg, op2),
+      Instr::MovGe(reg, op2) => write!(f, "MOVGE {}, {}", reg, op2),
+      Instr::MovLt(reg, op2) => write!(f, "MOVLT {}, {}", reg, op2),
+      Instr::MovGt(reg, op2) => write!(f, "MOVGT {}, {}", reg, op2),
+      Instr::MovLe(reg, op2) => write!(f, "MOVLE {}, {}", reg, op2),
+      Instr::BranchOverflow(branch) => write!(f, "BLVS {}", branch),
+      Instr::AddFlags(r1, r2, op2) => write!(f, "ADDS {}, {}, {}", r1, r2, op2),
+      Instr::SubFlags(r1, r2, op2) => write!(f, "SUBS {}, {}, {}", r1, r2, op2),
+      Instr::Multiply(r1, r2, r3, r4) => write!(f, "SMULL {}, {}, {}, {}", r1, r2, r3, r4),
+      Instr::ReverseSubtract(r1, r2, op2) => write!(f, "RSBS {}, {}, {}", r1, r2, op2),
+      Instr::BranchNotEqual(branch) => write!(f, "BLNE {}", branch),
     }
   }
-}
-
-fn main() {
-  //for instruction in instructions {
-  //   write!(f, "{}\n", instruction);
-  //}
 }
