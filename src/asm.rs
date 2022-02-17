@@ -40,6 +40,8 @@ impl Display for CondCode {
     }
   }
 }
+
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum CondCode {
   EQ,
   NE,
@@ -60,6 +62,7 @@ pub enum CondCode {
   AL,
 }
 
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Op2 {
   Reg(Reg),
   Imm(Imm),
@@ -75,6 +78,8 @@ impl Display for Reg {
     }
   }
 }
+
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Reg {
   RegNum(RegNum),
   StackPointer,
@@ -89,11 +94,13 @@ impl Display for MemAddress {
   }
 }
 
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub struct MemAddress {
   pub reg: Reg,
   pub offset: Option<i32>,
 }
 
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Instr {
   Label(Label),
   LoadImm(Reg, Imm),
