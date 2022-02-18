@@ -1,7 +1,6 @@
-use std::fmt::Display;
+use std::{fmt::Display, fs::File};
 
 pub type RegNum = u8;
-pub type ExitCode = u8;
 pub type Branch = String;
 pub type Imm = i32;
 pub type Label = String;
@@ -160,5 +159,16 @@ impl Display for Instr {
       Instr::Multiply(r1, r2, r3, r4) => write!(f, "SMULL {}, {}, {}, {}", r1, r2, r3, r4),
       Instr::ReverseSubtract(r1, r2, op2) => write!(f, "RSBS {}, {}, {}", r1, r2, op2),
     }
+  }
+}
+
+fn output_assembly(instrs: Vec<Instr>) {
+  use std::io::Write;
+
+  let path = "output.s";
+  let mut file = File::create(path).unwrap();
+
+  for instr in instrs {
+    write!(file, "{}\n", instr).unwrap()
   }
 }
