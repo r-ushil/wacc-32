@@ -5,8 +5,16 @@ mod expr;
 mod program;
 mod stat;
 
-trait Generatable {
-  fn generate(&self, code: &mut Vec<Instr>, registers: &[Reg]);
+trait Generatable: std::fmt::Debug {
+  fn generate(&self, code: &mut Vec<Instr>, registers: &[Reg]) {
+    /* THIS DEFAULT IMPLEMENTATION IS JUST FOR TESTING PURPOSES */
+    /* Because it's a default implementation, functionality not yet
+    implemented will just return its inputs. */
+    code.push(Instr::Label(format!(
+      "{:?}.generate(_, {:?})",
+      self, registers
+    )))
+  }
 }
 
 pub fn generate(ast: &Program) -> Vec<Instr> {

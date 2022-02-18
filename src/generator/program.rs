@@ -7,7 +7,7 @@ impl Generatable for Program {
 }
 
 impl Generatable for Func {
-  fn generate(&self, _code: &mut Vec<Instr>, _registers: &[Reg]) {}
+  // fn generate(&self, code: &mut Vec<Instr>, registers: &[Reg]) {}
 }
 
 #[cfg(test)]
