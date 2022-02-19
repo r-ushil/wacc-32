@@ -6,7 +6,7 @@ mod program;
 mod stat;
 
 trait Generatable: std::fmt::Debug {
-  fn generate(&self, code: &mut Vec<Instr>, min_regs: &mut i32) {
+  fn generate(&self, code: &mut Vec<Instr>, min_regs: &mut u8) {
     /* THIS DEFAULT IMPLEMENTATION IS JUST FOR TESTING PURPOSES */
     /* Because it's a default implementation, functionality not yet
     implemented will just return its inputs. */
