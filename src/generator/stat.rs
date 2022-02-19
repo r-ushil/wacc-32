@@ -19,7 +19,7 @@ impl Generatable for ArrayLiter {
 }
 
 impl Generatable for Stat {
-  // fn generate(&self, code: &mut Vec<Instr>, registers: &[Reg]) {}
+  fn generate(&self, code: &mut Vec<Instr>, min_regs: &mut i32) {}
 }
 
 #[cfg(test)]
@@ -39,19 +39,19 @@ mod tests {
       Box::new(false_body.clone()), // else println "False Body"
     ); // fi
 
-    let registers = &vec![];
+    let mut min_regs = 4;
 
     let actual_code = &mut vec![];
-    if_statement.generate(actual_code, registers);
+    if_statement.generate(actual_code, &mut min_regs);
 
     let expected_code = &mut vec![];
-    cond.generate(expected_code, registers);
+    cond.generate(expected_code, &mut min_regs);
     expected_code.push(Instr::Cmp(Reg::RegNum(4), Op2::Imm(0))); // CMP r4, #0
     expected_code.push(Instr::Branch(String::from("L0"), CondCode::EQ)); // BEQ L0
-    true_body.generate(expected_code, registers);
+    true_body.generate(expected_code, &mut min_regs);
     expected_code.push(Instr::Branch(String::from("L1"), CondCode::AL)); // B L1
     expected_code.push(Instr::Label(String::from("L0"))); // LO:
-    false_body.generate(expected_code, registers);
+    false_body.generate(expected_code, &mut min_regs);
     expected_code.push(Instr::Label(String::from("L1"))); // LO:
 
     assert_eq!(actual_code, expected_code);

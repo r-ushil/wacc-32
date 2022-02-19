@@ -6,22 +6,22 @@ mod program;
 mod stat;
 
 trait Generatable: std::fmt::Debug {
-  fn generate(&self, code: &mut Vec<Instr>, registers: &[Reg]) {
+  fn generate(&self, code: &mut Vec<Instr>, min_regs: &mut i32) {
     /* THIS DEFAULT IMPLEMENTATION IS JUST FOR TESTING PURPOSES */
     /* Because it's a default implementation, functionality not yet
     implemented will just return its inputs. */
-    code.push(Instr::Label(format!(
-      "{:?}.generate(_, {:?})",
-      self, registers
-    )))
+    // code.push(Instr::Label(format!(
+    //   "{:?}.generate(_, {:?})",
+    //   self, registers
+    // )))
   }
 }
 
 pub fn generate(ast: &Program) -> Vec<Instr> {
   let mut asm = vec![];
-  let registers: Vec<Reg> = vec![];
+  let mut min_regs = 4;
 
-  ast.generate(&mut asm, &registers);
+  ast.generate(&mut asm, &mut min_regs);
 
   asm
 }

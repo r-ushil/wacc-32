@@ -3,11 +3,11 @@ use crate::asm::*;
 use crate::ast::*;
 
 impl Generatable for Program {
-  fn generate(&self, _code: &mut Vec<Instr>, _registers: &[Reg]) {}
+  fn generate(&self, _code: &mut Vec<Instr>, min_regs: &mut i32) {}
 }
 
 impl Generatable for Func {
-  // fn generate(&self, code: &mut Vec<Instr>, registers: &[Reg]) {}
+  // fn generate(&self, _code: &mut Vec<Instr>, min_regs: &mut i32) {}
 }
 
 #[cfg(test)]
