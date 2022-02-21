@@ -20,16 +20,12 @@ trait Generatable: std::fmt::Debug {
   }
 }
 
-pub fn generate(ast: &Program, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-  let mut asm = GeneratedCode {
-    data: vec![],
-    text: vec![],
-    print_branches: PrintBranches::default(),
-  };
+pub fn generate(ast: &Program) -> GeneratedCode {
+  let mut asm = GeneratedCode::default();
 
   let mut min_regs = 4;
 
   ast.generate(&mut asm, &mut min_regs);
 
-  write!(f, "{}", asm)
+  asm
 }

@@ -19,8 +19,43 @@ pub type Shift = i32;
 
 #[derive(PartialEq, Debug)]
 pub struct GeneratedCode {
-  pub data: Vec<Asm>, /* .data segment */
-  pub text: Vec<Asm>, /* .text segment */
+  pub data: Vec<Asm>,
+  pub text: Vec<Asm>,
+  pub print_branches: PrintBranches,
+}
+
+impl Default for GeneratedCode {
+
+  fn default() -> Self {
+    Self {
+      data: vec![Asm::Directive(Directive::Label(String::from(".data")))],
+      text: vec![
+        Asm::Directive(Directive::Label(String::from(".text"))),
+        Asm::Directive(Directive::Label(String::from(".global main"))),
+        Asm::Directive(Directive::Label(String::from("main"))),
+      ],
+      print_branches: PrintBranches::default(),
+    }
+  }
+}
+
+#[derive(PartialEq, Debug)]
+pub struct PrintBranches {
+  pub ints: bool,
+  pub strings: bool,
+  pub bools: bool,
+  pub refs: bool,
+}
+
+impl Default for PrintBranches {
+  fn default() -> Self {
+    Self {
+      ints: false,
+      strings: false,
+      bools: false,
+      refs: false,
+    }
+  }
 }
 
 /* ======== Represents line within produced assembly apart from instructions.  ======== */
