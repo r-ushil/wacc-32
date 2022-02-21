@@ -24,7 +24,7 @@ pub fn generate(ast: &Program, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Res
   let mut asm = GeneratedCode {
     data: vec![],
     text: vec![],
-    print_branches: todo!(),
+    print_branches: PrintBranches::default(),
   };
 
   let mut min_regs = 4;

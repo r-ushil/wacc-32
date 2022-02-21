@@ -483,7 +483,7 @@ mod tests {
     let mut expected_code = GeneratedCode {
       data: vec![],
       text: vec![],
-      print_branches: todo!(),
+      print_branches: PrintBranches::default(),
     };
     expr.generate(&mut expected_code, &mut min_regs); // <= important line
 
