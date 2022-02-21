@@ -57,7 +57,7 @@ impl Display for LoadArg {
     match self {
       LoadArg::Imm(val) => write!(f, "#{}", val),
       LoadArg::MemAddress(addr) => write!(f, "{}", addr),
-      LoadArg::Reg(reg) => write!(f, "{}", reg),
+      LoadArg::Label(msg) => write!(f, "={}", msg),
     }
   }
 }

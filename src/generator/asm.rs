@@ -79,7 +79,7 @@ pub enum Instr {
 pub enum LoadArg {
   Imm(Imm),
   MemAddress(MemAddress),
-  Reg(Reg),
+  Label(Label),
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
