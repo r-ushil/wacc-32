@@ -470,6 +470,12 @@ mod tests {
     let mut actual_code = GeneratedCode {
       data: vec![],
       text: vec![],
+      print_branches: PrintBranches {
+        ints: false,
+        strings: false,
+        bools: false,
+        refs: false,
+      },
     };
     stat.generate(&mut actual_code, &mut min_regs);
 
@@ -477,6 +483,7 @@ mod tests {
     let mut expected_code = GeneratedCode {
       data: vec![],
       text: vec![],
+      print_branches: todo!(),
     };
     expr.generate(&mut expected_code, &mut min_regs); // <= important line
 
