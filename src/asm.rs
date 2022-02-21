@@ -5,6 +5,13 @@ pub type Branch = String;
 pub type Imm = i32;
 pub type Label = String;
 
+#[derive(PartialEq, Debug)]
+pub struct GeneratedCode {
+  pub data: Vec<Instr>,
+  pub text: Vec<Instr>,
+  // pub footer: Vec<Instr>,
+}
+
 impl Display for Op2 {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
@@ -18,25 +25,27 @@ impl Display for Op2 {
 
 impl Display for CondCode {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      CondCode::EQ => write!(f, "EQ"),
-      CondCode::NE => write!(f, "NE"),
-      CondCode::CS => write!(f, "CS"),
-      CondCode::HS => write!(f, "HS"),
-      CondCode::CC => write!(f, "CC"),
-      CondCode::LO => write!(f, "LO"),
-      CondCode::MI => write!(f, "MI"),
-      CondCode::PL => write!(f, "PL"),
-      CondCode::VS => write!(f, "VS"),
-      CondCode::VC => write!(f, "VC"),
-      CondCode::HI => write!(f, "HI"),
-      CondCode::LS => write!(f, "LS"),
-      CondCode::GE => write!(f, "GE"),
-      CondCode::LT => write!(f, "LT"),
-      CondCode::GT => write!(f, "GT"),
-      CondCode::LE => write!(f, "LE"),
-      CondCode::AL => write!(f, ""),
-    }
+    use CondCode::*;
+    let s = match self {
+      EQ => "EQ",
+      NE => "NE",
+      CS => "CS",
+      HS => "HS",
+      CC => "CC",
+      LO => "LO",
+      MI => "MI",
+      PL => "PL",
+      VS => "VS",
+      VC => "VC",
+      HI => "HI",
+      LS => "LS",
+      GE => "GE",
+      LT => "LT",
+      GT => "GT",
+      LE => "LE",
+      AL => "",
+    };
+    write!(f, "{}", s)
   }
 }
 
@@ -59,6 +68,21 @@ pub enum CondCode {
   GT,
   LE,
   AL,
+}
+
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub enum Load {
+  Imm(Imm),
+  Label(Label),
+}
+
+impl Display for Load {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      Load::Imm(val) => write!(f, "{}", val),
+      Load::Label(msg) => write!(f, "{}", msg),
+    }
+  }
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -101,8 +125,13 @@ pub struct MemAddress {
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Instr {
+  Push,
+
+  Word(i32),
+  Ascii(String),
+
   Label(Label),
-  LoadImm(Reg, Imm),
+  LoadImm(Reg, Load),
   Mov(Reg, Op2, CondCode),
 
   Branch(Branch, CondCode),
@@ -131,33 +160,36 @@ pub enum Instr {
 
 impl Display for Instr {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    use Instr::*;
     match self {
-      Instr::Label(label) => write!(f, "{}:", label),
+      Push => write!(f, "PUSH {{lr}}"),
+      Word(size) => write!(f, ".word {}", size),
+      Ascii(string) => write!(f, ".ascii \"{}\"", string),
 
-      Instr::LoadImm(reg, val) => write!(f, "LDR {}, ={}", reg, val),
+      Label(label) => write!(f, "{}:", label),
+      LoadImm(reg, val) => write!(f, "LDR {}, ={}", reg, val),
 
-      Instr::Pop => write!(f, "POP {{pc}}"),
-      Instr::Assemble => write!(f, ".ltorg"),
+      Pop => write!(f, "POP {{pc}}"),
+      Assemble => write!(f, ".ltorg"),
 
-      Instr::StoreByte(reg, mem_addr) => write!(f, "STRB {}, {}", reg, mem_addr),
-      Instr::Store(reg, mem_addr) => write!(f, "STR {}, {}", reg, mem_addr),
+      StoreByte(reg, mem_addr) => write!(f, "STRB {}, {}", reg, mem_addr),
+      Store(reg, mem_addr) => write!(f, "STR {}, {}", reg, mem_addr),
+      LoadMemByte(reg, mem_addr) => write!(f, "LDRSB {}, {}", reg, mem_addr),
 
-      Instr::LoadMemByte(reg, mem_addr) => write!(f, "LDRSB {}, {}", reg, mem_addr),
+      Add(r1, r2, op2) => write!(f, "ADD {}, {}, {}", r1, r2, op2),
+      Sub(r1, r2, op2) => write!(f, "SUB {}, {}, {}", r1, r2, op2),
+      AddFlags(r1, r2, op2) => write!(f, "ADDS {}, {}, {}", r1, r2, op2),
+      SubFlags(r1, r2, op2) => write!(f, "SUBS {}, {}, {}", r1, r2, op2),
 
-      Instr::Add(r1, r2, op2) => write!(f, "ADD {}, {}, {}", r1, r2, op2),
-      Instr::Sub(r1, r2, op2) => write!(f, "SUB {}, {}, {}", r1, r2, op2),
-      Instr::AddFlags(r1, r2, op2) => write!(f, "ADDS {}, {}, {}", r1, r2, op2),
-      Instr::SubFlags(r1, r2, op2) => write!(f, "SUBS {}, {}, {}", r1, r2, op2),
+      And(r1, r2, op2) => write!(f, "AND {}, {}, {}", r1, r2, op2),
+      Or(r1, r2, op2) => write!(f, "ORR {}, {}, {}", r1, r2, op2),
+      Cmp(reg, op2) => write!(f, "CMP {}, {}", reg, op2),
 
-      Instr::And(r1, r2, op2) => write!(f, "AND {}, {}, {}", r1, r2, op2),
-      Instr::Or(r1, r2, op2) => write!(f, "ORR {}, {}, {}", r1, r2, op2),
-      Instr::Cmp(reg, op2) => write!(f, "CMP {}, {}", reg, op2),
+      Mov(reg, op2, code) => write!(f, "MOV{} {}, {}", code, reg, op2),
+      Branch(branch, code) => write!(f, "BL{} {}", code, branch),
 
-      Instr::Mov(reg, op2, code) => write!(f, "MOV{} {}, {}", code, reg, op2),
-      Instr::Branch(branch, code) => write!(f, "BL{} {}", code, branch),
-
-      Instr::Multiply(r1, r2, r3, r4) => write!(f, "SMULL {}, {}, {}, {}", r1, r2, r3, r4),
-      Instr::ReverseSubtract(r1, r2, op2) => write!(f, "RSBS {}, {}, {}", r1, r2, op2),
+      Multiply(r1, r2, r3, r4) => write!(f, "SMULL {}, {}, {}, {}", r1, r2, r3, r4),
+      ReverseSubtract(r1, r2, op2) => write!(f, "RSBS {}, {}, {}", r1, r2, op2),
     }
   }
 }

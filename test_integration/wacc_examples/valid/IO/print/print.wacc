@@ -6,5 +6,13 @@
 # Program:
 
 begin
-  print "Hello World!\n"
+
+  pair(int, int) x = newpair(1, 2);
+
+  
+  print x;
+  print 0;
+  print 3;
+  print "something"
+  
 end
