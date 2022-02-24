@@ -30,9 +30,10 @@ impl Display for Asm {
 
 impl Display for Op2 {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    use Op2::*;
     match self {
-      Op2::Imm(val) => write!(f, "={}", val),
-      Op2::Reg(reg, shift) => {
+      Imm(val) => write!(f, "={}", val),
+      Reg(reg, shift) => {
         write!(f, "{}", reg)?;
         if *shift > 0 {
           write!(f, ", ASR #{}", shift)?;
@@ -82,9 +83,10 @@ impl Display for Load {
 
 impl Display for Reg {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    use Reg::*;
     match self {
-      Reg::RegNum(num) => write!(f, "r{}", num),
-      Reg::StackPointer => write!(f, "sp"),
+      RegNum(num) => write!(f, "r{}", num),
+      StackPointer => write!(f, "sp"),
     }
   }
 }
@@ -105,12 +107,17 @@ impl Display for Directive {
 
 impl Display for DataSize {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    todo!()
+    use DataSize::*;
+    match self {
+      Byte => write!(f, "B"),
+      Word => Ok(()),
+    }
   }
 }
 
 impl Display for BinaryInstr {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    use BinaryInstr::*;
     let tag = match self {
       Add => "ADDS",
       Sub => "SUB",
@@ -124,6 +131,7 @@ impl Display for BinaryInstr {
 
 impl Display for UnaryInstr {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    use UnaryInstr::*;
     let tag = match self {
       Mov => "MOV",
       Cmp => "CMP",
