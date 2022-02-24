@@ -36,7 +36,7 @@ pub enum Asm {
 pub enum Directive {
   Text,          /* .text */
   Data,          /* .data */
-  ASsemble,      /* .ltorg */
+  Assemble,      /* .ltorg */
   Label(String), /* foo: */
   Word(u32),     /* .word 5 */
   Ascii(String), /* .ascii "Hello World" */
