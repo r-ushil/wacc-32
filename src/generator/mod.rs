@@ -13,10 +13,10 @@ trait Generatable: std::fmt::Debug {
     /* THIS DEFAULT IMPLEMENTATION IS JUST FOR TESTING PURPOSES */
     /* Because it's a default implementation, functionality not yet
     implemented will just return its inputs. */
-    // code.push(Instr::Label(format!(
-    //   "{:?}.generate(_, {:?})",
-    //   self, registers
-    // )))
+    code.text.push(Asm::Directive(Directive::Label(format!(
+      "{:?}.generate(_, {:?})",
+      self, min_regs
+    ))))
   }
 }
 
