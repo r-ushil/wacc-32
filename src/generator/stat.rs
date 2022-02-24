@@ -195,6 +195,24 @@ fn throw_runtime_error(code: &mut GeneratedCode) {
     .push(Instr(AL, Branch(true, String::from("exit"))));
 }
 
+fn throw_runtime_error(code: &mut GeneratedCode) {
+  use Instr::*;
+
+  /* Generate label to throw a runtime error for whatever's in registers */
+  /* p_throw_runtime_error: */
+  code.text.push(Label(String::from("p_throw_runtime_error")));
+  /* BL p_print_string        //branch to print a string */
+  code
+    .text
+    .push(Branch(String::from("p_print_string"), CondCode::AL));
+  /* MOV r0, #-1              //move -1 into r0*/
+  code
+    .text
+    .push(Mov(Reg::RegNum(0), Op2::Imm(-1), CondCode::AL));
+  /* BL exit                  //exit with status code -1  */
+  code.text.push(Branch(String::from("exit"), CondCode::AL));
+}
+
 fn print_bool(code: &mut GeneratedCode) {
   use self::CondCode::*;
   use self::Directive::*;
