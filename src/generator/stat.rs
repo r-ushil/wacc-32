@@ -1,4 +1,5 @@
 use super::*;
+use Instr::*;
 
 impl Generatable for AssignLhs {
   // fn generate(&self, _code: &mut Vec<Instr>, _registers: &[Reg]) {}
@@ -27,26 +28,25 @@ impl Generatable for Stat {
       Stat::Return(_) => todo!(),
 
       Stat::Exit(expr) => {
-        // match expr {
-        //   Expr::IntLiter(exit_code) => {
-        //     code.text.push(Instr::Load(
-        //       DataSize::Word,
-        //       Reg::RegNum(*min_regs),
-        //       Load::Imm(*exit_code),
-        //     ));
-        //     code.text.push(Instr::Mov(
-        //       Reg::RegNum(0),
-        //       Op2::Reg(Reg::RegNum(*min_regs)),
-        //       CondCode::AL,
-        //     ));
-        //     //*min_regs += 1; don't need to increment!
-        //     code
-        //       .text
-        //       .push(Instr::Branch(String::from("exit"), CondCode::AL));
-        //   }
-        //   _ => unreachable!("Unreachable Syntax Error"),
-        // }
-        todo!();
+        /* Evalutates expression into min_reg */
+        expr.generate(code, min_regs);
+
+        /* MOV r0, r{min_reg} */
+        code.text.push(Asm::Instr(
+          CondCode::AL,
+          Unary(
+            UnaryInstr::Mov,
+            Reg::RegNum(0),
+            Op2::Reg(Reg::RegNum(*min_regs), 0),
+            false,
+          ),
+        ));
+
+        /* B exit */
+        code.text.push(Asm::Instr(
+          CondCode::AL,
+          Branch(false, String::from("exit")),
+        ));
       }
 
       Stat::Print(expr) => match expr {
@@ -109,43 +109,44 @@ impl Generatable for Stat {
 
 #[cfg(test)]
 mod tests {
-
   use super::*;
-  use Instr::*;
 
   #[test]
   fn exit_statement() {
-    let exit_code = 0;
-    let stat = Stat::Exit(Expr::IntLiter(exit_code));
+    let expr = Expr::IntLiter(0);
+    let stat = Stat::Exit(expr.clone());
     let mut min_regs = 4;
 
+    /* Actual output. */
     let mut actual_code = GeneratedCode {
       data: vec![],
       text: vec![],
     };
     stat.generate(&mut actual_code, &mut min_regs);
 
-    let expected_code = GeneratedCode {
+    /* Expected output. */
+    let mut expected_code = GeneratedCode {
       data: vec![],
-      text: vec![
-        /* LDR r4, #0 */
-        Asm::Instr(
-          CondCode::AL,
-          Unary(UnaryInstr::Mov, Reg::RegNum(4), Op2::Imm(0), false),
-        ),
-        /* MOV r0, r4 */
-        Asm::Instr(
-          CondCode::AL,
-          Unary(
-            UnaryInstr::Mov,
-            Reg::RegNum(0),
-            Op2::Reg(Reg::RegNum(4), 0),
-            false,
-          ),
-        ),
-        Asm::Instr(CondCode::AL, Branch(false, String::from("exit"))),
-      ],
+      text: vec![],
     };
+    expr.generate(&mut expected_code, &mut min_regs); // <= important line
+
+    /* MOV r0, r4 */
+    expected_code.text.push(Asm::Instr(
+      CondCode::AL,
+      Unary(
+        UnaryInstr::Mov,
+        Reg::RegNum(0),
+        Op2::Reg(Reg::RegNum(4), 0),
+        false,
+      ),
+    ));
+
+    /* B exit */
+    expected_code.text.push(Asm::Instr(
+      CondCode::AL,
+      Branch(false, String::from("exit")),
+    ));
 
     assert_eq!(actual_code, expected_code);
   }
