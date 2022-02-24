@@ -1,6 +1,4 @@
-use super::Generatable;
-use crate::asm::*;
-use crate::ast::*;
+use super::*;
 
 impl Generatable for Expr {
   // fn generate(&self, _code: &mut Vec<Instr>, _registers: &[Reg]) {}

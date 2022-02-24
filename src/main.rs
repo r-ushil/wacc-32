@@ -1,5 +1,4 @@
 mod analyser;
-mod asm;
 mod ast;
 mod generator;
 mod parser;
@@ -116,3 +115,8 @@ fn pretty_print_err_tree(program: &str, err_tree: &ErrorTree<&str>) {
 fn print_usage() {
   println!("Usage: ./wacc_32 <file_path>")
 }
+// mod foo;
+
+// fn main() {
+//   foo::main();
+// }

@@ -1,9 +1,12 @@
-use crate::asm::*;
 use crate::ast::*;
 
+mod asm;
+mod display;
 mod expr;
 mod program;
 mod stat;
+
+use asm::*;
 
 trait Generatable: std::fmt::Debug {
   fn generate(&self, code: &mut GeneratedCode, min_regs: &mut u8) {

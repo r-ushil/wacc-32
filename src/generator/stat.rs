@@ -1,6 +1,4 @@
-use super::Generatable;
-use crate::asm::*;
-use crate::ast::*;
+use super::*;
 
 impl Generatable for AssignLhs {
   // fn generate(&self, _code: &mut Vec<Instr>, _registers: &[Reg]) {}
@@ -29,24 +27,26 @@ impl Generatable for Stat {
       Stat::Return(_) => todo!(),
 
       Stat::Exit(expr) => {
-        match expr {
-          Expr::IntLiter(exit_code) => {
-            code.text.push(Instr::LoadImm(
-              Reg::RegNum(*min_regs),
-              Load::Imm(*exit_code),
-            ));
-            code.text.push(Instr::Mov(
-              Reg::RegNum(0),
-              Op2::Reg(Reg::RegNum(*min_regs)),
-              CondCode::AL,
-            ));
-            //*min_regs += 1; don't need to increment!
-            code
-              .text
-              .push(Instr::Branch(String::from("exit"), CondCode::AL));
-          }
-          _ => unreachable!("Unreachable Syntax Error"),
-        }
+        // match expr {
+        //   Expr::IntLiter(exit_code) => {
+        //     code.text.push(Instr::Load(
+        //       DataSize::Word,
+        //       Reg::RegNum(*min_regs),
+        //       Load::Imm(*exit_code),
+        //     ));
+        //     code.text.push(Instr::Mov(
+        //       Reg::RegNum(0),
+        //       Op2::Reg(Reg::RegNum(*min_regs)),
+        //       CondCode::AL,
+        //     ));
+        //     //*min_regs += 1; don't need to increment!
+        //     code
+        //       .text
+        //       .push(Instr::Branch(String::from("exit"), CondCode::AL));
+        //   }
+        //   _ => unreachable!("Unreachable Syntax Error"),
+        // }
+        todo!();
       }
 
       Stat::Print(expr) => match expr {
@@ -80,37 +80,38 @@ impl Generatable for Stat {
 
 */
 
-fn print_int(code: &mut GeneratedCode) {
-  use Instr::*;
+// fn print_int(code: &mut GeneratedCode) {
+//   use Instr::*;
 
-  code.data.push(Label(String::from("msg_int")));
-  code.data.push(Word(3));
-  code.data.push(Ascii(String::from("%d\\0")));
+//   code.data.push(Label(String::from("msg_int")));
+//   code.data.push(Word(3));
+//   code.data.push(Ascii(String::from("%d\\0")));
 
-  code.text.push(Label(String::from("p_print_int")));
-  code.text.push(Push);
-  code
-    .text
-    .push(Mov(Reg::RegNum(1), Op2::Reg(Reg::RegNum(0)), CondCode::AL));
-  code.text.push(LoadImm(
-    Reg::RegNum(0),
-    Load::Label(String::from("msg_int")),
-  ));
-  code
-    .text
-    .push(Add(Reg::RegNum(0), Reg::RegNum(0), Op2::Imm(4)));
-  code.text.push(Branch(String::from("printf"), CondCode::AL));
-  code
-    .text
-    .push(Mov(Reg::RegNum(0), Op2::Imm(0), CondCode::AL));
-  code.text.push(Branch(String::from("fflush"), CondCode::AL));
-  code.text.push(Pop);
-}
+//   code.text.push(Label(String::from("p_print_int")));
+//   code.text.push(Push);
+//   code
+//     .text
+//     .push(Mov(Reg::RegNum(1), Op2::Reg(Reg::RegNum(0)), CondCode::AL));
+//   code.text.push(LoadImm(
+//     Reg::RegNum(0),
+//     Load::Label(String::from("msg_int")),
+//   ));
+//   code
+//     .text
+//     .push(Add(Reg::RegNum(0), Reg::RegNum(0), Op2::Imm(4)));
+//   code.text.push(Branch(String::from("printf"), CondCode::AL));
+//   code
+//     .text
+//     .push(Mov(Reg::RegNum(0), Op2::Imm(0), CondCode::AL));
+//   code.text.push(Branch(String::from("fflush"), CondCode::AL));
+//   code.text.push(Pop);
+// }
 
 #[cfg(test)]
 mod tests {
 
   use super::*;
+  use Instr::*;
 
   #[test]
   fn exit_statement() {
@@ -124,24 +125,28 @@ mod tests {
     };
     stat.generate(&mut actual_code, &mut min_regs);
 
-    let mut expected_code = GeneratedCode {
+    let expected_code = GeneratedCode {
       data: vec![],
-      text: vec![],
+      text: vec![
+        /* LDR r4, #0 */
+        Asm::Instr(
+          CondCode::AL,
+          Unary(UnaryInstr::Mov, Reg::RegNum(4), Op2::Imm(0), false),
+        ),
+        /* MOV r0, r4 */
+        Asm::Instr(
+          CondCode::AL,
+          Unary(
+            UnaryInstr::Mov,
+            Reg::RegNum(0),
+            Op2::Reg(Reg::RegNum(4), 0),
+            false,
+          ),
+        ),
+        Asm::Instr(CondCode::AL, Branch(false, String::from("exit"))),
+      ],
     };
-    //todo!(); anything here?
-    expected_code
-      .text
-      .push(Instr::LoadImm(Reg::RegNum(4), Load::Imm(0))); //LDR r4, #0
-    expected_code.text.push(Instr::Mov(
-      Reg::RegNum(0),
-      Op2::Reg(Reg::RegNum(4)),
-      CondCode::AL,
-    )); //MOV r0, r4
-    expected_code
-      .text
-      .push(Instr::Branch(String::from("exit"), CondCode::AL)); //BL exit
 
-    assert_eq!(min_regs, 4); //assert r4 isn't reserved
     assert_eq!(actual_code, expected_code);
   }
 
@@ -165,13 +170,13 @@ mod tests {
 
   //   let expected_code = &mut vec![];
   //   cond.generate(expected_code, &mut min_regs);
-  //   expected_code.push(Instr::Cmp(Reg::RegNum(4), Op2::Imm(0))); // CMP r4, #0
-  //   expected_code.push(Instr::Branch(String::from("L0"), CondCode::EQ)); // BEQ L0
+  //   expected_code.push(Cmp(Reg::RegNum(4), Op2::Imm(0))); // CMP r4, #0
+  //   expected_code.push(Branch(String::from("L0"), CondCode::EQ)); // BEQ L0
   //   true_body.generate(expected_code, &mut min_regs);
-  //   expected_code.push(Instr::Branch(String::from("L1"), CondCode::AL)); // B L1
-  //   expected_code.push(Instr::Label(String::from("L0"))); // LO:
+  //   expected_code.push(Branch(String::from("L1"), CondCode::AL)); // B L1
+  //   expected_code.push(Label(String::from("L0"))); // LO:
   //   false_body.generate(expected_code, &mut min_regs);
-  //   expected_code.push(Instr::Label(String::from("L1"))); // LO:
+  //   expected_code.push(Label(String::from("L1"))); // LO:
 
   //   assert_eq!(actual_code, expected_code);
   // }
