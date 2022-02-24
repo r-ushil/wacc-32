@@ -69,10 +69,23 @@ pub enum Instr {
   Store(DataSize, Reg, (Reg, Offset)), // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289906890.htm
 
   /* LDR{DataSize}{CondCode}, {Reg}, [{Reg}, #{Offset}] */
-  Load(DataSize, Reg, (Reg, Offset)), // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289873425.htm
+  Load(DataSize, Reg, LoadArg), // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289873425.htm
 
   /* SMULL{CondCode} {Reg}, {Reg}, {Reg}, {Reg}  */
   Multiply(Reg, Reg, Reg, Reg), // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289902800.htm
+}
+
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub enum LoadArg {
+  Imm(Imm),
+  MemAddress(MemAddress),
+  Reg(Reg),
+}
+
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub struct MemAddress {
+  pub reg: Reg,
+  pub offset: Option<Imm>,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]

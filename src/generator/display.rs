@@ -42,6 +42,26 @@ impl Display for Directive {
   }
 }
 
+impl Display for MemAddress {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    if self.offset.is_none() {
+      write!(f, "{}", self.reg)
+    } else {
+      write!(f, "[{}, #{}", self.reg, self.offset.unwrap())
+    }
+  }
+}
+
+impl Display for LoadArg {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      LoadArg::Imm(val) => write!(f, "#{}", val),
+      LoadArg::MemAddress(addr) => write!(f, "{}", addr),
+      LoadArg::Reg(reg) => write!(f, "{}", reg),
+    }
+  }
+}
+
 /* ======== Instructions! ======== */
 
 impl Display for Instr {
@@ -65,14 +85,7 @@ impl Display for Instr {
         }
       }
 
-      Load(size, dst, (src, off)) => {
-        write!(f, "LDRS{} {}, ", size, dst)?;
-        if *off == 0 {
-          write!(f, "{}", src)
-        } else {
-          write!(f, "[{}, #{}]", src, off)
-        }
-      }
+      Load(size, dst, load_arg) => write!(f, "LDR{} {}, {}", size, dst, load_arg),
 
       Binary(instr, dst, src, op2, flags) => {
         write!(
