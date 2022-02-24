@@ -78,7 +78,7 @@ pub enum Instr {
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum DataSize {
   Byte,
-  Halfword,
+  // Halfword, // Not used yet
   Word,
 }
 
