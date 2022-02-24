@@ -4,6 +4,15 @@ use std::fmt::Display;
 /* This file describes how the asm instructions and programs are
 converted to text for an assembly file. */
 
+impl Display for Asm {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      Asm::Directive(d) => write!(f, "{}", d),
+      Asm::Instr(cond, i) => write!(f, "{}{}", cond, i),
+    }
+  }
+}
+
 impl Display for Op2 {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
@@ -64,15 +73,6 @@ impl Display for Reg {
     }
   }
 }
-
-// impl Display for MemAddress {
-//   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//     match self.offset {
-//       Some(val) => write!(f, "[{}, #{}", self.reg, val),
-//       None => write!(f, "[{}]", self.reg),
-//     }
-//   }
-// }
 
 impl Display for Directive {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
