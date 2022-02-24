@@ -4,6 +4,21 @@ use std::fmt::Display;
 /* This file describes how the asm instructions and programs are
 converted to text for an assembly file. */
 
+/* ======== Represents entire program. ======== */
+
+impl Display for GeneratedCode {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    self.data.iter().try_for_each(|asm| write!(f, "{}", asm))?;
+    self.text.iter().try_for_each(|asm| write!(f, "{}", asm))?;
+
+    /* Display print statements. */
+
+    Ok(())
+  }
+}
+
+/* ======== Represents line within produced assembly apart from instructions.  ======== */
+
 impl Display for Asm {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
