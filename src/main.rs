@@ -30,26 +30,14 @@ fn main() {
   }
 
   // Read the contents of this file
-  let file = File::open(source_path).unwrap();
-  let mut buf_reader = BufReader::new(file);
-  let mut program_buf = String::new();
-  buf_reader.read_to_string(&mut program_buf).unwrap();
+  let program_string = read_file(File::open(source_path).unwrap());
+  let program_str = program_string.as_str();
 
-  let program = program_buf.as_str();
+  let ast = parse(program_str);
+  analyse(&ast);
+}
 
-  // Attempt to parse the contents of this file, if an error encountered
-  // then return it and exit with status 100
-  let ast = match parser::parse(program) {
-    Ok(ast) => ast,
-    Err(err_tree) => {
-      pretty_print_err_tree(program, &err_tree);
-      exit(100);
-    }
-  };
-
-  // Print the generated abstract syntax tree
-  // println!("ast = {:?}", ast);
-
+fn analyse(ast: &ast::Program) {
   match analyser::analyse(&ast) {
     Ok(()) => {
       println!("Successful semantic analysis.");
@@ -64,6 +52,23 @@ fn main() {
       }
     }
   }
+}
+
+fn parse(program_str: &str) -> ast::Program {
+  match parser::parse(program_str) {
+    Ok(ast) => ast,
+    Err(err_tree) => {
+      pretty_print_err_tree(program_str, &err_tree);
+      exit(100);
+    }
+  }
+}
+
+fn read_file(file: File) -> String {
+  let mut buf_reader = BufReader::new(file);
+  let mut program_buf = String::new();
+  buf_reader.read_to_string(&mut program_buf).unwrap();
+  program_buf
 }
 
 fn incorrect_usage(reason: &str) {
