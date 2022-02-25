@@ -50,6 +50,8 @@ function main() {
   echo "Passed (unexpected) :" $passed_unexpected
   echo "Failed (expected)   :" $failed_expected
   echo "Failed (unexpected) :" $failed_unexpected
+
+  [[ $passed_unexpected -eq 0 && $failed_unexpected -eq 0 ]]
 }
 
 main
