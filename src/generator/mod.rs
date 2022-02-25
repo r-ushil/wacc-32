@@ -3,6 +3,7 @@ use crate::ast::*;
 mod asm;
 mod display;
 mod expr;
+mod predef;
 mod program;
 mod stat;
 
