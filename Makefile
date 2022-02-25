@@ -22,7 +22,7 @@ test_unit:
 	cargo test
 
 test_integration: wacc
-	bash ./test_integration.sh
+	(cd ./test_integration && bash ./test_integration.sh)
 
 # clean up all of the compiled files
 clean:
