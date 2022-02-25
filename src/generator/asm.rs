@@ -160,6 +160,8 @@ pub enum Op2 {
 pub enum Reg {
   RegNum(RegNum),
   StackPointer,
+  Link,
+  PC,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]

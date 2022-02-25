@@ -209,6 +209,8 @@ impl Display for Reg {
     match self {
       RegNum(num) => write!(f, "r{}", num),
       StackPointer => write!(f, "sp"),
+      Link => write!(f, "lr"),
+      PC => write!(f, "pc"),
     }
   }
 }
