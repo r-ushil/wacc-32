@@ -4,18 +4,22 @@ from pathlib import Path
 import os
 
 def main():
+    inputPath = str(sys.argv[1]) 
+    outputPath = str(sys.argv[2]) 
+    compileAndReformat(inputPath, outputPath)
+
+def compileAndReformat(inputPath, outputPath):
     output = subprocess \
-        .check_output(['refCompile', '-a', str(sys.argv[1])]) \
+        .check_output(['refCompile', '-a', inputPath]) \
         .decode('utf-8') \
         .split('\n') \
 
-    outputFile = Path(str(sys.argv[2]))
-    outputPath = outputFile.parent
+    outputParentDirectory = Path(outputPath).parent
 
-    if not os.path.exists(outputPath):
-        os.makedirs(outputPath)
+    if not os.path.exists(outputParentDirectory):
+        os.makedirs(outputParentDirectory)
 
-    f = open(outputFile, "w")
+    f = open(outputPath, "w")
     lines = []
 
     found = False
