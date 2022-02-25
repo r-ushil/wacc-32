@@ -14,14 +14,6 @@ use nom_supreme::error::ErrorTree;
 use nom_supreme::final_parser::Location;
 use nom_supreme::final_parser::RecreateContext;
 
-fn is_syntax(error: &SemanticError) -> bool {
-  match error {
-    SemanticError::Syntax(_) => true,
-    SemanticError::Normal(_) => false,
-    SemanticError::Nested(_, b) => is_syntax(&*b),
-  }
-}
-
 fn main() {
   // Get all arguments passed to the compiler
   let args: Vec<String> = env::args().collect();
@@ -68,18 +60,29 @@ fn main() {
       exit(0);
     }
     Err(errors) => {
-      let mut syntax_errors = false;
-      for error in errors {
-        println!("ERROR: {}", error);
-
-        if is_syntax(&error) {
-          syntax_errors = true;
-        }
+      print_semantic_errors(&errors);
+      if contains_syntax_errors(&errors) {
+        exit(100);
+      } else {
+        exit(200);
       }
-
-      exit(if syntax_errors { 100 } else { 200 });
     }
   }
+}
+
+fn print_semantic_errors(errors: &Vec<SemanticError>) {
+  for error in errors {
+    println!("ERROR: {}", error);
+  }
+}
+
+fn contains_syntax_errors(errors: &Vec<SemanticError>) -> bool {
+  for error in errors {
+    if is_syntax(&error) {
+      return true;
+    }
+  }
+  false
 }
 
 const EXCERPT_SIZE: usize = 30;
@@ -112,11 +115,14 @@ fn pretty_print_err_tree(program: &str, err_tree: &ErrorTree<&str>) {
   }
 }
 
+fn is_syntax(error: &SemanticError) -> bool {
+  match error {
+    SemanticError::Syntax(_) => true,
+    SemanticError::Normal(_) => false,
+    SemanticError::Nested(_, b) => is_syntax(&*b),
+  }
+}
+
 fn print_usage() {
   println!("Usage: ./wacc_32 <file_path>")
 }
-// mod foo;
-
-// fn main() {
-//   foo::main();
-// }
