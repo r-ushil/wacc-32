@@ -1,63 +1,63 @@
 #!/bin/bash
 
-test_integration() {
+total=0
+passed_expected=0
+passed_unexpected=0
+failed_expected=0
+failed_unexpected=0
 
-	echo -e Status "\t" Exp "\t" Act "\t" Test name
+function run_tests() {
+  echo Generating actual data for $1 tests.
+  (cd $1 && ./generate_test_data.sh ours)
 
-	tests_total=0
-	tests_passed=0
-	tests_failed=0
-	expected_passes=0
-	expected_failures=0
-	unexpected_passes=0
-	unexpected_failures=0
-
-	while read in; do 
-		test_name=$(echo $in | cut -d, -f1)
-		expected_exit_code=$(echo $in | cut -d, -f2)
-		expected_test_status=$(echo $in | cut -d, -f3)
-		../target/release/wacc_32 ./$test_name >>  /dev/null 2>&1
-		actual_exit_code=$?
-
-		if [ $expected_exit_code -eq $actual_exit_code ]
-		then
-      if [ "$expected_test_status" = "pass" ]
+  while read in; do 
+    our_output_file=$(echo $in | cut -d, -f2)
+    their_output_file=$(echo $in | cut -d, -f3)
+    expected_test_result=$(echo $in | cut -d, -f4)
+  
+    difference=`diff $1/$our_output_file $1/$their_output_file`
+  
+  
+    if [ `echo $?` -eq 0 ]
+    then
+      if [ "$expected_test_result" = "pass" ]
       then
-			  echo -e PASSED "\t\t\t" $test_name
-			  expected_passes=$((expected_passes + 1))
+        passed_expected=$((passed_expected + 1))
+        echo Passed $their_output_file
       else
-        echo -e PASSED "\t\t\t" $test_name "(unexpected)"
-			  unexpected_passes=$((unexpected_passes + 1))
+        passed_unexpected=$((passed_unexpected + 1))
+        echo "Passed $their_output_file (unexpected)"
       fi
-			tests_passed=$((tests_passed + 1))
-		else
-      if [ "$expected_test_status" = "fail" ]
+    else
+      if [ "$expected_test_result" = "fail" ]
       then
-			  echo -e FAILED "\t" $expected_exit_code "\t" $actual_exit_code "\t" $test_name
-			  expected_failures=$((expected_failures + 1))
+        failed_expected=$((failed_expected + 1))
+        echo "Failed! $their_output_file"
       else
-        echo -e FAILED "\t" $expected_exit_code "\t" $actual_exit_code "\t" $test_name "(unexpected)"
-			  unexpected_failures=$((unexpected_failures + 1))
+        failed_unexpected=$((failed_unexpected + 1))
+        echo "Failed! $their_output_file (unexpected)"
       fi
-			tests_failed=$((tests_failed + 1))
-		fi
-		tests_total=$((tests_total + 1))
-		
-	done < ./test_list_exit_codes
-	
-  echo "Passed (expected)   :" $expected_passes
-  echo "Failed (expected)   :" $expected_failures
-  echo "Passed (unexpected) :" $unexpected_passes
-  echo "Failed (unexpected) :" $unexpected_failures
-  echo Passing $tests_passed of $tests_total tests.
-
-  unexpected=$((unexpected_failures + unexpected_passes))
-
-	if [ $unexpected -gt 0 ]
-  then
-    echo Warning! Unexpected test results
-  fi
-	[[ $unexpected -eq 0 ]]
+      echo "Our output above, theirs below."
+      echo "$difference"
+    fi
+  
+    total=$((total + 1))
+    
+  done < $1/test_list
 }
 
-test_integration
+function main() {
+  run_tests ./wacc_examples_exit_codes
+
+  echo "Passed (expected)   :" $passed_expected 
+  echo "Passed (unexpected) :" $passed_unexpected
+  echo "Failed (expected)   :" $failed_expected
+  echo "Failed (unexpected) :" $failed_unexpected
+
+  [[ $passed_unexpected -eq 0 && $failed_unexpected -eq 0 ]]
+}
+
+main
+
+
+
