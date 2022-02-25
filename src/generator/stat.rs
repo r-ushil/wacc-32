@@ -84,6 +84,65 @@ impl Generatable for Stat {
 
 */
 
+fn println(code: &mut GeneratedCode) {
+  use self::CondCode::*;
+  use self::Directive::*;
+  use self::Instr::*;
+  use Asm::*;
+
+  /* Create a msg label for the termination of a line */
+
+  /* msg_println: */
+  code.data.push(Directive(Label("msg_println".to_string())));
+
+  /* .word 1                   //allocate space for a word of size 1 */
+  code.data.push(Directive(Word(1)));
+  /* .ascii "\0"         //convert into ascii */
+  code.data.push(Directive(Ascii(String::from("\\0"))));
+
+  /* Generate a p_print_ln label to branch to when printing a line */
+
+  /* p_print_ln: */
+  code.data.push(Directive(Label("p_print_ln".to_string())));
+  /*  PUSH {lr}            //push link reg */
+  code.text.push(Instr(AL, Push));
+  /*  LDR r0, =msg_println   //load the result of msg_println */
+  code.text.push(Instr(
+    AL,
+    Load(
+      DataSize::Word,
+      Reg::RegNum(0),
+      LoadArg::Label(String::from("msg_println")),
+    ),
+  ));
+  /*  ADD r0, r0, #4        //add 4 to r0 and store in r0 */
+  code.text.push(Instr(
+    AL,
+    Binary(
+      BinaryInstr::Add,
+      Reg::RegNum(0),
+      Reg::RegNum(0),
+      Op2::Imm(4),
+      false,
+    ),
+  ));
+  /*  BL puts             //branch to puts */
+  code
+    .text
+    .push(Instr(AL, Branch(true, String::from("puts"))));
+  /*  MOV r0, #0            //move 0 to r0 */
+  code.text.push(Instr(
+    AL,
+    Unary(UnaryInstr::Mov, Reg::RegNum(0), Op2::Imm(0), false),
+  ));
+  /*  BL fflush             //branch to fflush */
+  code
+    .text
+    .push(Instr(AL, Branch(true, String::from("fflush"))));
+  /*  POP {pc}              //pop the pc register */
+  code.text.push(Instr(AL, Pop));
+}
+
 fn free_pair(code: &mut GeneratedCode) {
   use self::CondCode::*;
   use self::Directive::*;
