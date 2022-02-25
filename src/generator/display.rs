@@ -8,8 +8,14 @@ converted to text for an assembly file. */
 
 impl Display for GeneratedCode {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    self.data.iter().try_for_each(|asm| write!(f, "{}", asm))?;
-    self.text.iter().try_for_each(|asm| write!(f, "{}", asm))?;
+    self
+      .data
+      .iter()
+      .try_for_each(|asm| write!(f, "{}\n", asm))?;
+    self
+      .text
+      .iter()
+      .try_for_each(|asm| write!(f, "{}\n", asm))?;
 
     /* Display print statements. */
 
