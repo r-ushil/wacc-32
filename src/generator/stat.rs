@@ -84,6 +84,23 @@ impl Generatable for Stat {
 
 */
 
+fn read_char(code: &mut GeneratedCode) {
+  use self::CondCode::*;
+  use self::Directive::*;
+  use self::Instr::*;
+  use Asm::*;
+
+  /* Create a msg label for reading an character */
+
+  /* msg_println: */
+  code.data.push(Directive(Label("msg_read_int".to_string())));
+
+  /* .word 3                   //allocate space for a word of size 3 */
+  code.data.push(Directive(Word(1)));
+  /* .ascii "%d\0"         //convert into ascii */
+  code.data.push(Directive(Ascii(String::from("%d\\0"))));
+}
+
 fn read_int(code: &mut GeneratedCode) {
   use self::CondCode::*;
   use self::Directive::*;
@@ -92,11 +109,11 @@ fn read_int(code: &mut GeneratedCode) {
 
   /* Create a msg label for reading an integer */
 
-  /* msg_println: */
+  /* msg_read_int: */
   code.data.push(Directive(Label("msg_read_int".to_string())));
 
   /* .word 3                   //allocate space for a word of size 3 */
-  code.data.push(Directive(Word(1)));
+  code.data.push(Directive(Word(3)));
   /* .ascii "%d\0"         //convert into ascii */
   code.data.push(Directive(Ascii(String::from("%d\\0"))));
 

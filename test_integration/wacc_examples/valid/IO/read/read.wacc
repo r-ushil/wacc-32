@@ -7,7 +7,7 @@
 # Program:
 
 begin
-	int x = 10;
+	char x = 'a';
 	print x;
   	println "input an integer to continue..." ;
 	read x
