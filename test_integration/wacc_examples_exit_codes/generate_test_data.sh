@@ -4,7 +4,7 @@ generate_our_test_data() {
     input_file=$(echo $in | cut -d, -f1)
     our_output_file=$(echo $in | cut -d, -f2)
 
-    ../../target/release/wacc_32 $input_file >/dev/null 2>&1
+    ../../target/release/wacc_32 $input_file $our_output_file >/dev/null 2>&1
     echo $? > $our_output_file
 
   done < ./test_list
