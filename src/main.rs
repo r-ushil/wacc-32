@@ -3,7 +3,8 @@ mod ast;
 mod generator;
 mod parser;
 use std::env;
-use std::fs::File;
+use std::fmt::Write;
+use std::fs;
 use std::io::BufReader;
 use std::io::Read;
 use std::path::Path;
@@ -19,24 +20,28 @@ fn main() {
   let args: Vec<String> = env::args().collect();
 
   // Ensure that a single argument was given
-  if args.len() != 2 {
+  if args.len() != 3 {
     incorrect_usage("Error: incorrect number of arguments. ")
   }
 
   // Ensure that this argument is a path leading to file
   let source_path = &args[1];
+  let destination_path = &args[2];
   if !Path::new(source_path).exists() {
-    incorrect_usage("Error: file does not exist. ")
+    incorrect_usage("Error: input file does not exist. ")
   }
 
   // Read the contents of this file
-  let program_string = read_file(File::open(source_path).unwrap());
+  let program_string = read_file(fs::File::open(source_path).unwrap());
   let program_str = program_string.as_str();
 
   let ast = parse(program_str);
   analyse(&ast);
   let code = generator::generate(&ast);
-  println!("{}", code);
+
+  let mut asm_text = String::new();
+  write!(&mut asm_text, "{}", code).unwrap();
+  fs::write(destination_path, asm_text);
 }
 
 fn analyse(ast: &ast::Program) {
@@ -65,7 +70,7 @@ fn parse(program_str: &str) -> ast::Program {
   }
 }
 
-fn read_file(file: File) -> String {
+fn read_file(file: fs::File) -> String {
   let mut buf_reader = BufReader::new(file);
   let mut program_buf = String::new();
   buf_reader.read_to_string(&mut program_buf).unwrap();
@@ -132,5 +137,5 @@ fn is_syntax(error: &SemanticError) -> bool {
 }
 
 fn print_usage() {
-  println!("Usage: ./wacc_32 <file_path>")
+  println!("Usage: ./wacc_32 <input_file_path> <output_file_path>")
 }
