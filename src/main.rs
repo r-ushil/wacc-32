@@ -20,17 +20,13 @@ fn main() {
 
   // Ensure that a single argument was given
   if args.len() != 2 {
-    println!("Error: incorrect number of arguments. ");
-    print_usage();
-    exit(-1);
+    incorrect_usage("Error: incorrect number of arguments. ")
   }
 
   // Ensure that this argument is a path leading to file
   let source_path = &args[1];
   if !Path::new(source_path).exists() {
-    println!("Error: file does not exist. ");
-    print_usage();
-    exit(-1);
+    incorrect_usage("Error: file does not exist. ")
   }
 
   // Read the contents of this file
@@ -68,6 +64,12 @@ fn main() {
       }
     }
   }
+}
+
+fn incorrect_usage(reason: &str) {
+  println!("{}", reason);
+  print_usage();
+  exit(-1);
 }
 
 fn print_semantic_errors(errors: &Vec<SemanticError>) {
