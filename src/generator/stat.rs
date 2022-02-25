@@ -98,7 +98,7 @@ mod tests {
     let mut actual_code = GeneratedCode {
       data: vec![],
       text: vec![],
-      print_branches: GeneratePredefs {
+      predefs: GeneratePredefs {
         print_ints: false,
         print_strings: false,
         print_bools: false,
@@ -116,7 +116,7 @@ mod tests {
     let mut expected_code = GeneratedCode {
       data: vec![],
       text: vec![],
-      print_branches: GeneratePredefs::default(),
+      predefs: GeneratePredefs::default(),
     };
     expr.generate(&mut expected_code, &mut min_regs); // <= important line
 

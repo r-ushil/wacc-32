@@ -21,7 +21,7 @@ pub type Shift = i32;
 pub struct GeneratedCode {
   pub data: Vec<Asm>,
   pub text: Vec<Asm>,
-  pub print_branches: GeneratePredefs,
+  pub predefs: GeneratePredefs,
 }
 
 impl Default for GeneratedCode {
@@ -33,7 +33,7 @@ impl Default for GeneratedCode {
         Asm::Directive(Directive::Label(String::from(".global main"))),
         Asm::Directive(Directive::Label(String::from("main"))),
       ],
-      print_branches: GeneratePredefs::default(),
+      predefs: GeneratePredefs::default(),
     }
   }
 }
