@@ -12,8 +12,7 @@ function run_tests() {
 
   while read in; do 
     our_output_file=$(echo $in | cut -d, -f2)
-    their_output_file=$(echo $in | cut -d, -f3)
-    expected_test_result=$(echo $in | cut -d, -f4)
+    their_output_file=$(echo $in | cut -d, -f3) expected_test_result=$(echo $in | cut -d, -f4)
   
     difference=`diff $1/$our_output_file $1/$their_output_file`
   
@@ -48,6 +47,7 @@ function run_tests() {
 
 function main() {
   run_tests ./wacc_examples_exit_codes
+  run_tests ./wacc_examples_assembled
 
   echo "Passed (expected)   :" $passed_expected 
   echo "Passed (unexpected) :" $passed_unexpected
