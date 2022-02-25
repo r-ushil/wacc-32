@@ -35,13 +35,14 @@ fn main() {
 
   let ast = parse(program_str);
   analyse(&ast);
+  let code = generator::generate(&ast);
+  println!("{}", code);
 }
 
 fn analyse(ast: &ast::Program) {
   match analyser::analyse(&ast) {
     Ok(()) => {
       println!("Successful semantic analysis.");
-      exit(0);
     }
     Err(errors) => {
       print_semantic_errors(&errors);
