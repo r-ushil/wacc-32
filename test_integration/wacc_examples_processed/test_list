@@ -1,0 +1,4 @@
+// Examples in the form:
+// <input_file>,<output_file>,<expected_output_file>,<expected_test_result>
+
+../wacc_examples/valid/IO/IOLoop.wacc,./wacc_examples_processed_ours/valid/IO/IOLoop.new,./wacc_examples_processed/valid/IO/IOLoop.new,pass
