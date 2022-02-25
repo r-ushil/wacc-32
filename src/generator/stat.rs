@@ -84,6 +84,67 @@ impl Generatable for Stat {
 
 */
 
+fn read_int(code: &mut GeneratedCode) {
+  use self::CondCode::*;
+  use self::Directive::*;
+  use self::Instr::*;
+  use Asm::*;
+
+  /* Create a msg label for reading an integer */
+
+  /* msg_println: */
+  code.data.push(Directive(Label("msg_read_int".to_string())));
+
+  /* .word 3                   //allocate space for a word of size 3 */
+  code.data.push(Directive(Word(1)));
+  /* .ascii "%d\0"         //convert into ascii */
+  code.data.push(Directive(Ascii(String::from("%d\\0"))));
+
+  /* Generate a p_read_int label to branch to when reading an int */
+
+  /* p_read_int: */
+  code.data.push(Directive(Label("p_read)int".to_string())));
+  /*  PUSH {lr}            //push link reg */
+  code.text.push(Instr(AL, Push));
+  /*  MOV r1, r0            //move r0 to r1 */
+  code.text.push(Instr(
+    AL,
+    Unary(
+      UnaryInstr::Mov,
+      Reg::RegNum(1),
+      Op2::Reg(Reg::RegNum(0), 0),
+      false,
+    ),
+  ));
+  /*  LDR r0, =msg_read_int   //load the result of msg_read_int */
+  code.text.push(Instr(
+    AL,
+    Load(
+      DataSize::Word,
+      Reg::RegNum(0),
+      LoadArg::Label(String::from("msg_read_int")),
+    ),
+  ));
+  /*  ADD r0, r0, #4        //add 4 to r0 and store in r0 */
+  code.text.push(Instr(
+    AL,
+    Binary(
+      BinaryInstr::Add,
+      Reg::RegNum(0),
+      Reg::RegNum(0),
+      Op2::Imm(4),
+      false,
+    ),
+  ));
+  /*  BL scanf             //branch to scanf */
+  code
+    .text
+    .push(Instr(AL, Branch(true, String::from("scanf"))));
+
+  /*  POP {pc}              //pop the pc register */
+  code.text.push(Instr(AL, Pop));
+}
+
 fn println(code: &mut GeneratedCode) {
   use self::CondCode::*;
   use self::Directive::*;
