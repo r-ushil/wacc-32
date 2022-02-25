@@ -11,6 +11,7 @@ use std::path::Path;
 use std::process::exit;
 
 use analyser::SemanticError;
+use generator::asm::GeneratedCode;
 use nom_supreme::error::ErrorTree;
 use nom_supreme::final_parser::Location;
 use nom_supreme::final_parser::RecreateContext;
@@ -39,9 +40,13 @@ fn main() {
   analyse(&ast);
   let code = generator::generate(&ast);
 
+  write_asm(code, destination_path);
+}
+
+fn write_asm(code: GeneratedCode, destination_path: &str) {
   let mut asm_text = String::new();
   write!(&mut asm_text, "{}", code).unwrap();
-  fs::write(destination_path, asm_text);
+  fs::write(destination_path, asm_text).unwrap();
 }
 
 fn analyse(ast: &ast::Program) {

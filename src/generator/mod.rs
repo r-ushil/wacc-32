@@ -1,6 +1,6 @@
 use crate::ast::*;
 
-mod asm;
+pub mod asm;
 mod display;
 mod expr;
 mod predef;
