@@ -19,7 +19,6 @@ CMD make test_unit
 
 FROM builder AS test_integration
 COPY ./test_integration ./test_integration
-COPY ./test_integration.sh .
 CMD make test_integration
 
 FROM debian:buster-slim AS release
