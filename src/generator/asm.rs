@@ -25,7 +25,6 @@ pub struct GeneratedCode {
 }
 
 impl Default for GeneratedCode {
-
   fn default() -> Self {
     Self {
       data: vec![Asm::Directive(Directive::Label(String::from(".data")))],
