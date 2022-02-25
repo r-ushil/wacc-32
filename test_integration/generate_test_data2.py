@@ -8,21 +8,26 @@ def main():
         .split('\n') \
 
     f = open("test.s", "w")
+    lines = []
 
     found = False
     for line in output:
 
-        # Only print the lines between the occurences of "===="
+        # Only add the lines between the occurences of "===="
         if "====" in line:
             found = not found
             continue
 
+        # Add the line if between equals signs, drop leading numbers and tab
         if found:
-            print(line)
-            line = line.lstrip("0123456789") # Drop leading digits
-            line = line[1:]                  # Drop first leading tab
-            f.write(line + "\n")             # Write the line
+            lines.append(line.lstrip("0123456789")[1:])
 
+    # Drop the last empty line
+    lines = lines[:-1]
+
+    # Write the collected lines
+    for line in lines:
+        f.write(line + "\n")             
 
 if __name__ == "__main__":
     main()
