@@ -68,9 +68,9 @@ impl Display for Instr {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     use Instr::*;
     match self {
-      Push => write!(f, "PUSH {{lr}}"),
+      Push(reg) => write!(f, "PUSH {{{}}}", reg),
 
-      Pop => write!(f, "POP {{pc}}"),
+      Pop(reg) => write!(f, "POP {{{}}}", reg),
 
       Branch(link, label) => {
         write!(f, "B{} {}", if *link { "L" } else { "" }, label)

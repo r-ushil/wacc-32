@@ -121,7 +121,7 @@ fn read(code: &mut GeneratedCode, fmt: ReadFmt) {
   /* p_read: */
   code.data.push(Directive(Label("p_read".to_string())));
   /*  PUSH {lr}            //push link reg */
-  code.text.push(Instr(AL, Push));
+  code.text.push(Instr(AL, Push(Reg::Link)));
   /*  MOV r1, r0            //move r0 to r1 */
   code.text.push(Instr(
     AL,
@@ -172,7 +172,7 @@ fn read(code: &mut GeneratedCode, fmt: ReadFmt) {
     .push(Instr(AL, Branch(true, String::from("scanf"))));
 
   /*  POP {pc}              //pop the pc register */
-  code.text.push(Instr(AL, Pop));
+  code.text.push(Instr(AL, Pop(Reg::PC)));
 }
 
 fn println(code: &mut GeneratedCode) {
@@ -196,7 +196,7 @@ fn println(code: &mut GeneratedCode) {
   /* p_print_ln: */
   code.data.push(Directive(Label("p_print_ln".to_string())));
   /*  PUSH {lr}            //push link reg */
-  code.text.push(Instr(AL, Push));
+  code.text.push(Instr(AL, Push(Reg::Link)));
   /*  LDR r0, =msg_println   //load the result of msg_println */
   code.text.push(Instr(
     AL,
@@ -231,7 +231,7 @@ fn println(code: &mut GeneratedCode) {
     .text
     .push(Instr(AL, Branch(true, String::from("fflush"))));
   /*  POP {pc}              //pop the pc register */
-  code.text.push(Instr(AL, Pop));
+  code.text.push(Instr(AL, Pop(Reg::PC)));
 }
 
 fn free_pair(code: &mut GeneratedCode) {
@@ -260,7 +260,7 @@ fn free_pair(code: &mut GeneratedCode) {
     .text
     .push(Directive(Label(String::from("p_free_pair"))));
   /*  PUSH {lr}            //push link reg */
-  code.text.push(Instr(AL, Push));
+  code.text.push(Instr(AL, Push(Reg::Link)));
   /*  CMP r0, #0           //compare the contents of r0 to 0 and set flags */
   code.text.push(Instr(
     AL,
@@ -281,8 +281,8 @@ fn free_pair(code: &mut GeneratedCode) {
     Branch(true, String::from("p_throw_runtime_error")),
   ));
   /*  PUSH {r0}           //push r0 */
-  code.text.push(Instr(AL, Push)); //todo!() fix Push to take in Reg parameter
-                                   /*  LDR r0, [sp]        //load stack pointer address into r0 */
+  code.text.push(Instr(AL, Push(Reg::RegNum(0))));
+  /*  LDR r0, [sp]        //load stack pointer address into r0 */
   code.text.push(Instr(
     AL,
     Load(
@@ -310,14 +310,14 @@ fn free_pair(code: &mut GeneratedCode) {
   code
     .text
     .push(Instr(AL, Branch(true, String::from("free"))));
-  /*  POP {r0}            //todo!() fix Pop to take in Reg parameter */
-  code.text.push(Instr(AL, Pop));
+  /*  POP {r0}            //pop r0 register */
+  code.text.push(Instr(AL, Pop(Reg::RegNum(0))));
   /*  BL free             //branch to free */
   code
     .text
     .push(Instr(AL, Branch(true, String::from("free"))));
-  /*  POP {pc}            //todo!() fix Pop to take in Reg parameter */
-  code.text.push(Instr(AL, Pop));
+  /*  POP {pc}            //pop pc register */
+  code.text.push(Instr(AL, Pop(Reg::PC)));
 }
 
 fn throw_runtime_error(code: &mut GeneratedCode) {
@@ -380,7 +380,7 @@ fn print_bool(code: &mut GeneratedCode) {
     .text
     .push(Directive(Label(String::from("p_print_bool"))));
   /*  PUSH {lr}             //push link reg */
-  code.text.push(Instr(AL, Push));
+  code.text.push(Instr(AL, Push(Reg::Link)));
   /*  CMP r0, #0            //compare the contents of r0 to 0 and set flags */
   code.text.push(Instr(
     AL,
@@ -429,7 +429,7 @@ fn print_bool(code: &mut GeneratedCode) {
     .text
     .push(Instr(AL, Branch(true, String::from("fflush"))));
   /*  POP {pc}              //pop the pc register */
-  code.text.push(Instr(AL, Pop));
+  code.text.push(Instr(AL, Pop(Reg::PC)));
 }
 
 fn print_string(code: &mut GeneratedCode) {
@@ -456,7 +456,7 @@ fn print_string(code: &mut GeneratedCode) {
     .text
     .push(Directive(Label(String::from("p_print_string"))));
   /*  PUSH {lr}             //push link reg */
-  code.text.push(Instr(AL, Push));
+  code.text.push(Instr(AL, Push(Reg::Link)));
   /*  LDR r1, [r0]          //load address at r0 into r1 */
   code.text.push(Instr(
     AL,
@@ -514,7 +514,7 @@ fn print_string(code: &mut GeneratedCode) {
     .text
     .push(Instr(AL, Branch(true, String::from("fflush"))));
   /*  POP {pc}              //pop the pc register */
-  code.text.push(Instr(AL, Pop));
+  code.text.push(Instr(AL, Pop(Reg::PC)));
 }
 
 #[derive(PartialEq)]
@@ -558,7 +558,7 @@ fn print_int_or_ref(code: &mut GeneratedCode, opt: PrintFmt) {
   /*p_print_opt: */
   code.text.push(Directive(Label(format!("p_print_{}", opt))));
   /*  PUSH {lr}             //push link reg */
-  code.text.push(Instr(AL, Push));
+  code.text.push(Instr(AL, Push(Reg::Link)));
   /*  MOV r1, r0            //move r0 to r1 */
   code.text.push(Instr(
     AL,
@@ -604,7 +604,7 @@ fn print_int_or_ref(code: &mut GeneratedCode, opt: PrintFmt) {
     .text
     .push(Instr(AL, Branch(true, String::from("fflush"))));
   /*  POP {pc}              //pop the pc register */
-  code.text.push(Instr(AL, Pop));
+  code.text.push(Instr(AL, Pop(Reg::PC)));
 }
 
 #[cfg(test)]

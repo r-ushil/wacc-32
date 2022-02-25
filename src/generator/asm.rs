@@ -80,10 +80,10 @@ pub enum Directive {
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Instr {
-  /* PUSH {lr} */
-  Push,
-  /* POP {pc} */
-  Pop,
+  /* PUSH {reg} */
+  Push(Reg),
+  /* POP {reg} */
+  Pop(Reg),
 
   /* B{L?}{CondCode} {Label} */
   /* If bool true, branch with link. */
