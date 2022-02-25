@@ -1,5 +1,7 @@
 import subprocess
 import sys
+from pathlib import Path
+import os
 
 def main():
     output = subprocess \
@@ -7,7 +9,13 @@ def main():
         .decode('utf-8') \
         .split('\n') \
 
-    f = open("test.s", "w")
+    outputFile = Path(str(sys.argv[2]))
+    outputPath = outputFile.parent
+
+    if not os.path.exists(outputPath):
+        os.makedirs(outputPath)
+
+    f = open(outputFile, "w")
     lines = []
 
     found = False
