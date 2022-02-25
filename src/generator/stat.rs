@@ -84,43 +84,42 @@ impl Generatable for Stat {
 
 */
 
-fn read_char(code: &mut GeneratedCode) {
-  use self::CondCode::*;
-  use self::Directive::*;
-  use self::Instr::*;
-  use Asm::*;
-
-  /* Create a msg label for reading an character */
-
-  /* msg_println: */
-  code.data.push(Directive(Label("msg_read_int".to_string())));
-
-  /* .word 3                   //allocate space for a word of size 3 */
-  code.data.push(Directive(Word(1)));
-  /* .ascii "%d\0"         //convert into ascii */
-  code.data.push(Directive(Ascii(String::from("%d\\0"))));
+#[derive(PartialEq)]
+pub enum ReadFmt {
+  Char,
+  Int,
 }
 
-fn read_int(code: &mut GeneratedCode) {
+fn read(code: &mut GeneratedCode, fmt: ReadFmt) {
   use self::CondCode::*;
   use self::Directive::*;
   use self::Instr::*;
   use Asm::*;
 
-  /* Create a msg label for reading an integer */
+  /* Create a msg label for reading an integer or character */
 
-  /* msg_read_int: */
-  code.data.push(Directive(Label("msg_read_int".to_string())));
+  if fmt == ReadFmt::Int {
+    /* msg_read_int: */
+    code.data.push(Directive(Label("msg_read_int".to_string())));
+    /* .word 3                   //allocate space for a word of size 3 FOR INT */
+    code.data.push(Directive(Word(3)));
+    /* .ascii "%d\0"         //convert into ascii */
+    code.data.push(Directive(Ascii(String::from("%d\\0"))));
+  } else if fmt == ReadFmt::Char {
+    /* msg_read_char: */
+    code
+      .data
+      .push(Directive(Label("msg_read_char".to_string())));
+    /* .word 4                   //allocate space for a word of size 4 FOR CHAR */
+    code.data.push(Directive(Word(4)));
+    /* .ascii "%c\0"         //convert into ascii */
+    code.data.push(Directive(Ascii(String::from("%c\\0"))));
+  }
 
-  /* .word 3                   //allocate space for a word of size 3 */
-  code.data.push(Directive(Word(3)));
-  /* .ascii "%d\0"         //convert into ascii */
-  code.data.push(Directive(Ascii(String::from("%d\\0"))));
+  /* Generate a p_read label to branch to when reading an int or a char */
 
-  /* Generate a p_read_int label to branch to when reading an int */
-
-  /* p_read_int: */
-  code.data.push(Directive(Label("p_read)int".to_string())));
+  /* p_read: */
+  code.data.push(Directive(Label("p_read".to_string())));
   /*  PUSH {lr}            //push link reg */
   code.text.push(Instr(AL, Push));
   /*  MOV r1, r0            //move r0 to r1 */
@@ -133,15 +132,29 @@ fn read_int(code: &mut GeneratedCode) {
       false,
     ),
   ));
-  /*  LDR r0, =msg_read_int   //load the result of msg_read_int */
-  code.text.push(Instr(
-    AL,
-    Load(
-      DataSize::Word,
-      Reg::RegNum(0),
-      LoadArg::Label(String::from("msg_read_int")),
-    ),
-  ));
+
+  if fmt == ReadFmt::Int {
+    /*  LDR r0, =msg_read_int   //load the result of msg_read_int */
+    code.text.push(Instr(
+      AL,
+      Load(
+        DataSize::Word,
+        Reg::RegNum(0),
+        LoadArg::Label(String::from("msg_read_int")),
+      ),
+    ));
+  } else if fmt == ReadFmt::Char {
+    /*  LDR r0, =msg_read_char   //load the result of msg_read_char */
+    code.text.push(Instr(
+      AL,
+      Load(
+        DataSize::Word,
+        Reg::RegNum(0),
+        LoadArg::Label(String::from("msg_read_char")),
+      ),
+    ));
+  }
+
   /*  ADD r0, r0, #4        //add 4 to r0 and store in r0 */
   code.text.push(Instr(
     AL,
