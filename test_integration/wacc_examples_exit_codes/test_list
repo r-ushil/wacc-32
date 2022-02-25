@@ -1,5 +1,5 @@
 ../wacc_examples/invalid/semanticErr/exit/badCharExit.wacc,./wacc_examples_exit_codes_ours/invalid/semanticErr/exit/badCharExit.exitcode,./wacc_examples_exit_codes/invalid/semanticErr/exit/badCharExit.exitcode,pass
-../wacc_examples/invalid/semanticErr/exit/exitNonInt.wacc,./wacc_examples_exit_codes_ours/invalid/semanticErr/exit/exitNonInt.exitCode,./wacc_examples_exit_codes/invalid/semanticErr/exit/exitNonInt.exitCode,pass
+../wacc_examples/invalid/semanticErr/exit/exitNonInt.wacc,./wacc_examples_exit_codes_ours/invalid/semanticErr/exit/exitNonInt.exitcode,./wacc_examples_exit_codes/invalid/semanticErr/exit/exitNonInt.exitcode,pass
 ../wacc_examples/invalid/semanticErr/exit/globalReturn.wacc,./wacc_examples_exit_codes_ours/invalid/semanticErr/exit/globalReturn.exitcode,./wacc_examples_exit_codes/invalid/semanticErr/exit/globalReturn.exitcode,pass
 ../wacc_examples/invalid/semanticErr/expressions/boolOpTypeErr.wacc,./wacc_examples_exit_codes_ours/invalid/semanticErr/expressions/boolOpTypeErr.exitcode,./wacc_examples_exit_codes/invalid/semanticErr/expressions/boolOpTypeErr.exitcode,pass
 ../wacc_examples/invalid/semanticErr/expressions/exprTypeErr.wacc,./wacc_examples_exit_codes_ours/invalid/semanticErr/expressions/exprTypeErr.exitcode,./wacc_examples_exit_codes/invalid/semanticErr/expressions/exprTypeErr.exitcode,pass
