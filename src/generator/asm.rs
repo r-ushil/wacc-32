@@ -21,7 +21,7 @@ pub type Shift = i32;
 pub struct GeneratedCode {
   pub data: Vec<Asm>,
   pub text: Vec<Asm>,
-  pub print_branches: PrintBranches,
+  pub print_branches: GeneratePredefs,
 }
 
 impl Default for GeneratedCode {
@@ -33,26 +33,36 @@ impl Default for GeneratedCode {
         Asm::Directive(Directive::Label(String::from(".global main"))),
         Asm::Directive(Directive::Label(String::from("main"))),
       ],
-      print_branches: PrintBranches::default(),
+      print_branches: GeneratePredefs::default(),
     }
   }
 }
 
 #[derive(PartialEq, Debug)]
-pub struct PrintBranches {
-  pub ints: bool,
-  pub strings: bool,
-  pub bools: bool,
-  pub refs: bool,
+pub struct GeneratePredefs {
+  pub print_ints: bool,
+  pub print_strings: bool,
+  pub print_bools: bool,
+  pub print_refs: bool,
+  pub println: bool,
+  pub read_char: bool,
+  pub read_int: bool,
+  pub free_pair: bool,
+  pub runtime_err: bool,
 }
 
-impl Default for PrintBranches {
+impl Default for GeneratePredefs {
   fn default() -> Self {
     Self {
-      ints: false,
-      strings: false,
-      bools: false,
-      refs: false,
+      print_ints: false,
+      print_strings: false,
+      print_bools: false,
+      print_refs: false,
+      println: false,
+      read_char: false,
+      read_int: false,
+      free_pair: false,
+      runtime_err: false,
     }
   }
 }
