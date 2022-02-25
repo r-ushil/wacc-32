@@ -1,0 +1,5 @@
+.data:
+.text:
+.global main:
+main:
+Program { funcs: [], statement: Sequence(Declaration(Int, "a", Expr(BinaryApp(IntLiter(1), Add, IntLiter(2)))), Sequence(Declaration(Int, "b", Expr(BinaryApp(IntLiter(3), Add, IntLiter(4)))), Sequence(Declaration(Int, "c", Expr(BinaryApp(IntLiter(5), Add, IntLiter(6)))), Sequence(Declaration(Int, "d", Expr(BinaryApp(IntLiter(7), Add, IntLiter(8)))), Sequence(Declaration(Int, "e", Expr(BinaryApp(IntLiter(9), Add, IntLiter(10)))), Sequence(Declaration(Int, "f", Expr(BinaryApp(IntLiter(11), Add, IntLiter(12)))), Sequence(Declaration(Int, "g", Expr(BinaryApp(IntLiter(13), Add, IntLiter(14)))), Sequence(Declaration(Int, "h", Expr(BinaryApp(IntLiter(15), Add, IntLiter(16)))), Sequence(Declaration(Int, "i", Expr(IntLiter(17))), Exit(BinaryApp(Ident("a"), Add, BinaryApp(Ident("b"), Add, BinaryApp(Ident("c"), Add, BinaryApp(Ident("d"), Add, BinaryApp(Ident("e"), Add, BinaryApp(Ident("f"), Add, BinaryApp(Ident("g"), Add, BinaryApp(Ident("h"), Add, Ident("i"))))))))))))))))))) }.generate(_, 4):

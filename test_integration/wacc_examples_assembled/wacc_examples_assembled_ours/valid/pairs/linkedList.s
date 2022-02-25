@@ -1,0 +1,5 @@
+.data:
+.text:
+.global main:
+main:
+Program { funcs: [], statement: Sequence(Declaration(Pair(Int, Pair(Any, Any)), "p", Pair(IntLiter(11), PairLiter)), Sequence(Declaration(Pair(Int, Pair(Any, Any)), "q", Pair(IntLiter(4), Ident("p"))), Sequence(Declaration(Pair(Int, Pair(Any, Any)), "r", Pair(IntLiter(2), Ident("q"))), Sequence(Declaration(Pair(Int, Pair(Any, Any)), "s", Pair(IntLiter(1), Ident("r"))), Sequence(Print(StrLiter("list = {")), Sequence(Declaration(Pair(Int, Pair(Any, Any)), "x", Expr(Ident("s"))), Sequence(Declaration(Pair(Int, Pair(Any, Any)), "y", PairElem(Snd(Ident("x")))), Sequence(Declaration(Int, "f", Expr(IntLiter(0))), Sequence(While(BinaryApp(Ident("y"), Neq, PairLiter), Sequence(Assignment(Ident("f"), PairElem(Fst(Ident("x")))), Sequence(Print(Ident("f")), Sequence(Print(StrLiter(", ")), Sequence(Assignment(Ident("x"), Expr(Ident("y"))), Assignment(Ident("y"), PairElem(Snd(Ident("x"))))))))), Sequence(Assignment(Ident("f"), PairElem(Fst(Ident("x")))), Sequence(Print(Ident("f")), Println(StrLiter("}"))))))))))))) }.generate(_, 4):
