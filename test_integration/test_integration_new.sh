@@ -7,6 +7,9 @@ failed_expected=0
 failed_unexpected=0
 
 function run_tests() {
+  echo Generating actual data for $1 tests.
+  (cd $1 && ./generate_test_data.sh ours)
+
   while read in; do 
     our_output_file=$(echo $in | cut -d, -f2)
     their_output_file=$(echo $in | cut -d, -f3)
