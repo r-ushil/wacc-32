@@ -1,9 +1,9 @@
 import subprocess
+import sys
 
 def main():
     output = subprocess \
-        .check_output(['refCompile', '-a', \
-                       'wacc_examples/valid/pairs/checkRefPair.wacc']) \
+        .check_output(['refCompile', '-a', str(sys.argv[1])]) \
         .decode('utf-8') \
         .split('\n') \
 
