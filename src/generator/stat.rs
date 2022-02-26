@@ -103,11 +103,9 @@ mod tests {
 
   #[test]
   fn exit_statement() {
-    use self::Instr::*;
-
     let expr = Expr::IntLiter(0);
     let stat = Stat::Exit(expr.clone());
-    let mut min_regs = 4;
+    let min_regs= &mut 4;
 
     /* Actual output. */
     let mut actual_code = GeneratedCode {
@@ -127,20 +125,16 @@ mod tests {
         div_by_zero: false,
       },
     };
-    stat.generate(&mut actual_code, &mut min_regs);
+    stat.generate(&mut actual_code, min_regs);
 
     /* Expected output. */
-    let mut expected_code = GeneratedCode {
-      data: vec![],
-      text: vec![],
-      predefs: GeneratePredefs::default(),
-    };
-    expr.generate(&mut expected_code, &mut min_regs); // <= important line
+    let mut expected_code = GeneratedCode::default();
+    expr.generate(&mut expected_code, min_regs);
 
     /* MOV r0, r4 */
     expected_code.text.push(Asm::Instr(
       CondCode::AL,
-      Unary(
+      Instr::Unary(
         UnaryInstr::Mov,
         Reg::RegNum(0),
         Op2::Reg(Reg::RegNum(4), 0),
@@ -151,7 +145,7 @@ mod tests {
     /* B exit */
     expected_code.text.push(Asm::Instr(
       CondCode::AL,
-      Branch(false, String::from("exit")),
+      Instr::Branch(false, String::from("exit")),
     ));
 
     assert_eq!(actual_code, expected_code);
