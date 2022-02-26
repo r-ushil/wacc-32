@@ -80,6 +80,13 @@ pub enum Asm {
   Instr(CondCode, Instr),
 }
 
+impl Asm {
+  /* Wraps instruction in an assembly line which always executes. */
+  pub fn always(i: Instr) -> Asm {
+    Asm::Instr(CondCode::AL, i)
+  }
+}
+
 #[derive(PartialEq, Debug)]
 pub enum Directive {
   Text,          /* .text */
