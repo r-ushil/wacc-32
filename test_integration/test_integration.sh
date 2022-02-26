@@ -35,9 +35,9 @@ function run_tests() {
       else
         failed_unexpected=$((failed_unexpected + 1))
         echo "Failed! $their_output_file (unexpected)"
+        echo "Our output above, theirs below."
+        echo "$difference"
       fi
-      echo "Our output above, theirs below."
-      echo "$difference"
     fi
   
     total=$((total + 1))
