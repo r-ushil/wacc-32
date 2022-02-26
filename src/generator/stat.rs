@@ -1,6 +1,6 @@
-use super::Generatable;
-use crate::ast::*;
-use crate::generator::asm::*;
+use super::*;
+use Directive::*;
+use Instr::*;
 
 impl Generatable for AssignLhs {
   // fn generate(&self, _code: &mut Vec<Instr>, _registers: &[Reg]) {}
@@ -19,7 +19,7 @@ impl Generatable for ArrayLiter {
 }
 
 impl Generatable for Stat {
-  fn generate(&self, code: &mut GeneratedCode, min_regs: &mut u8) {
+  fn generate(&self, code: &mut GeneratedCode, min_reg: &mut RegNum) {
     match self {
       Stat::Skip => (),
       Stat::Declaration(_, _, _) => todo!(),
@@ -27,10 +27,9 @@ impl Generatable for Stat {
       Stat::Read(_) => todo!(),
       Stat::Free(_) => todo!(),
       Stat::Return(_) => todo!(),
-
       Stat::Exit(expr) => {
         /* Evalutates expression into min_reg */
-        expr.generate(code, min_regs);
+        expr.generate(code, min_reg);
 
         /* MOV r0, r{min_reg} */
         code.text.push(Asm::Instr(
@@ -38,7 +37,7 @@ impl Generatable for Stat {
           Instr::Unary(
             UnaryInstr::Mov,
             Reg::RegNum(0),
-            Op2::Reg(Reg::RegNum(*min_regs), 0),
+            Op2::Reg(Reg::RegNum(*min_reg), 0),
             false,
           ),
         ));
@@ -51,14 +50,14 @@ impl Generatable for Stat {
       }
 
       Stat::Print(expr) => {
-        expr.generate(code, min_regs);
+        expr.generate(code, min_reg);
         todo!(); //get type of expr, and switch to the appropriate print branch
 
         // print_stat_gen(code, expr.get_type);
       }
 
       Stat::Println(expr) => {
-        expr.generate(code, min_regs);
+        expr.generate(code, min_reg);
         todo!();
         // print_stat_gen(code, expr.get_type);
         // /* BL println */
@@ -158,26 +157,51 @@ mod tests {
   //   let false_body = Stat::Println(Expr::StrLiter(String::from("False Body"))); // println "False Body"
 
   //   let if_statement = Stat::If(
-  //     // if
-  //     cond.clone(),                 // true
+  //     cond.clone(),                 // if true
   //     Box::new(true_body.clone()),  // then println "True Body"
   //     Box::new(false_body.clone()), // else println "False Body"
   //   ); // fi
 
-  //   let mut min_regs = 4;
+  //   let min_reg = &mut 4;
 
-  //   let actual_code = &mut vec![];
-  //   if_statement.generate(actual_code, &mut min_regs);
+  //   let actual_code = &mut GeneratedCode::default();
+  //   if_statement.generate(actual_code, min_reg);
 
-  //   let expected_code = &mut vec![];
-  //   cond.generate(expected_code, &mut min_regs);
-  //   expected_code.push(Cmp(Reg::RegNum(4), Op2::Imm(0))); // CMP r4, #0
-  //   expected_code.push(Branch(String::from("L0"), CondCode::EQ)); // BEQ L0
-  //   true_body.generate(expected_code, &mut min_regs);
-  //   expected_code.push(Branch(String::from("L1"), CondCode::AL)); // B L1
-  //   expected_code.push(Label(String::from("L0"))); // LO:
-  //   false_body.generate(expected_code, &mut min_regs);
-  //   expected_code.push(Label(String::from("L1"))); // LO:
+  //   let expected_code = &mut GeneratedCode::default();
+  //   let l0 = expected_code.get_label();
+  //   let l1 = expected_code.get_label();
+
+  //   /* Condition. */
+  //   cond.generate(expected_code, min_reg);
+
+  //   /* Is condition == 0? */
+  //   expected_code.text.push(Asm::always(Unary(
+  //     UnaryInstr::Cmp,
+  //     Reg::RegNum(4),
+  //     Op2::Imm(0),
+  //     false,
+  //   )));
+
+  //   /* Branch to false case if cond == 0. */
+  //   expected_code
+  //     .text
+  //     .push(Asm::always(Branch(false, l0.clone())));
+
+  //   /* True body. */
+  //   true_body.generate(expected_code, min_reg);
+  //   /* Exit if statement. */
+  //   expected_code
+  //     .text
+  //     .push(Asm::always(Branch(false, l1.clone())));
+
+  //   /* Label for false case to skip to. */
+  //   expected_code.text.push(Asm::Directive(Label(l0)));
+
+  //   /* False body. */
+  //   false_body.generate(expected_code, min_reg);
+
+  //   /* Label to exit if statement. */
+  //   expected_code.text.push(Asm::Directive(Label(l1)));
 
   //   assert_eq!(actual_code, expected_code);
   // }
