@@ -151,6 +151,46 @@ fn println(code: &mut GeneratedCode) {
   code.text.push(Instr(AL, Pop(Reg::PC)));
 }
 
+fn throw_overflow_error(code: &mut GeneratedCode) {
+  use self::CondCode::*;
+  use self::Directive::*;
+  use self::Instr::*;
+  use Asm::*;
+
+  /* Create a msg label to display when integer overflow occurs. */
+
+  /* msg_overflow_error: */
+  code
+    .data
+    .push(Directive(Label("msg_overflow_error".to_string())));
+  /* .word 83                   //allocate space for a word of size 83 */
+  code.data.push(Directive(Word(83)));
+  /* .ascii "OverflowError: ...\n\0"         //convert into ascii */
+  code.data.push(Directive(Ascii(String::from(
+    "OverflowError: the result is too small/large to store in a 4-byte signed-integer.\\n\\0",
+  ))));
+
+  /* Generate label to throw a runtime error for whatever's in registers */
+  /* p_throw_overflow_error: */
+  code
+    .text
+    .push(Directive(Label(String::from("p_throw_overflow_error"))));
+  /* BL p_throw_runtime_error        //branch to runtime error */
+  /* LDR r0, =msg_overflow_error     //load result of message overflow error into r0 */
+  code.text.push(Instr(
+    AL,
+    Load(
+      DataSize::Word,
+      Reg::RegNum(0),
+      LoadArg::Label(String::from("msg_overflow_error")),
+    ),
+  ));
+  code.text.push(Instr(
+    AL,
+    Branch(true, String::from("p_throw_runtime_error")),
+  ));
+}
+
 fn free_pair(code: &mut GeneratedCode) {
   use self::CondCode::*;
   use self::Directive::*;
