@@ -14,7 +14,21 @@ impl Generatable for Expr {
         ))
       }
 
-      Expr::BoolLiter(_) => todo!(),
+      Expr::BoolLiter(val) => {
+        //set imm to 1 or 0 depending on val
+        let imm = if *val == true { 1 } else { 0 };
+
+        /* MOV r{min_reg}, #imm */
+        code.text.push(Asm::Instr(
+          AL,
+          Instr::Unary(
+            UnaryInstr::Mov,
+            Reg::RegNum(*min_regs),
+            Op2::Imm(imm),
+            false,
+          ),
+        ))
+      }
       Expr::CharLiter(_) => todo!(),
       Expr::StrLiter(_) => todo!(),
       Expr::PairLiter => todo!(),
