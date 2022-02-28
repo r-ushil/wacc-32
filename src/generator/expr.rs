@@ -115,7 +115,7 @@ fn binary_op_gen(bin_op: &BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2:
       ));
 
       /* BL p_check_divide_by_zero */
-      todo!(); //make predef and set flag
+      code.predefs.div_by_zero = true;
       code.text.push(Asm::Instr(
         AL,
         Instr::Branch(true, String::from("p_check_divide_by_zero")),
