@@ -175,7 +175,7 @@ fn throw_overflow_error(code: &mut GeneratedCode) {
   code
     .text
     .push(Directive(Label(String::from("p_throw_overflow_error"))));
-  /* BL p_throw_runtime_error        //branch to runtime error */
+
   /* LDR r0, =msg_overflow_error     //load result of message overflow error into r0 */
   code.text.push(Instr(
     AL,
@@ -185,6 +185,7 @@ fn throw_overflow_error(code: &mut GeneratedCode) {
       LoadArg::Label(String::from("msg_overflow_error")),
     ),
   ));
+  /* BL p_throw_runtime_error        //branch to runtime error */
   code.predefs.runtime_err = true;
   code.text.push(Instr(
     AL,
