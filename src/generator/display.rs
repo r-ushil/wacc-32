@@ -170,6 +170,7 @@ impl Display for Op2 {
         }
         Ok(())
       }
+      Char(ch) => write!(f, "#'{}'", ch),
     }
   }
 }

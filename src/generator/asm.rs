@@ -162,6 +162,7 @@ pub enum BinaryInstr {
 // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289851539.htm
 pub enum Op2 {
   Imm(Imm),
+  Char(char),
   /* Register shifted right {Shift} times. */
   Reg(Reg, Shift),
 }

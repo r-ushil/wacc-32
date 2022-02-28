@@ -29,7 +29,7 @@ impl Generatable for Expr {
           ),
         ))
       }
-      Expr::CharLiter(_) => todo!(),
+      Expr::CharLiter(val) => todo!(),
       Expr::StrLiter(_) => todo!(),
       Expr::PairLiter => todo!(),
       Expr::Ident(_) => todo!(),
