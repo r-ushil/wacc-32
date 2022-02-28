@@ -151,6 +151,7 @@ impl Display for BinaryInstr {
       RevSub => "RSBS",
       And => "AND",
       Or => "ORR",
+      Eor => "EOR",
     };
     write!(f, "{}", tag)
   }
@@ -170,6 +171,7 @@ impl Display for Op2 {
         }
         Ok(())
       }
+      Char(ch) => write!(f, "#'{}'", ch),
     }
   }
 }

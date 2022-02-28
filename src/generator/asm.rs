@@ -49,6 +49,8 @@ pub struct GeneratePredefs {
   pub read_int: bool,
   pub free_pair: bool,
   pub runtime_err: bool,
+  pub overflow_err: bool,
+  pub div_by_zero: bool,
 }
 
 impl Default for GeneratePredefs {
@@ -63,6 +65,8 @@ impl Default for GeneratePredefs {
       read_int: false,
       free_pair: false,
       runtime_err: false,
+      overflow_err: false,
+      div_by_zero: false,
     }
   }
 }
@@ -82,7 +86,7 @@ pub enum Directive {
   Data,          /* .data */
   Assemble,      /* .ltorg */
   Label(String), /* foo: */
-  Word(u32),     /* .word 5 */
+  Word(usize),   /* .word 5 */
   Ascii(String), /* .ascii "Hello World" */
 }
 
@@ -154,6 +158,7 @@ pub enum BinaryInstr {
   RevSub, // ??
   And,    // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289863017.htm
   Or,     // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289884183.htm
+  Eor,    // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289871065.htm
 }
 
 /* ======== Helper types for use within assembly representations.  ======== */
@@ -162,6 +167,7 @@ pub enum BinaryInstr {
 // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289851539.htm
 pub enum Op2 {
   Imm(Imm),
+  Char(char),
   /* Register shifted right {Shift} times. */
   Reg(Reg, Shift),
 }
