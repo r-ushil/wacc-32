@@ -225,6 +225,27 @@ fn binary_op_gen(bin_op: &BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2:
   }
 }
 
+fn binary_comp_ops(
+  cond1: CondCode,
+  cond2: CondCode,
+  code: &mut GeneratedCode,
+  reg1: Reg,
+  reg2: Reg,
+) {
+  /* CMP r4, r5 */
+  //todo!(); //unary-op-gen(UnaryOp::Cmp, code, reg1.clone(), reg2)
+  /* MOV{cond1} r{min_reg}, #1 */
+  code.text.push(Asm::Instr(
+    cond1,
+    Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(1), true),
+  ));
+  /* MOV{cond2} r{min_reg}, #0 */
+  code.text.push(Asm::Instr(
+    cond2,
+    Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(0), true),
+  ));
+}
+
 impl Generatable for ArrayElem {
   // fn generate(&self, _code: &mut Vec<Instr>, _registers: &[Reg]) {}
 }
