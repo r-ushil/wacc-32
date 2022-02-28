@@ -102,7 +102,31 @@ fn binary_op_gen(bin_op: &BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2:
       /* CMP r5, r4, ASR #31 */
       //todo!() unary-op-gen(UnaryOp::Cmp, code, reg1.clone(), Op2::Reg(reg2.clone, 31))
     }
-    BinaryOper::Div => todo!(),
+    BinaryOper::Div => {
+      /* MOV r0, reg1 */
+      code.text.push(Asm::Instr(
+        AL,
+        Instr::Unary(UnaryInstr::Mov, Reg::RegNum(0), Op2::Reg(reg1, 0), true),
+      ));
+      /* MOV r1, reg2 */
+      code.text.push(Asm::Instr(
+        AL,
+        Instr::Unary(UnaryInstr::Mov, Reg::RegNum(1), Op2::Reg(reg2, 0), true),
+      ));
+
+      /* BL p_check_divide_by_zero */
+      todo!(); //make predef and set flag
+      code.text.push(Asm::Instr(
+        AL,
+        Instr::Branch(true, String::from("p_check_divide_by_zero")),
+      ));
+
+      /* BL __aeabi_idiv */
+      code.text.push(Asm::Instr(
+        AL,
+        Instr::Branch(true, String::from("__aeabi_idiv")),
+      ));
+    }
     BinaryOper::Mod => todo!(),
     BinaryOper::Add => {
       /* ADDS r4, r4, r5 */
