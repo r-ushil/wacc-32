@@ -15,72 +15,62 @@ pub enum ContextLocation {
 type SymbolTable = HashMap<Ident, Type>;
 
 #[derive(Debug)]
-pub enum Context<'a> {
-  Global {
-    symbol_table: SymbolTable,
-  },
-  Nested {
-    symbol_table: SymbolTable,
-    location: ContextLocation,
-    above_context: &'a Context<'a>,
-  },
+pub struct Scope<'a> {
+  /* Maps identifiers to types for each variable declared in this scope. */
+  symbol_table: SymbolTable,
+  /* The scope this scope is inside of,
+  and where abouts within that scope it is. */
+  /* context: None means this is the global scope. */
+  context: Option<(ContextLocation, &'a Scope<'a>)>,
 }
 
 #[allow(dead_code)]
-impl<'a> Context<'a> {
+impl<'a> Scope<'a> {
   /* Makes new Symbol table with initial global scope. */
   pub fn new() -> Self {
-    Self::Global {
+    Self {
       symbol_table: HashMap::new(),
+      context: None,
     }
   }
 
   pub fn add_error(&self, errors: &mut Vec<SemanticError>, error: SemanticError) {
-    match self {
-      Self::Global { .. } => {
-        errors.push(error);
-      }
-      Self::Nested {
-        location,
-        above_context,
-        ..
-      } => above_context.add_error(errors, SemanticError::Nested(*location, Box::new(error))),
+    if let Some((location, parent)) = self.context {
+      /* Scope has parent, wrap error in nested. */
+      parent.add_error(errors, SemanticError::Nested(location, Box::new(error)))
+    } else {
+      /* Global scope, no more nesting to do. */
+      errors.push(error);
     }
   }
 
   /* Returns type of given ident */
   pub fn get(&self, ident: &Ident) -> Option<&Type> {
-    let symbol_table = match self {
-      Self::Global { symbol_table, .. } | Self::Nested { symbol_table, .. } => symbol_table,
-    };
-
-    match symbol_table.get(ident) {
+    match self.symbol_table.get(ident) {
+      /* Identifier declared in this scope, return. */
       Some(t) => Some(t),
-      None => match self {
-        Self::Global { .. } => None,
-        Self::Nested { above_context, .. } => above_context.get(ident),
-      },
+      /* Look for identifier in parent scope, recurse. */
+      None => self.context?.1.get(ident),
     }
   }
 
   /* Sets type of ident to val, if ident already exists, updates it and
   returns old value. */
   pub fn insert(&mut self, ident: &Ident, val: Type) -> Option<()> {
-    let symbol_table = match self {
-      Self::Global { symbol_table, .. } | Self::Nested { symbol_table, .. } => symbol_table,
-    };
-
-    match symbol_table.insert(ident.clone(), val) {
+    match self.symbol_table.insert(ident.clone(), val) {
+      /* Val replaced something but we aren't allowed to change the type of
+      variables, return None signifiying error. */
       Some(_) => None,
+      /* No conflict, first time this identifier used in this scope, return
+      unit signifiying success. */
       None => Some(()),
     }
   }
 
-  pub fn new_context(&'a self, location: ContextLocation) -> Self {
-    Self::Nested {
-      symbol_table: HashMap::new(),
-      location,
-      above_context: self,
+  pub fn new_scope(&'a self, location: ContextLocation) -> Self {
+    Self {
+      symbol_table: SymbolTable::new(),
+      context: Some((location, self)),
     }
   }
 }
@@ -89,8 +79,8 @@ impl<'a> Context<'a> {
 mod tests {
   use super::*;
 
-  fn make_context<'a>() -> Context<'a> {
-    let mut context = Context::new();
+  fn make_context<'a>() -> Scope<'a> {
+    let mut context = Scope::new();
 
     for i in 0..4 {
       let mut curr: HashMap<String, Type> = HashMap::new();
@@ -103,7 +93,7 @@ mod tests {
       context.insert(&var2, Type::Int);
       context.insert(&var3, Type::String);
 
-      context.new_context(ContextLocation::Function);
+      context.new_scope(ContextLocation::Function);
     }
 
     context

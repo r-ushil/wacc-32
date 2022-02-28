@@ -1,8 +1,8 @@
-use super::{context::Context, equal_types, expected_type, HasType, SemanticError};
+use super::{context::Scope, equal_types, expected_type, HasType, SemanticError};
 use crate::ast::*;
 
 impl HasType for Expr {
-  fn get_type(&self, context: &Context, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&self, context: &Scope, errors: &mut Vec<SemanticError>) -> Option<Type> {
     Some(match self {
       Expr::IntLiter(_) => Type::Int,
       Expr::BoolLiter(_) => Type::Bool,
@@ -102,7 +102,7 @@ mod tests {
 
   /* Defines a scope with 10 variables, each starting with prefix and ending
    * with 0..10 */
-  fn populate_context(context: &mut Context, prefix: &str) {
+  fn populate_context(context: &mut Scope, prefix: &str) {
     for i in 0..10 {
       let ident = format!("{}{}", prefix, i);
       let t = Type::Int;
@@ -112,7 +112,7 @@ mod tests {
 
   #[test]
   fn literals() {
-    let context = &Context::new();
+    let context = &Scope::new();
 
     assert_eq!(
       Expr::IntLiter(5).get_type(context, &mut vec!()),
@@ -134,7 +134,7 @@ mod tests {
 
   #[test]
   fn idents() {
-    let mut context = Context::new();
+    let mut context = Scope::new();
     populate_context(&mut context, "var");
 
     assert_eq!(
@@ -148,7 +148,7 @@ mod tests {
     let x = String::from("x");
     let x_type = Type::Array(Box::new(Type::Int));
 
-    let mut context = Context::new();
+    let mut context = Scope::new();
     context.insert(&x, x_type);
 
     assert_eq!(
@@ -160,7 +160,7 @@ mod tests {
   #[test]
   fn unary_apps() {
     /* Symbol Table */
-    let context = &mut Context::new();
+    let context = &mut Scope::new();
 
     /* BANG */
     /* !false: Bool */
@@ -235,7 +235,7 @@ mod tests {
 
   #[test]
   fn binary_apps() {
-    let context = &mut Context::new();
+    let context = &mut Scope::new();
 
     /* 5 + false: ERROR */
     assert!(Expr::BinaryApp(

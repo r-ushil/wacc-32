@@ -1,13 +1,13 @@
 use super::{
-  context::{Context, ContextLocation},
+  context::{ContextLocation, Scope},
   stat::{ReturnBehaviour::*, *},
   unify::Unifiable,
   SemanticError,
 };
 use crate::ast::*;
 
-fn func(context: &Context, errors: &mut Vec<SemanticError>, func: &Func) -> Option<()> {
-  let func_scope = &mut context.new_context(ContextLocation::Function);
+fn func(context: &Scope, errors: &mut Vec<SemanticError>, func: &Func) -> Option<()> {
+  let func_scope = &mut context.new_scope(ContextLocation::Function);
 
   /* Add parameters to inner scope. */
   let result = func
@@ -44,7 +44,7 @@ fn func(context: &Context, errors: &mut Vec<SemanticError>, func: &Func) -> Opti
 /* This function initialises the symbol table and function table. */
 #[allow(dead_code)]
 pub fn program(
-  context: &mut Context,
+  context: &mut Scope,
   errors: &mut Vec<SemanticError>,
   program: &Program,
 ) -> Option<()> {
@@ -61,7 +61,7 @@ pub fn program(
 
   /* Program body must never return, but it can exit. */
   match stat(
-    &mut context.new_context(ContextLocation::ProgramBody),
+    &mut context.new_scope(ContextLocation::ProgramBody),
     errors,
     &program.statement,
   )? {
@@ -82,7 +82,7 @@ mod tests {
 
   #[test]
   fn func_parameters_checked() {
-    let context = &mut Context::new();
+    let context = &mut Scope::new();
 
     /* Function */
     /* int double(int x) is return x * 2 end */
@@ -143,7 +143,7 @@ mod tests {
       Box::new(Stat::Return(Expr::IntLiter(5))),
       Box::new(Stat::Return(Expr::IntLiter(2))),
     );
-    assert!(func(&mut Context::new(), &mut vec![], &f3).is_some());
+    assert!(func(&mut Scope::new(), &mut vec![], &f3).is_some());
 
     /* int double(int x) is
       if true then return false else return 2 fi
@@ -155,7 +155,7 @@ mod tests {
       Box::new(Stat::Return(Expr::IntLiter(2))),
     );
 
-    assert!(func(&mut Context::new(), &mut vec![], &f4).is_none());
+    assert!(func(&mut Scope::new(), &mut vec![], &f4).is_none());
 
     /* Only one statement has to return. */
     /* int double(int x) is
@@ -166,7 +166,7 @@ mod tests {
       Box::new(Stat::Print(Expr::StrLiter(String::from("hello world")))),
       Box::new(Stat::Return(Expr::IntLiter(5))),
     );
-    let x = func(&mut Context::new(), &mut vec![], &f5);
+    let x = func(&mut Scope::new(), &mut vec![], &f5);
     assert!(x.is_some());
 
     /* Spots erroneous returns. */
@@ -183,6 +183,6 @@ mod tests {
       )),
       Box::new(Stat::Print(Expr::StrLiter(String::from("Hello World")))),
     );
-    assert!(func(&mut Context::new(), &mut vec![], &f6).is_none());
+    assert!(func(&mut Scope::new(), &mut vec![], &f6).is_none());
   }
 }

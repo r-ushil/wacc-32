@@ -6,7 +6,7 @@ mod unify;
 
 use std::fmt::Display;
 
-use context::{Context, ContextLocation};
+use context::{ContextLocation, Scope};
 use unify::Unifiable;
 
 use crate::ast::*;
@@ -41,7 +41,7 @@ check things, and when an AST represents a value, returns their type. */
 /* If types are the same, return that type.
 Otherwise, error. */
 fn equal_types<L: HasType, R: HasType>(
-  context: &Context,
+  context: &Scope,
   errors: &mut Vec<SemanticError>,
   lhs: L,
   rhs: R,
@@ -69,7 +69,7 @@ fn equal_types<L: HasType, R: HasType>(
 
 /* Errors if AST node does not have expected type. */
 fn expected_type<'a, A: HasType>(
-  context: &Context,
+  context: &Scope,
   errors: &mut Vec<SemanticError>,
   expected_type: &'a Type,
   actual: A,
@@ -100,23 +100,23 @@ retrieve it without worrying what AST node it is. */
 /* E.g: IntLiter(5).get_type(_) = Ok(BaseType(Int)) */
 pub trait HasType {
   // TODO: make this return a reference to the type instead of a copy.
-  fn get_type(&self, context: &Context, errors: &mut Vec<SemanticError>) -> Option<Type>;
+  fn get_type(&self, context: &Scope, errors: &mut Vec<SemanticError>) -> Option<Type>;
 }
 
 impl<T: HasType> HasType for &T {
-  fn get_type(&self, context: &Context, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&self, context: &Scope, errors: &mut Vec<SemanticError>) -> Option<Type> {
     (**self).get_type(context, errors)
   }
 }
 
 impl<T: HasType> HasType for Box<T> {
-  fn get_type(&self, context: &Context, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&self, context: &Scope, errors: &mut Vec<SemanticError>) -> Option<Type> {
     (**self).get_type(context, errors)
   }
 }
 
 impl HasType for Ident {
-  fn get_type(&self, context: &Context, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&self, context: &Scope, errors: &mut Vec<SemanticError>) -> Option<Type> {
     match context.get(self) {
       Some(t) => Some(t.clone()),
       None => {
@@ -131,7 +131,7 @@ impl HasType for Ident {
 }
 
 impl HasType for ArrayElem {
-  fn get_type(&self, context: &Context, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&self, context: &Scope, errors: &mut Vec<SemanticError>) -> Option<Type> {
     let ArrayElem(id, indexes) = self;
     let mut errored = false;
 
@@ -169,7 +169,7 @@ impl HasType for ArrayElem {
 
 pub fn analyse(program: &Program) -> Result<(), Vec<SemanticError>> {
   let mut errors = Vec::new();
-  let mut context = Context::new();
+  let mut context = Scope::new();
 
   if program::program(&mut context, &mut errors, program).is_some() {
     Ok(())
@@ -190,7 +190,7 @@ mod tests {
   fn charlie_test() {
     let id = String::from("x");
 
-    let mut context = Context::new();
+    let mut context = Scope::new();
 
     /* x: Array(Array(Int)) */
     context.insert(&id, Type::Array(Box::new(Type::Array(Box::new(Type::Int)))));
@@ -213,7 +213,7 @@ mod tests {
   fn idents() {
     let x = String::from("x");
     let x_type = Type::Int;
-    let mut context = Context::new();
+    let mut context = Scope::new();
 
     /* x: BaseType(Int) */
     context.insert(&x, x_type.clone()).unwrap();
@@ -228,7 +228,7 @@ mod tests {
   fn array_elems() {
     let id = String::from("x");
 
-    let mut context = Context::new();
+    let mut context = Scope::new();
 
     /* x: Array(Array(Int)) */
     context.insert(&id, Type::Array(Box::new(Type::Array(Box::new(Type::Int)))));

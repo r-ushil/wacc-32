@@ -1,5 +1,5 @@
 use super::{
-  context::{Context, ContextLocation},
+  context::{ContextLocation, Scope},
   equal_types, expected_type,
   unify::Unifiable,
   HasType, SemanticError,
@@ -21,7 +21,7 @@ impl ReturnBehaviour {
 }
 
 impl HasType for AssignLhs {
-  fn get_type(&self, context: &Context, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&self, context: &Scope, errors: &mut Vec<SemanticError>) -> Option<Type> {
     match self {
       AssignLhs::Ident(id) => id.get_type(context, errors),
       AssignLhs::ArrayElem(elem) => elem.get_type(context, errors),
@@ -32,7 +32,7 @@ impl HasType for AssignLhs {
 
 #[allow(unused_variables)]
 impl HasType for AssignRhs {
-  fn get_type(&self, context: &Context, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&self, context: &Scope, errors: &mut Vec<SemanticError>) -> Option<Type> {
     match self {
       AssignRhs::Expr(exp) => exp.get_type(context, errors),
       AssignRhs::ArrayLiter(lit) => lit.get_type(context, errors),
@@ -104,7 +104,7 @@ impl HasType for AssignRhs {
 }
 
 impl HasType for PairElem {
-  fn get_type(&self, context: &Context, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&self, context: &Scope, errors: &mut Vec<SemanticError>) -> Option<Type> {
     match self {
       PairElem::Fst(p) => match p.get_type(context, errors)? {
         Type::Pair(left, _) => match *left {
@@ -149,7 +149,7 @@ impl HasType for PairElem {
 }
 
 impl HasType for ArrayLiter {
-  fn get_type(&self, context: &Context, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&self, context: &Scope, errors: &mut Vec<SemanticError>) -> Option<Type> {
     let ArrayLiter(exprs) = self;
 
     /* Take first element as source of truth. */
@@ -174,7 +174,7 @@ Scopes will make a new scope within the symbol table.
 If the statment ALWAYS returns with the same type, returns that type. */
 #[allow(dead_code)]
 pub fn stat(
-  context: &mut Context,
+  context: &mut Scope,
   errors: &mut Vec<SemanticError>,
   statement: &Stat,
 ) -> Option<ReturnBehaviour> {
@@ -246,13 +246,9 @@ pub fn stat(
       /* If both branches return the same type, the if statement can
       be relied on to return that type. */
       if let (Some(true_behaviour), Some(false_behaviour)) = (
+        stat(&mut context.new_scope(ContextLocation::If), errors, if_stat),
         stat(
-          &mut context.new_context(ContextLocation::If),
-          errors,
-          if_stat,
-        ),
-        stat(
-          &mut context.new_context(ContextLocation::If),
+          &mut context.new_scope(ContextLocation::If),
           errors,
           else_stat,
         ),
@@ -295,11 +291,7 @@ pub fn stat(
     Stat::While(cond, body) => {
       let cond_fine = cond.get_type(context, errors) == Some(Type::Bool);
 
-      let statement_result = stat(
-        &mut context.new_context(ContextLocation::While),
-        errors,
-        body,
-      )?;
+      let statement_result = stat(&mut context.new_scope(ContextLocation::While), errors, body)?;
 
       if !cond_fine {
         return None;
@@ -313,11 +305,7 @@ pub fn stat(
         b => b,
       })
     }
-    Stat::Scope(body) => stat(
-      &mut context.new_context(ContextLocation::Scope),
-      errors,
-      body,
-    ),
+    Stat::Scope(body) => stat(&mut context.new_scope(ContextLocation::Scope), errors, body),
     Stat::Sequence(fst, snd) => {
       /* CHECK: no definite returns before last line. */
       if let (Some(lhs), Some(rhs)) = (stat(context, errors, fst), stat(context, errors, snd)) {
@@ -341,7 +329,7 @@ mod tests {
 
   #[test]
   fn assign_lhs() {
-    let context = &mut Context::new();
+    let context = &mut Scope::new();
 
     /* Identifiers cause */
     let x_id = String::from("x");
