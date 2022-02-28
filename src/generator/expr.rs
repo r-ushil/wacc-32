@@ -91,12 +91,20 @@ impl Generatable for Expr {
 }
 
 fn binary_op_gen(bin_op: &BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2: Reg) {
+  let dst = reg1.clone();
   match bin_op {
-    BinaryOper::Mul => todo!(),
-    BinaryOper::Div => todo!(),
-    BinaryOper::Mod => todo!(),
+    BinaryOper::Mul => {
+      /* SMULL r4, r5, r4, r5 */
+      code.text.push(Asm::Instr(
+        AL,
+        Instr::Multiply(reg1.clone(), reg2.clone(), reg1.clone(), reg2.clone()),
+      ));
+      /* CMP r5, r4, ASR #31 */
+      //todo!() unary-op-gen(UnaryOp::Cmp, code, reg1.clone(), Op2::Reg(reg2.clone, 31))
+    }
+    BinaryOper::Div => binary_div_mod(BinaryOper::Div, code, reg1, reg2),
+    BinaryOper::Mod => binary_div_mod(BinaryOper::Mod, code, reg1, reg2),
     BinaryOper::Add => {
-      let dst = reg1.clone();
       /* ADDS r4, r4, r5 */
       code.text.push(Asm::Instr(
         AL,
@@ -110,16 +118,117 @@ fn binary_op_gen(bin_op: &BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2:
         Instr::Branch(true, String::from("p_throw_overflow_error")),
       ));
     }
-    BinaryOper::Sub => todo!(),
-    BinaryOper::Gt => todo!(),
-    BinaryOper::Gte => todo!(),
-    BinaryOper::Lt => todo!(),
-    BinaryOper::Lte => todo!(),
-    BinaryOper::Eq => todo!(),
-    BinaryOper::Neq => todo!(),
-    BinaryOper::And => todo!(),
-    BinaryOper::Or => todo!(),
+    BinaryOper::Sub => {
+      /* SUBS r4, r4, r5 */
+      code.text.push(Asm::Instr(
+        AL,
+        Instr::Binary(BinaryInstr::Sub, dst, reg1, Op2::Reg(reg2, 0), true),
+      ));
+      //set overflow error branch to true
+      code.predefs.overflow_err = true;
+      /* BLVS p_throw_overflow_error */
+      code.text.push(Asm::Instr(
+        VS,
+        Instr::Branch(true, String::from("p_throw_overflow_error")),
+      ));
+    }
+    BinaryOper::Gt => binary_comp_ops(GT, LE, code, reg1, reg2),
+    BinaryOper::Gte => binary_comp_ops(GE, LT, code, reg1, reg2),
+    BinaryOper::Lt => binary_comp_ops(LT, GE, code, reg1, reg2),
+    BinaryOper::Lte => binary_comp_ops(LE, GT, code, reg1, reg2),
+    BinaryOper::Eq => binary_comp_ops(EQ, NE, code, reg1, reg2),
+    BinaryOper::Neq => binary_comp_ops(NE, EQ, code, reg1, reg2),
+    BinaryOper::And => {
+      /* AND r4, r4, r5 */
+      code.text.push(Asm::Instr(
+        AL,
+        Instr::Binary(BinaryInstr::And, dst, reg1, Op2::Reg(reg2, 0), true),
+      ));
+    }
+    BinaryOper::Or => {
+      /* ORR r4, r4, r5 */
+      code.text.push(Asm::Instr(
+        AL,
+        Instr::Binary(BinaryInstr::Or, dst, reg1, Op2::Reg(reg2, 0), true),
+      ));
+    }
   }
+}
+
+fn binary_div_mod(op: BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2: Reg) {
+  if op == BinaryOper::Div {
+    /* MOV r0, reg1 */
+    code.text.push(Asm::Instr(
+      AL,
+      Instr::Unary(UnaryInstr::Mov, Reg::RegNum(0), Op2::Reg(reg1, 0), true),
+    ));
+    /* MOV r1, reg2 */
+    code.text.push(Asm::Instr(
+      AL,
+      Instr::Unary(UnaryInstr::Mov, Reg::RegNum(1), Op2::Reg(reg2, 0), true),
+    ));
+
+    /* BL p_check_divide_by_zero */
+    code.predefs.div_by_zero = true;
+    code.text.push(Asm::Instr(
+      AL,
+      Instr::Branch(true, String::from("p_check_divide_by_zero")),
+    ));
+
+    /* BL __aeabi_idiv */
+    code.text.push(Asm::Instr(
+      AL,
+      Instr::Branch(true, String::from("__aeabi_idiv")),
+    ));
+  } else if op == BinaryOper::Mod {
+    /* MOV r0, reg1 */
+    code.text.push(Asm::Instr(
+      AL,
+      Instr::Unary(UnaryInstr::Mov, Reg::RegNum(0), Op2::Reg(reg1, 0), true),
+    ));
+    /* MOV r1, reg2 */
+    code.text.push(Asm::Instr(
+      AL,
+      Instr::Unary(UnaryInstr::Mov, Reg::RegNum(1), Op2::Reg(reg2, 0), true),
+    ));
+
+    /* BL p_check_divide_by_zero */
+    code.predefs.div_by_zero = true;
+    code.text.push(Asm::Instr(
+      AL,
+      Instr::Branch(true, String::from("p_check_divide_by_zero")),
+    ));
+
+    /* BL __aeabi_idivmod */
+    code.text.push(Asm::Instr(
+      AL,
+      Instr::Branch(true, String::from("__aeabi_idivmod")),
+    ));
+  } else {
+    unreachable!("undefined!");
+  }
+}
+
+fn binary_comp_ops(
+  cond1: CondCode,
+  cond2: CondCode,
+  code: &mut GeneratedCode,
+  reg1: Reg,
+  reg2: Reg,
+) {
+  /* CMP r4, r5 */
+  //todo!(); //unary-op-gen(UnaryOp::Cmp, code, reg1.clone(), Op2::Reg(reg2, 0))
+
+  /* MOV{cond1} r{min_reg}, #1 */
+  code.text.push(Asm::Instr(
+    cond1,
+    Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(1), true),
+  ));
+  /* MOV{cond2} r{min_reg}, #0 */
+  code.text.push(Asm::Instr(
+    cond2,
+    Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(0), true),
+  ));
 }
 
 impl Generatable for ArrayElem {
