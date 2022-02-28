@@ -93,7 +93,15 @@ impl Generatable for Expr {
 fn binary_op_gen(bin_op: &BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2: Reg) {
   let dst = reg1.clone();
   match bin_op {
-    BinaryOper::Mul => todo!(),
+    BinaryOper::Mul => {
+      /* SMULL r4, r5, r4, r5 */
+      code.text.push(Asm::Instr(
+        AL,
+        Instr::Multiply(reg1.clone(), reg2.clone(), reg1.clone(), reg2.clone()),
+      ));
+      /* CMP r5, r4, ASR #31 */
+      //todo!() unary-op-gen(UnaryOp::Cmp, code, reg1.clone(), Op2::Reg(reg2.clone, 31))
+    }
     BinaryOper::Div => todo!(),
     BinaryOper::Mod => todo!(),
     BinaryOper::Add => {
@@ -155,7 +163,7 @@ fn binary_comp_ops(
   reg2: Reg,
 ) {
   /* CMP r4, r5 */
-  //todo!(); //unary-op-gen(UnaryOp::Cmp, code, reg1.clone(), reg2)
+  //todo!(); //unary-op-gen(UnaryOp::Cmp, code, reg1.clone(), Op2::Reg(reg2, 0))
 
   /* MOV{cond1} r{min_reg}, #1 */
   code.text.push(Asm::Instr(
