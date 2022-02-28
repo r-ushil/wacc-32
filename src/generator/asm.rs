@@ -82,7 +82,7 @@ pub enum Directive {
   Data,          /* .data */
   Assemble,      /* .ltorg */
   Label(String), /* foo: */
-  Word(u32),     /* .word 5 */
+  Word(usize),   /* .word 5 */
   Ascii(String), /* .ascii "Hello World" */
 }
 
