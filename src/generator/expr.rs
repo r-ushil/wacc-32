@@ -137,7 +137,13 @@ fn binary_op_gen(bin_op: &BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2:
         Instr::Binary(BinaryInstr::And, dst, reg1, Op2::Reg(reg2, 0), true),
       ));
     }
-    BinaryOper::Or => todo!(),
+    BinaryOper::Or => {
+      /* ORR r4, r4, r5 */
+      code.text.push(Asm::Instr(
+        AL,
+        Instr::Binary(BinaryInstr::Or, dst, reg1, Op2::Reg(reg2, 0), true),
+      ));
+    }
   }
 }
 
