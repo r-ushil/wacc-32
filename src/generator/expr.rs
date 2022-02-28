@@ -273,14 +273,22 @@ fn binary_comp_ops(
   reg2: Reg,
 ) {
   /* CMP r4, r5 */
-  //todo!(); //unary-op-gen(UnaryOp::Cmp, code, reg1.clone(), Op2::Reg(reg2, 0))
+  code.text.push(Asm::Instr(
+    AL,
+    Instr::Unary(
+      UnaryInstr::Cmp,
+      reg1.clone(),
+      Op2::Reg(reg2.clone(), 0),
+      false,
+    ),
+  ));
 
-  /* MOV{cond1} r{min_reg}, #1 */
+  /* MOV{cond1} reg1, #1 */
   code.text.push(Asm::Instr(
     cond1,
     Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(1), true),
   ));
-  /* MOV{cond2} r{min_reg}, #0 */
+  /* MOV{cond2} reg1, #0 */
   code.text.push(Asm::Instr(
     cond2,
     Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(0), true),
