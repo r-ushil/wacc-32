@@ -132,8 +132,8 @@ fn unary_op_gen(unary_op: &UnaryOper, code: &mut GeneratedCode, reg: Reg) {
       */
       todo!();
     }
-    UnaryOper::Ord => todo!(),
-    UnaryOper::Chr => todo!(),
+    UnaryOper::Ord => (), //handled as char is already moved into reg in main match statement
+    UnaryOper::Chr => (), //similar logic to above
   }
 }
 
