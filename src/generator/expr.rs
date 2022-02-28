@@ -91,12 +91,12 @@ impl Generatable for Expr {
 }
 
 fn binary_op_gen(bin_op: &BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2: Reg) {
+  let dst = reg1.clone();
   match bin_op {
     BinaryOper::Mul => todo!(),
     BinaryOper::Div => todo!(),
     BinaryOper::Mod => todo!(),
     BinaryOper::Add => {
-      let dst = reg1.clone();
       /* ADDS r4, r4, r5 */
       code.text.push(Asm::Instr(
         AL,
@@ -111,7 +111,6 @@ fn binary_op_gen(bin_op: &BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2:
       ));
     }
     BinaryOper::Sub => {
-      let dst = reg1.clone();
       /* SUBS r4, r4, r5 */
       code.text.push(Asm::Instr(
         AL,
@@ -131,7 +130,13 @@ fn binary_op_gen(bin_op: &BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2:
     BinaryOper::Lte => todo!(),
     BinaryOper::Eq => todo!(),
     BinaryOper::Neq => todo!(),
-    BinaryOper::And => todo!(),
+    BinaryOper::And => {
+      /* AND r4, r4, r5 */
+      code.text.push(Asm::Instr(
+        AL,
+        Instr::Binary(BinaryInstr::And, dst, reg1, Op2::Reg(reg2, 0), true),
+      ));
+    }
     BinaryOper::Or => todo!(),
   }
 }
