@@ -108,6 +108,7 @@ mod tests {
         read_int: false,
         free_pair: false,
         runtime_err: false,
+        overflow_err: false,
       },
     };
     stat.generate(&mut actual_code, &mut min_regs);

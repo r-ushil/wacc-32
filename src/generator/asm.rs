@@ -49,6 +49,7 @@ pub struct GeneratePredefs {
   pub read_int: bool,
   pub free_pair: bool,
   pub runtime_err: bool,
+  pub overflow_err: bool,
 }
 
 impl Default for GeneratePredefs {
@@ -63,6 +64,7 @@ impl Default for GeneratePredefs {
       read_int: false,
       free_pair: false,
       runtime_err: false,
+      overflow_err: false,
     }
   }
 }
