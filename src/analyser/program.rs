@@ -6,8 +6,8 @@ use super::{
 };
 use crate::ast::*;
 
-fn func(context: &Scope, errors: &mut Vec<SemanticError>, func: &Func) -> Option<()> {
-  let func_scope = &mut context.new_scope(ContextLocation::Function);
+fn func(scope: &Scope, errors: &mut Vec<SemanticError>, func: &Func) -> Option<()> {
+  let func_scope = &mut scope.new_scope(ContextLocation::Function);
 
   /* Add parameters to inner scope. */
   let result = func
@@ -44,29 +44,30 @@ fn func(context: &Scope, errors: &mut Vec<SemanticError>, func: &Func) -> Option
 /* This function initialises the symbol table and function table. */
 #[allow(dead_code)]
 pub fn program(
-  context: &mut Scope,
+  scope: &mut Scope,
   errors: &mut Vec<SemanticError>,
   program: &Program,
 ) -> Option<()> {
   /* Add all function signatures to global. */
-  program.funcs.iter().try_for_each(|func| {
-    context.insert(&func.ident, Type::Func(Box::new(func.signature.clone())))
-  })?;
+  program
+    .funcs
+    .iter()
+    .try_for_each(|func| scope.insert(&func.ident, Type::Func(Box::new(func.signature.clone()))))?;
 
   /* Add all functions to the symbol table. */
   let result = program
     .funcs
     .iter()
-    .try_for_each(|f| func(context, errors, f));
+    .try_for_each(|f| func(scope, errors, f));
 
   /* Program body must never return, but it can exit. */
   match stat(
-    &mut context.new_scope(ContextLocation::ProgramBody),
+    &mut scope.new_scope(ContextLocation::ProgramBody),
     errors,
     &program.statement,
   )? {
     MidWay(t) | AtEnd(t) if t != Type::Any => {
-      context.add_error(
+      scope.add_error(
         errors,
         SemanticError::Normal(format!("Cannot have 'return' statement in main")),
       );
@@ -82,7 +83,7 @@ mod tests {
 
   #[test]
   fn func_parameters_checked() {
-    let context = &mut Scope::new();
+    let scope = &mut Scope::new();
 
     /* Function */
     /* int double(int x) is return x * 2 end */
@@ -100,20 +101,20 @@ mod tests {
     };
 
     /* Works in it's default form. */
-    assert!(func(context, &mut vec![], &f).is_some());
+    assert!(func(scope, &mut vec![], &f).is_some());
 
     /* Doesn't work if wrong type returned. */
     /* int double(int x) is return false end */
     let mut f1 = f.clone();
     f1.body = Stat::Return(Expr::BoolLiter(false));
-    assert!(func(context, &mut vec![], &f1).is_none());
+    assert!(func(scope, &mut vec![], &f1).is_none());
 
     /* Can compare parameter type with return type. */
     /* bool double(int x) is return x end */
     let mut f2 = f.clone();
     f2.signature.return_type = Type::Bool;
     f2.body = Stat::Return(Expr::Ident(String::from("x")));
-    assert!(func(context, &mut vec![], &f2).is_none());
+    assert!(func(scope, &mut vec![], &f2).is_none());
   }
 
   #[test]

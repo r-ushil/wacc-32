@@ -2,22 +2,22 @@ use super::{context::Scope, equal_types, expected_type, HasType, SemanticError};
 use crate::ast::*;
 
 impl HasType for Expr {
-  fn get_type(&self, context: &Scope, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&self, scope: &Scope, errors: &mut Vec<SemanticError>) -> Option<Type> {
     Some(match self {
       Expr::IntLiter(_) => Type::Int,
       Expr::BoolLiter(_) => Type::Bool,
       Expr::CharLiter(_) => Type::Char,
       Expr::StrLiter(_) => Type::String,
       Expr::PairLiter => Type::Pair(Box::new(Type::Any), Box::new(Type::Any)),
-      Expr::Ident(id) => id.get_type(context, errors)?,
-      Expr::ArrayElem(elem) => elem.get_type(context, errors)?,
+      Expr::Ident(id) => id.get_type(scope, errors)?,
+      Expr::ArrayElem(elem) => elem.get_type(scope, errors)?,
       Expr::UnaryApp(op, exp) => match op {
-        UnaryOper::Bang => expected_type(context, errors, &Type::Bool, exp)?.clone(),
-        UnaryOper::Neg => expected_type(context, errors, &Type::Int, exp)?.clone(),
-        UnaryOper::Len => match exp.get_type(context, errors)? {
+        UnaryOper::Bang => expected_type(scope, errors, &Type::Bool, exp)?.clone(),
+        UnaryOper::Neg => expected_type(scope, errors, &Type::Int, exp)?.clone(),
+        UnaryOper::Len => match exp.get_type(scope, errors)? {
           Type::Array(_) => Type::Int,
           t => {
-            context.add_error(
+            scope.add_error(
               errors,
               SemanticError::Normal(format!(
               "TYPE ERROR: Attempt to find length of non array\n\tExpected: Array\n\tActual: {:?}",
@@ -28,18 +28,18 @@ impl HasType for Expr {
           }
         },
         UnaryOper::Ord => {
-          expected_type(context, errors, &Type::Char, exp)?;
+          expected_type(scope, errors, &Type::Char, exp)?;
           Type::Int
         }
         UnaryOper::Chr => {
-          expected_type(context, errors, &Type::Int, exp)?;
+          expected_type(scope, errors, &Type::Int, exp)?;
           Type::Char
         }
       },
 
       Expr::BinaryApp(exp1, op, exp2) => {
         /* Every binary application requires both expressions to have the same type. */
-        let expr_type = equal_types(context, errors, exp1, exp2)?;
+        let expr_type = equal_types(scope, errors, exp1, exp2)?;
 
         match op {
           /* Maths can only be done on ints. */
@@ -50,7 +50,7 @@ impl HasType for Expr {
           | BinaryOper::Sub => match expr_type {
             Type::Int => Type::Int,
             t => {
-              context.add_error(
+              scope.add_error(
                 errors,
                 SemanticError::Normal(format!(
                   "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
@@ -64,7 +64,7 @@ impl HasType for Expr {
           BinaryOper::Gt | BinaryOper::Gte | BinaryOper::Lt | BinaryOper::Lte => match expr_type {
             Type::Int | Type::Char => Type::Bool,
             t => {
-              context.add_error(
+              scope.add_error(
                 errors,
                 SemanticError::Normal(format!(
                   "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
@@ -79,7 +79,7 @@ impl HasType for Expr {
           BinaryOper::And | BinaryOper::Or => match expr_type {
             Type::Bool => Type::Bool,
             t => {
-              context.add_error(
+              scope.add_error(
                 errors,
                 SemanticError::Normal(format!(
                   "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
@@ -102,43 +102,43 @@ mod tests {
 
   /* Defines a scope with 10 variables, each starting with prefix and ending
    * with 0..10 */
-  fn populate_context(context: &mut Scope, prefix: &str) {
+  fn populate_scope(scope: &mut Scope, prefix: &str) {
     for i in 0..10 {
       let ident = format!("{}{}", prefix, i);
       let t = Type::Int;
-      context.insert(&ident, t);
+      scope.insert(&ident, t);
     }
   }
 
   #[test]
   fn literals() {
-    let context = &Scope::new();
+    let scope = &Scope::new();
 
     assert_eq!(
-      Expr::IntLiter(5).get_type(context, &mut vec!()),
+      Expr::IntLiter(5).get_type(scope, &mut vec!()),
       Some(Type::Int)
     );
     assert_eq!(
-      Expr::BoolLiter(false).get_type(context, &mut vec!()),
+      Expr::BoolLiter(false).get_type(scope, &mut vec!()),
       Some(Type::Bool)
     );
     assert_eq!(
-      Expr::CharLiter('a').get_type(context, &mut vec!()),
+      Expr::CharLiter('a').get_type(scope, &mut vec!()),
       Some(Type::Char)
     );
     assert_eq!(
-      Expr::PairLiter.get_type(context, &mut vec!()),
+      Expr::PairLiter.get_type(scope, &mut vec!()),
       Some(Type::Pair(Box::new(Type::Any), Box::new(Type::Any))),
     );
   }
 
   #[test]
   fn idents() {
-    let mut context = Scope::new();
-    populate_context(&mut context, "var");
+    let mut scope = Scope::new();
+    populate_scope(&mut scope, "var");
 
     assert_eq!(
-      Expr::Ident(String::from("var1")).get_type(&context, &mut vec![]),
+      Expr::Ident(String::from("var1")).get_type(&scope, &mut vec![]),
       Some(Type::Int),
     );
   }
@@ -148,11 +148,11 @@ mod tests {
     let x = String::from("x");
     let x_type = Type::Array(Box::new(Type::Int));
 
-    let mut context = Scope::new();
-    context.insert(&x, x_type);
+    let mut scope = Scope::new();
+    scope.insert(&x, x_type);
 
     assert_eq!(
-      Expr::ArrayElem(ArrayElem(x, vec!(Expr::IntLiter(5)))).get_type(&context, &mut vec![]),
+      Expr::ArrayElem(ArrayElem(x, vec!(Expr::IntLiter(5)))).get_type(&scope, &mut vec![]),
       Some(Type::Int)
     );
   }
@@ -160,34 +160,34 @@ mod tests {
   #[test]
   fn unary_apps() {
     /* Symbol Table */
-    let context = &mut Scope::new();
+    let scope = &mut Scope::new();
 
     /* BANG */
     /* !false: Bool */
     assert_eq!(
       Expr::UnaryApp(UnaryOper::Bang, Box::new(Expr::BoolLiter(false)))
-        .get_type(context, &mut vec!()),
+        .get_type(scope, &mut vec!()),
       Some(Type::Bool)
     );
 
     /* !'a': ERROR */
     assert!(
       Expr::UnaryApp(UnaryOper::Bang, Box::new(Expr::CharLiter('a')))
-        .get_type(context, &mut vec!())
+        .get_type(scope, &mut vec!())
         .is_none()
     );
 
     /* NEG */
     /* -5: Int */
     assert_eq!(
-      Expr::UnaryApp(UnaryOper::Neg, Box::new(Expr::IntLiter(5))).get_type(context, &mut vec!()),
+      Expr::UnaryApp(UnaryOper::Neg, Box::new(Expr::IntLiter(5))).get_type(scope, &mut vec!()),
       Some(Type::Int)
     );
 
     /* -false: ERROR */
     assert!(
       Expr::UnaryApp(UnaryOper::Neg, Box::new(Expr::BoolLiter(false)))
-        .get_type(context, &mut vec!())
+        .get_type(scope, &mut vec!())
         .is_none()
     );
 
@@ -195,47 +195,47 @@ mod tests {
     /* len [1,2,3]: Int */
     let x = String::from("x");
     let x_type = Type::Array(Box::new(Type::Int));
-    context.insert(&x, x_type);
+    scope.insert(&x, x_type);
     assert_eq!(
-      Expr::UnaryApp(UnaryOper::Len, Box::new(Expr::Ident(x))).get_type(context, &mut vec!()),
+      Expr::UnaryApp(UnaryOper::Len, Box::new(Expr::Ident(x))).get_type(scope, &mut vec!()),
       Some(Type::Int)
     );
 
     /* len 5: ERROR */
     assert!(Expr::UnaryApp(UnaryOper::Len, Box::new(Expr::IntLiter(5)))
-      .get_type(context, &mut vec!())
+      .get_type(scope, &mut vec!())
       .is_none());
 
     /* ORD */
     /* ord 'a': Int */
     assert_eq!(
-      Expr::UnaryApp(UnaryOper::Ord, Box::new(Expr::CharLiter('a'))).get_type(context, &mut vec!()),
+      Expr::UnaryApp(UnaryOper::Ord, Box::new(Expr::CharLiter('a'))).get_type(scope, &mut vec!()),
       Some(Type::Int)
     );
 
     /* ord 5: ERROR */
     assert!(Expr::UnaryApp(UnaryOper::Ord, Box::new(Expr::IntLiter(5)))
-      .get_type(context, &mut vec!())
+      .get_type(scope, &mut vec!())
       .is_none());
 
     /* CHR */
     /* chr 5: Char */
     assert_eq!(
-      Expr::UnaryApp(UnaryOper::Chr, Box::new(Expr::IntLiter(5))).get_type(context, &mut vec!()),
+      Expr::UnaryApp(UnaryOper::Chr, Box::new(Expr::IntLiter(5))).get_type(scope, &mut vec!()),
       Some(Type::Char)
     );
 
     /* chr 'a': ERROR */
     assert!(
       Expr::UnaryApp(UnaryOper::Chr, Box::new(Expr::CharLiter('a')))
-        .get_type(context, &mut vec!())
+        .get_type(scope, &mut vec!())
         .is_none()
     );
   }
 
   #[test]
   fn binary_apps() {
-    let context = &mut Scope::new();
+    let scope = &mut Scope::new();
 
     /* 5 + false: ERROR */
     assert!(Expr::BinaryApp(
@@ -243,7 +243,7 @@ mod tests {
       BinaryOper::Add,
       Box::new(Expr::BoolLiter(false))
     )
-    .get_type(context, &mut vec![])
+    .get_type(scope, &mut vec![])
     .is_none());
 
     /* 5 * 'a': ERROR */
@@ -252,7 +252,7 @@ mod tests {
       BinaryOper::Mul,
       Box::new(Expr::CharLiter('a'))
     )
-    .get_type(context, &mut vec![])
+    .get_type(scope, &mut vec![])
     .is_none());
 
     /* false / "hello": ERROR */
@@ -261,7 +261,7 @@ mod tests {
       BinaryOper::Div,
       Box::new(Expr::StrLiter(String::from("hello")))
     )
-    .get_type(context, &mut vec![])
+    .get_type(scope, &mut vec![])
     .is_none());
 
     /* false && 6: ERROR */
@@ -270,7 +270,7 @@ mod tests {
       BinaryOper::And,
       Box::new(Expr::IntLiter(6))
     )
-    .get_type(context, &mut vec![])
+    .get_type(scope, &mut vec![])
     .is_none());
 
     /* MATH CAN BE DONE ON INTS. */
@@ -281,7 +281,7 @@ mod tests {
         BinaryOper::Mul,
         Box::new(Expr::IntLiter(5)),
       )
-      .get_type(context, &mut vec![]),
+      .get_type(scope, &mut vec![]),
       Some(Type::Int),
     );
 
@@ -292,7 +292,7 @@ mod tests {
         BinaryOper::Add,
         Box::new(Expr::IntLiter(5)),
       )
-      .get_type(context, &mut vec![]),
+      .get_type(scope, &mut vec![]),
       Some(Type::Int),
     );
 
@@ -303,7 +303,7 @@ mod tests {
       BinaryOper::Add,
       Box::new(Expr::CharLiter('b'))
     )
-    .get_type(context, &mut vec![])
+    .get_type(scope, &mut vec![])
     .is_none());
 
     /* false + false: ERROR */
@@ -312,7 +312,7 @@ mod tests {
       BinaryOper::Add,
       Box::new(Expr::BoolLiter(false))
     )
-    .get_type(context, &mut vec![])
+    .get_type(scope, &mut vec![])
     .is_none());
 
     /* Any type can be comapred to itself. */
@@ -331,7 +331,7 @@ mod tests {
       for oper in vec![BinaryOper::Eq, BinaryOper::Neq] {
         assert_eq!(
           Expr::BinaryApp(Box::new(expr.clone()), oper, Box::new(expr.clone()))
-            .get_type(context, &mut vec![]),
+            .get_type(scope, &mut vec![]),
           Some(Type::Bool)
         );
       }
@@ -346,7 +346,7 @@ mod tests {
       ] {
         assert_eq!(
           Expr::BinaryApp(Box::new(expr.clone()), oper, Box::new(expr.clone()))
-            .get_type(context, &mut vec!()),
+            .get_type(scope, &mut vec!()),
           Some(Type::Bool)
         );
       }
@@ -359,7 +359,7 @@ mod tests {
       BinaryOper::And,
       Box::new(Expr::IntLiter(5)),
     )
-    .get_type(context, &mut vec!())
+    .get_type(scope, &mut vec!())
     .is_none());
 
     /* 'a' || 'a': ERROR */
@@ -368,7 +368,7 @@ mod tests {
       BinaryOper::Or,
       Box::new(Expr::CharLiter('a')),
     )
-    .get_type(context, &mut vec!())
+    .get_type(scope, &mut vec!())
     .is_none());
 
     /* true && true: bool */
@@ -378,7 +378,7 @@ mod tests {
         BinaryOper::And,
         Box::new(Expr::BoolLiter(true)),
       )
-      .get_type(context, &mut vec!()),
+      .get_type(scope, &mut vec!()),
       Some(Type::Bool)
     );
   }

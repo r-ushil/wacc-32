@@ -79,8 +79,8 @@ impl<'a> Scope<'a> {
 mod tests {
   use super::*;
 
-  fn make_context<'a>() -> Scope<'a> {
-    let mut context = Scope::new();
+  fn make_scope<'a>() -> Scope<'a> {
+    let mut scope = Scope::new();
 
     for i in 0..4 {
       let mut curr: HashMap<String, Type> = HashMap::new();
@@ -89,33 +89,33 @@ mod tests {
       let var2 = format!("{}{}", "y", i);
       let var3 = format!("{}{}", "z", i);
 
-      context.insert(&var1, Type::Bool);
-      context.insert(&var2, Type::Int);
-      context.insert(&var3, Type::String);
+      scope.insert(&var1, Type::Bool);
+      scope.insert(&var2, Type::Int);
+      scope.insert(&var3, Type::String);
 
-      context.new_scope(ContextLocation::Function);
+      scope.new_scope(ContextLocation::Function);
     }
 
-    context
+    scope
   }
 
   #[test]
   fn test_table_lookup() {
-    let context = make_context();
+    let scope = make_scope();
 
-    assert_eq!(context.get(&String::from("x3")), Some(&Type::Bool));
-    assert_eq!(context.get(&String::from("z3")), Some(&Type::String));
-    assert_ne!(context.get(&String::from("v3")), Some(&Type::String));
+    assert_eq!(scope.get(&String::from("x3")), Some(&Type::Bool));
+    assert_eq!(scope.get(&String::from("z3")), Some(&Type::String));
+    assert_ne!(scope.get(&String::from("v3")), Some(&Type::String));
 
-    assert_eq!(context.get(&String::from("random")), None,);
+    assert_eq!(scope.get(&String::from("random")), None,);
   }
 
   #[test]
   fn test_table_update() {
-    let mut context = make_context();
+    let mut scope = make_scope();
 
-    assert_eq!(context.insert(&String::from("g"), Type::Char), Some(()));
+    assert_eq!(scope.insert(&String::from("g"), Type::Char), Some(()));
 
-    assert_ne!(context.get(&String::from("g")), Some(&Type::Bool));
+    assert_ne!(scope.get(&String::from("g")), Some(&Type::Bool));
   }
 }

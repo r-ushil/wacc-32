@@ -21,24 +21,24 @@ impl ReturnBehaviour {
 }
 
 impl HasType for AssignLhs {
-  fn get_type(&self, context: &Scope, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&self, scope: &Scope, errors: &mut Vec<SemanticError>) -> Option<Type> {
     match self {
-      AssignLhs::Ident(id) => id.get_type(context, errors),
-      AssignLhs::ArrayElem(elem) => elem.get_type(context, errors),
-      AssignLhs::PairElem(elem) => elem.get_type(context, errors),
+      AssignLhs::Ident(id) => id.get_type(scope, errors),
+      AssignLhs::ArrayElem(elem) => elem.get_type(scope, errors),
+      AssignLhs::PairElem(elem) => elem.get_type(scope, errors),
     }
   }
 }
 
 #[allow(unused_variables)]
 impl HasType for AssignRhs {
-  fn get_type(&self, context: &Scope, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&self, scope: &Scope, errors: &mut Vec<SemanticError>) -> Option<Type> {
     match self {
-      AssignRhs::Expr(exp) => exp.get_type(context, errors),
-      AssignRhs::ArrayLiter(lit) => lit.get_type(context, errors),
+      AssignRhs::Expr(exp) => exp.get_type(scope, errors),
+      AssignRhs::ArrayLiter(lit) => lit.get_type(scope, errors),
       AssignRhs::Pair(e1, e2) => {
         if let (Some(lhs_type), Some(rhs_type)) =
-          (e1.get_type(context, errors), e2.get_type(context, errors))
+          (e1.get_type(scope, errors), e2.get_type(scope, errors))
         {
           Some(Type::Pair(
             Box::new(lhs_type.clone()),
@@ -48,8 +48,8 @@ impl HasType for AssignRhs {
           None
         }
       }
-      AssignRhs::PairElem(elem) => elem.get_type(context, errors),
-      AssignRhs::Call(id, args) => match id.get_type(context, errors)? {
+      AssignRhs::PairElem(elem) => elem.get_type(scope, errors),
+      AssignRhs::Call(id, args) => match id.get_type(scope, errors)? {
         Type::Func(bx) => {
           let FuncSig {
             params,
@@ -59,7 +59,7 @@ impl HasType for AssignRhs {
 
           /* Must be same amount of args as parameters */
           if params.len() != args.len() {
-            context.add_error(
+            scope.add_error(
               errors,
               SemanticError::Normal(format!("Function called with wrong amount of arguments.")),
             );
@@ -70,11 +70,11 @@ impl HasType for AssignRhs {
           for (arg, (param_type, param_id)) in args.iter().zip(params.iter()) {
             if arg
               .clone()
-              .get_type(context, errors)?
+              .get_type(scope, errors)?
               .unify(param_type.clone())
               .is_none()
             {
-              context.add_error(
+              scope.add_error(
                 errors,
                 SemanticError::Normal(format!("Incorrect type passed to function.")),
               );
@@ -89,7 +89,7 @@ impl HasType for AssignRhs {
           }
         }
         t => {
-          context.add_error(
+          scope.add_error(
             errors,
             SemanticError::Normal(format!(
               "TYPE ERROR:\n\tExpected: Function\n\tActual: {:?}",
@@ -104,12 +104,12 @@ impl HasType for AssignRhs {
 }
 
 impl HasType for PairElem {
-  fn get_type(&self, context: &Scope, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&self, scope: &Scope, errors: &mut Vec<SemanticError>) -> Option<Type> {
     match self {
-      PairElem::Fst(p) => match p.get_type(context, errors)? {
+      PairElem::Fst(p) => match p.get_type(scope, errors)? {
         Type::Pair(left, _) => match *left {
           Type::Any => {
-            context.add_error(
+            scope.add_error(
               errors,
               SemanticError::Normal(format!("TYPE ERROR:\n\tExpected: BaseType\n\tActual: Null")),
             );
@@ -118,17 +118,17 @@ impl HasType for PairElem {
           t => Some(t),
         },
         t => {
-          context.add_error(
+          scope.add_error(
             errors,
             SemanticError::Normal(format!("TYPE ERROR:\n\tExpected: Pair\n\tActual:{:?}", t)),
           );
           None
         }
       },
-      PairElem::Snd(p) => match p.get_type(context, errors)? {
+      PairElem::Snd(p) => match p.get_type(scope, errors)? {
         Type::Pair(_, right) => match *right {
           Type::Any => {
-            context.add_error(
+            scope.add_error(
               errors,
               SemanticError::Normal(format!("TYPE ERROR:\n\tExpected: BaseType\n\tActual: Null")),
             );
@@ -137,7 +137,7 @@ impl HasType for PairElem {
           t => Some(t),
         },
         t => {
-          context.add_error(
+          scope.add_error(
             errors,
             SemanticError::Normal(format!("TYPE ERROR:\n\tExpected: Pair\n\tActual:{:?}", t)),
           );
@@ -149,7 +149,7 @@ impl HasType for PairElem {
 }
 
 impl HasType for ArrayLiter {
-  fn get_type(&self, context: &Scope, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&self, scope: &Scope, errors: &mut Vec<SemanticError>) -> Option<Type> {
     let ArrayLiter(exprs) = self;
 
     /* Take first element as source of truth. */
@@ -157,7 +157,7 @@ impl HasType for ArrayLiter {
 
     /* Ensure every other element has same type. */
     for expr in exprs {
-      if let Some(expr_type) = expr.get_type(context, errors) {
+      if let Some(expr_type) = expr.get_type(scope, errors) {
         if let Some(t) = array_type {
           array_type = t.unify(expr_type)
         }
@@ -174,7 +174,7 @@ Scopes will make a new scope within the symbol table.
 If the statment ALWAYS returns with the same type, returns that type. */
 #[allow(dead_code)]
 pub fn stat(
-  context: &mut Scope,
+  scope: &mut Scope,
   errors: &mut Vec<SemanticError>,
   statement: &Stat,
 ) -> Option<ReturnBehaviour> {
@@ -185,9 +185,9 @@ pub fn stat(
     Stat::Skip => Some(Never), /* Skips never return. */
     Stat::Declaration(expected, id, val) => {
       if let (Some(_), Some(_)) = (
-        expected_type(context, errors, &expected, val),
+        expected_type(scope, errors, &expected, val),
         /* Adds identifier to symbol table. */
-        context.insert(id, expected.clone()),
+        scope.insert(id, expected.clone()),
       ) {
         Some(Never)
       } else {
@@ -195,16 +195,16 @@ pub fn stat(
       }
     }
     Stat::Assignment(lhs, rhs) => {
-      equal_types(context, errors, lhs, rhs)?;
+      equal_types(scope, errors, lhs, rhs)?;
       Some(Never) /* Assignments never return. */
     }
     Stat::Read(dest) => {
       /* Any type can be read. */
-      match dest.get_type(context, errors)? {
+      match dest.get_type(scope, errors)? {
         /* Reads never return. */
         Type::Int | Type::Char => Some(Never),
         _ => {
-          context.add_error(
+          scope.add_error(
             errors,
             SemanticError::Normal(format!("Read statements must read char or int.")),
           );
@@ -212,10 +212,10 @@ pub fn stat(
         } /*  */
       }
     }
-    Stat::Free(expr) => match expr.get_type(context, errors)? {
+    Stat::Free(expr) => match expr.get_type(scope, errors)? {
       Type::Pair(_, _) | Type::Array(_) => Some(Never), /* Frees never return. */
       actual_type => {
-        context.add_error(
+        scope.add_error(
           errors,
           SemanticError::Normal(format!(
             "TYPE ERROR: Expected Type\n\tExpected: Pair or Array\n\tActual:{:?}",
@@ -225,33 +225,29 @@ pub fn stat(
         None
       }
     },
-    Stat::Return(expr) => Some(AtEnd(expr.get_type(context, errors)?)), /* Returns always return. */
+    Stat::Return(expr) => Some(AtEnd(expr.get_type(scope, errors)?)), /* Returns always return. */
     Stat::Exit(expr) => {
       /* Exit codes must be integers. */
-      expected_type(context, errors, &Type::Int, expr)?;
+      expected_type(scope, errors, &Type::Int, expr)?;
       /* Exits can be concidered to return because they will never return the
       wrong type, by using any it won't collide with another type. */
       Some(AtEnd(Type::Any))
     }
     Stat::Print(expr) | Stat::Println(expr) => {
       /* Any type can be printed. */
-      expr.get_type(context, errors)?;
+      expr.get_type(scope, errors)?;
 
       /* Prints never return. */
       Some(Never)
     }
     Stat::If(cond, if_stat, else_stat) => {
-      let cond_fine = cond.get_type(context, errors) == Some(Type::Bool);
+      let cond_fine = cond.get_type(scope, errors) == Some(Type::Bool);
 
       /* If both branches return the same type, the if statement can
       be relied on to return that type. */
       if let (Some(true_behaviour), Some(false_behaviour)) = (
-        stat(&mut context.new_scope(ContextLocation::If), errors, if_stat),
-        stat(
-          &mut context.new_scope(ContextLocation::If),
-          errors,
-          else_stat,
-        ),
+        stat(&mut scope.new_scope(ContextLocation::If), errors, if_stat),
+        stat(&mut scope.new_scope(ContextLocation::If), errors, else_stat),
       ) {
         if !cond_fine {
           return None;
@@ -259,7 +255,7 @@ pub fn stat(
 
         /* If branches return with different types, if statement is error. */
         if !true_behaviour.same_return(&false_behaviour) {
-          context.add_error(
+          scope.add_error(
             errors,
             SemanticError::Normal(format!(
               "Branches of if statement return values of different types."
@@ -289,9 +285,9 @@ pub fn stat(
       }
     }
     Stat::While(cond, body) => {
-      let cond_fine = cond.get_type(context, errors) == Some(Type::Bool);
+      let cond_fine = cond.get_type(scope, errors) == Some(Type::Bool);
 
-      let statement_result = stat(&mut context.new_scope(ContextLocation::While), errors, body)?;
+      let statement_result = stat(&mut scope.new_scope(ContextLocation::While), errors, body)?;
 
       if !cond_fine {
         return None;
@@ -305,10 +301,10 @@ pub fn stat(
         b => b,
       })
     }
-    Stat::Scope(body) => stat(&mut context.new_scope(ContextLocation::Scope), errors, body),
+    Stat::Scope(body) => stat(&mut scope.new_scope(ContextLocation::Scope), errors, body),
     Stat::Sequence(fst, snd) => {
       /* CHECK: no definite returns before last line. */
-      if let (Some(lhs), Some(rhs)) = (stat(context, errors, fst), stat(context, errors, snd)) {
+      if let (Some(lhs), Some(rhs)) = (stat(scope, errors, fst), stat(scope, errors, snd)) {
         /* Even if RHS never returns, the statement overall might still return
         if the LHS returns some or all of the time. */
         Some(if let (Never, MidWay(t) | AtEnd(t)) = (&rhs, lhs) {
@@ -329,28 +325,28 @@ mod tests {
 
   #[test]
   fn assign_lhs() {
-    let context = &mut Scope::new();
+    let scope = &mut Scope::new();
 
     /* Identifiers cause */
     let x_id = String::from("x");
     let x_type = Type::Array(Box::new(Type::Int));
-    context.insert(&x_id, x_type.clone()).unwrap();
+    scope.insert(&x_id, x_type.clone()).unwrap();
     assert_eq!(
-      AssignLhs::Ident(x_id.clone()).get_type(context, &mut vec![]),
+      AssignLhs::Ident(x_id.clone()).get_type(scope, &mut vec![]),
       Some(x_type.clone())
     );
 
     assert!(AssignRhs::PairElem(PairElem::Fst(Expr::PairLiter))
-      .get_type(context, &mut vec![])
+      .get_type(scope, &mut vec![])
       .is_none());
 
     assert!(AssignRhs::PairElem(PairElem::Fst(Expr::PairLiter))
-      .get_type(context, &mut vec![])
+      .get_type(scope, &mut vec![])
       .is_none());
 
     assert_eq!(
       AssignLhs::ArrayElem(ArrayElem(x_id.clone(), vec!(Expr::IntLiter(5))))
-        .get_type(context, &mut vec![]),
+        .get_type(scope, &mut vec![]),
       Some(Type::Int)
     );
   }
