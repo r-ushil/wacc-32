@@ -194,7 +194,20 @@ fn binary_op_gen(bin_op: &BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2:
         Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(0), true),
       ));
     }
-    BinaryOper::Neq => todo!(),
+    BinaryOper::Neq => {
+      /* CMP r4, r5 */
+      //todo!(); //unary-op-gen(UnaryOp::Cmp, code, reg1, reg2)
+      /* MOVNE r{min_reg}, #1 */
+      code.text.push(Asm::Instr(
+        NE,
+        Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(1), true),
+      ));
+      /* MOVEQ r{min_reg}, #0 */
+      code.text.push(Asm::Instr(
+        EQ,
+        Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(0), true),
+      ));
+    }
     BinaryOper::And => {
       /* AND r4, r4, r5 */
       code.text.push(Asm::Instr(
