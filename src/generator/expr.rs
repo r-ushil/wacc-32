@@ -146,8 +146,17 @@ fn binary_op_gen(bin_op: &BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2:
         AL,
         Instr::Multiply(reg1.clone(), reg2.clone(), reg1.clone(), reg2.clone()),
       ));
+
       /* CMP r5, r4, ASR #31 */
-      //todo!() unary-op-gen(UnaryOp::Cmp, code, reg1.clone(), Op2::Reg(reg2.clone, 31))
+      code.text.push(Asm::Instr(
+        AL,
+        Instr::Unary(
+          UnaryInstr::Cmp,
+          reg2.clone(),
+          Op2::Reg(reg1.clone(), 31),
+          false,
+        ),
+      ));
     }
     BinaryOper::Div => binary_div_mod(BinaryOper::Div, code, reg1, reg2),
     BinaryOper::Mod => binary_div_mod(BinaryOper::Mod, code, reg1, reg2),
