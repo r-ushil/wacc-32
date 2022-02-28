@@ -185,6 +185,7 @@ fn throw_overflow_error(code: &mut GeneratedCode) {
       LoadArg::Label(String::from("msg_overflow_error")),
     ),
   ));
+  code.predefs.runtime_err = true;
   code.text.push(Instr(
     AL,
     Branch(true, String::from("p_throw_runtime_error")),
