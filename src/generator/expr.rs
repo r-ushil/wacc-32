@@ -110,7 +110,21 @@ fn binary_op_gen(bin_op: &BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2:
         Instr::Branch(true, String::from("p_throw_overflow_error")),
       ));
     }
-    BinaryOper::Sub => todo!(),
+    BinaryOper::Sub => {
+      let dst = reg1.clone();
+      /* SUBS r4, r4, r5 */
+      code.text.push(Asm::Instr(
+        AL,
+        Instr::Binary(BinaryInstr::Sub, dst, reg1, Op2::Reg(reg2, 0), true),
+      ));
+      //set overflow error branch to true
+      code.predefs.overflow_err = true;
+      /* BLVS p_throw_overflow_error */
+      code.text.push(Asm::Instr(
+        VS,
+        Instr::Branch(true, String::from("p_throw_overflow_error")),
+      ));
+    }
     BinaryOper::Gt => todo!(),
     BinaryOper::Gte => todo!(),
     BinaryOper::Lt => todo!(),
