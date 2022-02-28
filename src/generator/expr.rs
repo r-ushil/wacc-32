@@ -74,7 +74,11 @@ impl Generatable for Expr {
       Expr::PairLiter => todo!(),
       Expr::Ident(_) => todo!(),
       Expr::ArrayElem(_) => todo!(),
-      Expr::UnaryApp(_, _) => todo!(),
+      Expr::UnaryApp(op, exp) => {
+        exp.generate(code, min_regs);
+        let reg = Reg::RegNum(*min_regs);
+        unary_op_gen(op, code, reg);
+      }
       Expr::BinaryApp(exp1, op, exp2) => {
         exp1.generate(code, min_regs);
 
@@ -87,6 +91,49 @@ impl Generatable for Expr {
         binary_op_gen(op, code, reg1, reg2);
       }
     }
+  }
+}
+
+fn unary_op_gen(unary_op: &UnaryOper, code: &mut GeneratedCode, reg: Reg) {
+  match unary_op {
+    UnaryOper::Bang => {
+      /* EOR reg, reg, #1 */
+      code.text.push(Asm::Instr(
+        AL,
+        Instr::Binary(
+          BinaryInstr::Eor,
+          reg.clone(),
+          reg.clone(),
+          Op2::Imm(1),
+          false,
+        ),
+      ));
+    }
+    UnaryOper::Neg => {
+      /* RSBS reg, reg, #0 */
+      code.text.push(Asm::Instr(
+        AL,
+        Instr::Binary(
+          BinaryInstr::RevSub,
+          reg.clone(),
+          reg.clone(),
+          Op2::Imm(0),
+          false,
+        ),
+      ));
+    }
+    UnaryOper::Len => {
+      /* LDR r4, [sp, #4]
+         LDR r4, [r4]
+
+         // get array's stack offset, load into reg
+         // get value at reg address (first index) for length
+
+      */
+      todo!();
+    }
+    UnaryOper::Ord => (), //handled as char is already moved into reg in main match statement
+    UnaryOper::Chr => (), //similar logic to above
   }
 }
 
