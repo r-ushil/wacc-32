@@ -95,7 +95,24 @@ impl Generatable for Expr {
 }
 
 fn unary_op_gen(unary_op: &UnaryOper, code: &mut GeneratedCode, reg: Reg) {
-  todo!();
+  match unary_op {
+    UnaryOper::Bang => {
+      code.text.push(Asm::Instr(
+        AL,
+        Instr::Binary(
+          BinaryInstr::Eor,
+          reg.clone(),
+          reg.clone(),
+          Op2::Imm(1),
+          false,
+        ),
+      ));
+    }
+    UnaryOper::Neg => todo!(),
+    UnaryOper::Len => todo!(),
+    UnaryOper::Ord => todo!(),
+    UnaryOper::Chr => todo!(),
+  }
 }
 
 fn binary_op_gen(bin_op: &BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2: Reg) {
