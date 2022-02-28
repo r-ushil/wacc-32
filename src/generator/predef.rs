@@ -151,6 +151,59 @@ fn println(code: &mut GeneratedCode) {
   code.text.push(Instr(AL, Pop(Reg::PC)));
 }
 
+fn check_divide_by_zero(code: &mut GeneratedCode) {
+  use self::CondCode::*;
+  use self::Directive::*;
+  use self::Instr::*;
+  use Asm::*;
+
+  /* Create a msg label to display when divide by zero occurs. */
+
+  /* msg_divide_by_zero: */
+  code
+    .data
+    .push(Directive(Label("msg_divide_by_zero".to_string())));
+  /* .word 45                   //allocate space for a word of size 45 */
+  code.data.push(Directive(Word(45)));
+  /* .ascii "DivideByZeroError: ...\n\0"         //convert into ascii */
+  code.data.push(Directive(Ascii(String::from(
+    "DivideByZeroError: divide or modulo by zero\\n\\0",
+  ))));
+
+  /* Generate label to throw a runtime error for whatever's in registers */
+  /* p_check_divide_by_zero: */
+  code
+    .text
+    .push(Directive(Label(String::from("p_check_divide_by_zero"))));
+
+  /*  PUSH {lr}            //push link reg */
+  code.text.push(Instr(AL, Push(Reg::Link)));
+  /*  CMP r1, #0           //compare the contents of r1 to 0 and set flags */
+  code.text.push(Instr(
+    AL,
+    Unary(UnaryInstr::Cmp, Reg::RegNum(1), Op2::Imm(0), false),
+  ));
+  /*  LDREQ r0, =msg_divide_by_zero   //load error msg if r0 equals 0 */
+  code.text.push(Instr(
+    EQ,
+    Load(
+      DataSize::Word,
+      Reg::RegNum(0),
+      LoadArg::Label(String::from("msg_divide_by_zero")),
+    ),
+  ));
+
+  /*  BLEQ p_throw_runtime_error   //branch to runtime error if r0 equals 0 */
+  code.text.push(Instr(
+    EQ,
+    Branch(true, String::from("p_throw_runtime_error")),
+  ));
+  code.predefs.runtime_err = true; //set runtime error generation to true
+
+  /*  POP {pc}            //pop pc register */
+  code.text.push(Instr(AL, Pop(Reg::PC)));
+}
+
 fn throw_overflow_error(code: &mut GeneratedCode) {
   use self::CondCode::*;
   use self::Directive::*;
@@ -237,7 +290,7 @@ fn free_pair(code: &mut GeneratedCode) {
   /*  BEQ p_throw_runtime_error   //branch to runtime error if r0 equals 0 */
   code.text.push(Instr(
     EQ,
-    Branch(true, String::from("p_throw_runtime_error")),
+    Branch(false, String::from("p_throw_runtime_error")),
   ));
   code.predefs.runtime_err = true; //set runtime error generation to true
                                    /*  PUSH {r0}           //push r0 */

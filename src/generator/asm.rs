@@ -50,6 +50,7 @@ pub struct GeneratePredefs {
   pub free_pair: bool,
   pub runtime_err: bool,
   pub overflow_err: bool,
+  pub div_by_zero: bool,
 }
 
 impl Default for GeneratePredefs {
@@ -65,6 +66,7 @@ impl Default for GeneratePredefs {
       free_pair: false,
       runtime_err: false,
       overflow_err: false,
+      div_by_zero: false,
     }
   }
 }
