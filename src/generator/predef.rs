@@ -290,7 +290,7 @@ fn free_pair(code: &mut GeneratedCode) {
   /*  BEQ p_throw_runtime_error   //branch to runtime error if r0 equals 0 */
   code.text.push(Instr(
     EQ,
-    Branch(true, String::from("p_throw_runtime_error")),
+    Branch(false, String::from("p_throw_runtime_error")),
   ));
   code.predefs.runtime_err = true; //set runtime error generation to true
                                    /*  PUSH {r0}           //push r0 */
