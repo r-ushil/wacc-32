@@ -29,7 +29,20 @@ impl Generatable for Expr {
           ),
         ))
       }
-      Expr::CharLiter(val) => todo!(),
+
+      Expr::CharLiter(val) => {
+        /* MOV r{min_reg}, #'val' */
+        code.text.push(Asm::Instr(
+          AL,
+          Instr::Unary(
+            UnaryInstr::Mov,
+            Reg::RegNum(*min_regs),
+            Op2::Char(*val),
+            false,
+          ),
+        ))
+      }
+
       Expr::StrLiter(_) => todo!(),
       Expr::PairLiter => todo!(),
       Expr::Ident(_) => todo!(),
