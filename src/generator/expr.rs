@@ -98,7 +98,7 @@ fn binary_op_gen(bin_op: BinaryOper, code: &mut GeneratedCode, reg_no: u8, e2: O
         ),
       ));
       //set overflow error branch to true
-      todo!();
+      code.predefs.overflow_err = true;
       /* BLVS p_throw_overflow_error */
       code.text.push(Asm::Instr(
         VS,
