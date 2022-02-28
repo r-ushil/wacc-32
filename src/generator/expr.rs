@@ -124,90 +124,12 @@ fn binary_op_gen(bin_op: &BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2:
         Instr::Branch(true, String::from("p_throw_overflow_error")),
       ));
     }
-    BinaryOper::Gt => {
-      /* CMP r4, r5 */
-      //todo!(); //unary-op-gen(UnaryOp::Cmp, code, reg1, reg2)
-      /* MOVGT r{min_reg}, #1 */
-      code.text.push(Asm::Instr(
-        GT,
-        Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(1), true),
-      ));
-      /* MOVLE r{min_reg}, #0 */
-      code.text.push(Asm::Instr(
-        LE,
-        Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(0), true),
-      ));
-    }
-    BinaryOper::Gte => {
-      /* CMP r4, r5 */
-      //todo!(); //unary-op-gen(UnaryOp::Cmp, code, reg1, reg2)
-      /* MOVGE r{min_reg}, #1 */
-      code.text.push(Asm::Instr(
-        GE,
-        Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(1), true),
-      ));
-      /* MOVLT r{min_reg}, #0 */
-      code.text.push(Asm::Instr(
-        LT,
-        Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(0), true),
-      ));
-    }
-    BinaryOper::Lt => {
-      /* CMP r4, r5 */
-      //todo!(); //unary-op-gen(UnaryOp::Cmp, code, reg1, reg2)
-      /* MOVLT r{min_reg}, #1 */
-      code.text.push(Asm::Instr(
-        LT,
-        Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(1), true),
-      ));
-      /* MOVGE r{min_reg}, #0 */
-      code.text.push(Asm::Instr(
-        GE,
-        Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(0), true),
-      ));
-    }
-    BinaryOper::Lte => {
-      /* CMP r4, r5 */
-      //todo!(); //unary-op-gen(UnaryOp::Cmp, code, reg1, reg2)
-      /* MOVLE r{min_reg}, #1 */
-      code.text.push(Asm::Instr(
-        LE,
-        Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(1), true),
-      ));
-      /* MOVGT r{min_reg}, #0 */
-      code.text.push(Asm::Instr(
-        GT,
-        Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(0), true),
-      ));
-    }
-    BinaryOper::Eq => {
-      /* CMP r4, r5 */
-      //todo!(); //unary-op-gen(UnaryOp::Cmp, code, reg1, reg2)
-      /* MOVEQ r{min_reg}, #1 */
-      code.text.push(Asm::Instr(
-        EQ,
-        Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(1), true),
-      ));
-      /* MOVNE r{min_reg}, #0 */
-      code.text.push(Asm::Instr(
-        NE,
-        Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(0), true),
-      ));
-    }
-    BinaryOper::Neq => {
-      /* CMP r4, r5 */
-      //todo!(); //unary-op-gen(UnaryOp::Cmp, code, reg1, reg2)
-      /* MOVNE r{min_reg}, #1 */
-      code.text.push(Asm::Instr(
-        NE,
-        Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(1), true),
-      ));
-      /* MOVEQ r{min_reg}, #0 */
-      code.text.push(Asm::Instr(
-        EQ,
-        Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(0), true),
-      ));
-    }
+    BinaryOper::Gt => binary_comp_ops(GT, LE, code, reg1, reg2),
+    BinaryOper::Gte => binary_comp_ops(GE, LT, code, reg1, reg2),
+    BinaryOper::Lt => binary_comp_ops(LT, GE, code, reg1, reg2),
+    BinaryOper::Lte => binary_comp_ops(LE, GT, code, reg1, reg2),
+    BinaryOper::Eq => binary_comp_ops(EQ, NE, code, reg1, reg2),
+    BinaryOper::Neq => binary_comp_ops(NE, EQ, code, reg1, reg2),
     BinaryOper::And => {
       /* AND r4, r4, r5 */
       code.text.push(Asm::Instr(
@@ -234,6 +156,7 @@ fn binary_comp_ops(
 ) {
   /* CMP r4, r5 */
   //todo!(); //unary-op-gen(UnaryOp::Cmp, code, reg1.clone(), reg2)
+
   /* MOV{cond1} r{min_reg}, #1 */
   code.text.push(Asm::Instr(
     cond1,
