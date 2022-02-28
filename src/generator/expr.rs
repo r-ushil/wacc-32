@@ -75,12 +75,22 @@ impl Generatable for Expr {
       Expr::Ident(_) => todo!(),
       Expr::ArrayElem(_) => todo!(),
       Expr::UnaryApp(_, _) => todo!(),
-      Expr::BinaryApp(_, _, _) => todo!(),
+      Expr::BinaryApp(exp1, op, exp2) => {
+        exp1.generate(code, min_regs);
+
+        let reg1 = Reg::RegNum(*min_regs);
+        *min_regs = *min_regs + 1;
+        exp2.generate(code, &mut (*min_regs));
+        let reg2 = Reg::RegNum(*min_regs);
+        *min_regs = *min_regs - 1;
+
+        binary_op_gen(op, code, reg1, reg2);
+      }
     }
   }
 }
 
-fn binary_op_gen(bin_op: BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2: Reg) {
+fn binary_op_gen(bin_op: &BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2: Reg) {
   match bin_op {
     BinaryOper::Mul => todo!(),
     BinaryOper::Div => todo!(),
