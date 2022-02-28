@@ -158,6 +158,7 @@ pub enum BinaryInstr {
   RevSub, // ??
   And,    // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289863017.htm
   Or,     // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289884183.htm
+  Eor,    // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289871065.htm
 }
 
 /* ======== Helper types for use within assembly representations.  ======== */
