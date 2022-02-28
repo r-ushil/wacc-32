@@ -80,22 +80,17 @@ impl Generatable for Expr {
   }
 }
 
-fn binary_op_gen(bin_op: BinaryOper, code: &mut GeneratedCode, reg_no: u8, e2: Op2) {
+fn binary_op_gen(bin_op: BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2: Reg) {
   match bin_op {
     BinaryOper::Mul => todo!(),
     BinaryOper::Div => todo!(),
     BinaryOper::Mod => todo!(),
     BinaryOper::Add => {
+      let dst = reg1.clone();
       /* ADDS r4, r4, r5 */
       code.text.push(Asm::Instr(
         AL,
-        Instr::Binary(
-          BinaryInstr::Add,
-          Reg::RegNum(reg_no),
-          Reg::RegNum(reg_no),
-          e2,
-          true,
-        ),
+        Instr::Binary(BinaryInstr::Add, dst, reg1, Op2::Reg(reg2, 0), true),
       ));
       //set overflow error branch to true
       code.predefs.overflow_err = true;
