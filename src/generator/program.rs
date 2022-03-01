@@ -1,7 +1,27 @@
 use super::*;
 
+// #[derive(PartialEq, Debug, Clone)]
 impl Generatable for Program {
-  // fn generate(&self, _code: &mut GeneratedCode, min_regs: &mut u8) {}
+  fn generate(&self, code: &mut GeneratedCode, min_regs: &mut u8) {
+    /* Generate code for every function, side affecting the code struct.
+     * Each function is allowed to use the registers from min_regs variable
+     * and up. */
+    for function in &self.funcs {
+      function.generate(code, min_regs);
+    }
+    /* The statement of the program should be compiled as if it is in a
+     * function called main, which takes nothing and returns an int exit code */
+    Func {
+      ident: String::from("main"),
+      signature: FuncSig {
+        params: Vec::new(),
+        return_type: Type::Int,
+      },
+      body: self.statement.clone(),
+      symbol_table: self.symbol_table.clone(),
+    }
+    .generate(code, min_regs);
+  }
 }
 
 impl Generatable for Func {
