@@ -7,6 +7,15 @@ pub enum ReadFmt {
   Int,
 }
 
+impl Display for ReadFmt {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      ReadFmt::Char => write!(f, "char"),
+      ReadFmt::Int => write!(f, "int"),
+    }
+  }
+}
+
 fn read(code: &mut GeneratedCode, fmt: ReadFmt) {
   use self::CondCode::*;
   use self::Directive::*;
