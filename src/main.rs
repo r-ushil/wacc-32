@@ -54,7 +54,6 @@ fn main() {
 
   let mut ast = parse(program_str);
   analyse(&mut ast);
-  let code = generator::generate(&ast);
 
   if analysis_only {
     println!("Halted after analysis stage. ");
