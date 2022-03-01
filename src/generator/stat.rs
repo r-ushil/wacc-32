@@ -76,6 +76,8 @@ impl Generatable for Stat {
           CondCode::AL,
           Instr::Branch(true, String::from("p_free_pair")),
         ));
+
+        *min_reg = *min_reg - 1; //decrement min_reg by 1, no longer needed
       }
       Stat::Return(expr) => {
         expr.generate(code, min_reg); //return value will be stored in min_reg
@@ -116,6 +118,8 @@ impl Generatable for Stat {
         code
           .text
           .push(Asm::Instr(CondCode::AL, Instr::Pop(Reg::PC)));
+
+        *min_reg = *min_reg - 1; //decrement min_reg by 1, no longer needed
       }
       Stat::Exit(expr) => {
         /* Evalutates expression into min_reg */
@@ -157,13 +161,16 @@ impl Generatable for Stat {
       Stat::If(_, _, _) => todo!(),
       Stat::While(_, _) => todo!(),
       Stat::Scope(_) => todo!(),
-      Stat::Sequence(_, _) => todo!(),
+      Stat::Sequence(head, tail) => {
+        head.generate(code, min_reg);
+        tail.generate(code, min_reg);
+      }
     }
   }
 }
 
 // todo!(), add parameter for expr_type
-fn print_stat_gen(code: &mut GeneratedCode) {
+fn print_stat_gen(code: &mut GeneratedCode, min_reg: &mut RegNum) {
 
   //   let branch_name = match expr_type {
   //     Type::String => {
@@ -184,8 +191,13 @@ fn print_stat_gen(code: &mut GeneratedCode) {
   //     }
   //   };
 
+  // /* MOV r0, min_reg */
+  // code.text.push(Asm::Instr(CondCode::AL, Instr::Unary(UnaryInstr::Mov, Reg::RegNum(0), Op2::Reg(Reg::RegNum(*min_reg), 0), false)));
+
   // /* BL {branch_name} */
   // code.text.push(Asm::Instr(CondCode::AL, Instr::Branch(true, branch_name)));
+
+  // *min_reg = *min_reg - 1; //decrement min_reg by 1, no longer needed
 }
 
 /*
