@@ -77,7 +77,46 @@ impl Generatable for Stat {
           Instr::Branch(true, String::from("p_free_pair")),
         ));
       }
-      Stat::Return(_) => todo!(),
+      Stat::Return(expr) => {
+        expr.generate(code, min_reg); //return value will be stored in min_reg
+
+        /* MOV r0, {min_reg} */
+        code.text.push(Asm::Instr(
+          CondCode::AL,
+          Instr::Unary(
+            UnaryInstr::Mov,
+            Reg::RegNum(0),
+            Op2::Reg(Reg::RegNum(*min_reg), 0),
+            false,
+          ),
+        ));
+
+        // todo!()
+        // total_offset = somehow get total stack offset for all local vars
+        let total_offset = 0;
+
+        /* ADD sp, sp, #{total_offset} */
+        code.text.push(Asm::Instr(
+          CondCode::AL,
+          Instr::Binary(
+            BinaryInstr::Add,
+            Reg::StackPointer,
+            Reg::StackPointer,
+            Op2::Imm(total_offset),
+            false,
+          ),
+        ));
+
+        /* POP {pc} */
+        code
+          .text
+          .push(Asm::Instr(CondCode::AL, Instr::Pop(Reg::PC)));
+
+        /* POP {pc} */
+        code
+          .text
+          .push(Asm::Instr(CondCode::AL, Instr::Pop(Reg::PC)));
+      }
       Stat::Exit(expr) => {
         /* Evalutates expression into min_reg */
         expr.generate(code, min_reg);
