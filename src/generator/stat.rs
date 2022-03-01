@@ -54,24 +54,34 @@ impl Generatable for Stat {
         expr.generate(code, min_regs);
         todo!(); //get type of expr, and switch to the appropriate print branch
 
-        // let branch_name = match expr.get_type {
-        //   Type::String => String::from("p_print_string"),
-        //   Type::Bool => String::from("p_print_bool"),
-        //   Type::Int => String::from("p_print_int"),
-        //   Type::Ref => String::from("p_print_reference"),
-        // };
-
-        // /* BL {branch_name} */
-        // code.text.push(Asm::Instr(CondCode::AL, Instr::Branch(true, branch_name)));
+        // print_stat_gen(code, expr.get_type);
       }
 
-      Stat::Println(_) => todo!(),
+      Stat::Println(expr) => {
+        expr.generate(code, min_regs);
+        todo!();
+        // print_stat_gen(code, expr.get_type);
+      }
       Stat::If(_, _, _) => todo!(),
       Stat::While(_, _) => todo!(),
       Stat::Scope(_) => todo!(),
       Stat::Sequence(_, _) => todo!(),
     }
   }
+}
+
+//todo!(), add parameter for expr_type
+fn print_stat_gen(code: &mut GeneratedCode) {
+
+  // let branch_name = match expr_type {
+  //   Type::String => String::from("p_print_string"),
+  //   Type::Bool => String::from("p_print_bool"),
+  //   Type::Int => String::from("p_print_int"),
+  //   Type::Ref => String::from("p_print_reference"),
+  // };
+
+  // /* BL {branch_name} */
+  // code.text.push(Asm::Instr(CondCode::AL, Instr::Branch(true, branch_name)));
 }
 
 /*
