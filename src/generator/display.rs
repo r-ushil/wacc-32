@@ -35,7 +35,7 @@ impl Display for Asm {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       Asm::Directive(d) => write!(f, "{}", d),
-      Asm::Instr(cond, i) => write!(f, "  {}{}", cond, i),
+      Asm::Instr(cond, i) => write!(f, "\t{}{}", cond, i),
     }
   }
 }
@@ -46,7 +46,7 @@ impl Display for Directive {
     match self {
       Text => write!(f, ".text\n\n.global main"),
       Data => write!(f, ".data"),
-      Assemble => write!(f, ".ltorg"),
+      Assemble => write!(f, "\t.ltorg"),
       Label(l) => write!(f, "{}:", l),
       Word(n) => write!(f, ".word {}", n),
       Ascii(s) => write!(f, ".ascii \"{}\"", s),
