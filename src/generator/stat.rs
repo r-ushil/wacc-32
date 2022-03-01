@@ -76,6 +76,8 @@ impl Generatable for Stat {
           CondCode::AL,
           Instr::Branch(true, String::from("p_free_pair")),
         ));
+
+        *min_reg = *min_reg - 1; //decrement min_reg by 1, no longer needed
       }
       Stat::Return(expr) => {
         expr.generate(code, min_reg); //return value will be stored in min_reg
@@ -116,6 +118,8 @@ impl Generatable for Stat {
         code
           .text
           .push(Asm::Instr(CondCode::AL, Instr::Pop(Reg::PC)));
+
+        *min_reg = *min_reg - 1; //decrement min_reg by 1, no longer needed
       }
       Stat::Exit(expr) => {
         /* Evalutates expression into min_reg */
