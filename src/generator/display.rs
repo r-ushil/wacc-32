@@ -29,7 +29,7 @@ impl Display for Asm {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       Asm::Directive(d) => write!(f, "{}", d),
-      Asm::Instr(cond, i) => write!(f, "{}{}", cond, i),
+      Asm::Instr(cond, i) => write!(f, "  {}{}", cond, i),
     }
   }
 }
@@ -38,7 +38,7 @@ impl Display for Directive {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     use Directive::*;
     match self {
-      Text => write!(f, ".text"),
+      Text => write!(f, ".text\n.global main"),
       Data => write!(f, ".data"),
       Assemble => write!(f, ".ltorg"),
       Label(l) => write!(f, "{}:", l),

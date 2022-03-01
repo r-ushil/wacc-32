@@ -12,75 +12,84 @@ pub enum ContextLocation {
   If,
 }
 
-type SymbolTable = HashMap<Ident, Type>;
+pub type Offset = u32;
+/* Associates each ident with an offset from the TOP of this stack frame,
+also stores the total size of this stack frame. */
+pub type SymbolTable = (HashMap<Ident, (Type, Offset)>, Offset);
 
 #[derive(Debug)]
-pub enum Context<'a> {
-  Global {
-    symbol_table: SymbolTable,
-  },
-  Nested {
-    symbol_table: SymbolTable,
-    location: ContextLocation,
-    above_context: &'a Context<'a>,
-  },
+pub struct ScopeMut<'a> {
+  /* Maps identifiers to types for each variable declared in this scope. */
+  symbol_table: &'a mut SymbolTable,
+  /* The scope this scope is inside of,
+  and where abouts within that scope it is. */
+  /* context: None means this is the global scope. */
+  context: Option<(ContextLocation, &'a ScopeMut<'a>)>,
 }
 
 #[allow(dead_code)]
-impl<'a> Context<'a> {
+impl ScopeMut<'_> {
   /* Makes new Symbol table with initial global scope. */
-  pub fn new() -> Self {
-    Self::Global {
-      symbol_table: HashMap::new(),
+  pub fn new<'a>(symbol_table: &'a mut SymbolTable) -> ScopeMut<'a> {
+    ScopeMut {
+      symbol_table,
+      context: None,
     }
   }
 
   pub fn add_error(&self, errors: &mut Vec<SemanticError>, error: SemanticError) {
-    match self {
-      Self::Global { .. } => {
-        errors.push(error);
-      }
-      Self::Nested {
-        location,
-        above_context,
-        ..
-      } => above_context.add_error(errors, SemanticError::Nested(*location, Box::new(error))),
+    if let Some((location, parent)) = self.context {
+      /* Scope has parent, wrap error in nested. */
+      parent.add_error(errors, SemanticError::Nested(location, Box::new(error)))
+    } else {
+      /* Global scope, no more nesting to do. */
+      errors.push(error);
     }
   }
 
   /* Returns type of given ident */
-  pub fn get(&self, ident: &Ident) -> Option<&Type> {
-    let symbol_table = match self {
-      Self::Global { symbol_table, .. } | Self::Nested { symbol_table, .. } => symbol_table,
-    };
+  pub fn get_type(&self, ident: &Ident) -> Option<&Type> {
+    match self.symbol_table.0.get(ident) {
+      /* Identifier declared in this scope, return. */
+      Some((t, _)) => Some(t),
+      /* Look for identifier in parent scope, recurse. */
+      None => self.context?.1.get_type(ident),
+    }
+  }
 
-    match symbol_table.get(ident) {
-      Some(t) => Some(t),
-      None => match self {
-        Self::Global { .. } => None,
-        Self::Nested { above_context, .. } => above_context.get(ident),
-      },
+  pub fn get_offset(&self, ident: &Ident) -> Option<u32> {
+    match self.symbol_table.0.get(ident) {
+      /* Identifier declared in this scope, return. */
+      Some((_, base_offset)) => Some(self.symbol_table.1 - base_offset),
+      /* Look for identifier in parent scope, recurse. */
+      None => Some(self.context?.1.get_offset(ident)? + self.symbol_table.1),
     }
   }
 
   /* Sets type of ident to val, if ident already exists, updates it and
   returns old value. */
   pub fn insert(&mut self, ident: &Ident, val: Type) -> Option<()> {
-    let symbol_table = match self {
-      Self::Global { symbol_table, .. } | Self::Nested { symbol_table, .. } => symbol_table,
-    };
+    /* Stackframe will be increased in size by val bytes */
+    self.symbol_table.1 += val.size();
 
-    match symbol_table.insert(ident.clone(), val) {
+    /* Offset of this variable from top of stack frame will be size
+    of stack from. */
+    let offset = self.symbol_table.1;
+
+    match self.symbol_table.0.insert(ident.clone(), (val, offset)) {
+      /* Val replaced something but we aren't allowed to change the type of
+      variables, return None signifiying error. */
       Some(_) => None,
+      /* No conflict, first time this identifier used in this scope, return
+      unit signifiying success. */
       None => Some(()),
     }
   }
 
-  pub fn new_context(&'a self, location: ContextLocation) -> Self {
-    Self::Nested {
-      symbol_table: HashMap::new(),
-      location,
-      above_context: self,
+  pub fn new_scope<'a>(&'a self, symbol_table: &'a mut SymbolTable) -> ScopeMut<'a> {
+    ScopeMut {
+      symbol_table,
+      context: Some((ContextLocation::Scope, self)),
     }
   }
 }
@@ -89,43 +98,41 @@ impl<'a> Context<'a> {
 mod tests {
   use super::*;
 
-  fn make_context<'a>() -> Context<'a> {
-    let mut context = Context::new();
+  fn make_scope<'a>(symbol_table: &'a mut SymbolTable) -> ScopeMut<'a> {
+    let mut scope = ScopeMut::new(symbol_table);
 
     for i in 0..4 {
-      let mut curr: HashMap<String, Type> = HashMap::new();
-
       let var1 = format!("{}{}", "x", i);
       let var2 = format!("{}{}", "y", i);
       let var3 = format!("{}{}", "z", i);
 
-      context.insert(&var1, Type::Bool);
-      context.insert(&var2, Type::Int);
-      context.insert(&var3, Type::String);
-
-      context.new_context(ContextLocation::Function);
+      scope.insert(&var1, Type::Bool);
+      scope.insert(&var2, Type::Int);
+      scope.insert(&var3, Type::String);
     }
 
-    context
+    scope
   }
 
   #[test]
   fn test_table_lookup() {
-    let context = make_context();
+    let mut symbol_table = SymbolTable::default();
+    let scope = make_scope(&mut symbol_table);
 
-    assert_eq!(context.get(&String::from("x3")), Some(&Type::Bool));
-    assert_eq!(context.get(&String::from("z3")), Some(&Type::String));
-    assert_ne!(context.get(&String::from("v3")), Some(&Type::String));
+    assert_eq!(scope.get_type(&String::from("x3")), Some(&Type::Bool));
+    assert_eq!(scope.get_type(&String::from("z3")), Some(&Type::String));
+    assert_ne!(scope.get_type(&String::from("v3")), Some(&Type::String));
 
-    assert_eq!(context.get(&String::from("random")), None,);
+    assert_eq!(scope.get_type(&String::from("random")), None,);
   }
 
   #[test]
   fn test_table_update() {
-    let mut context = make_context();
+    let mut symbol_table = SymbolTable::default();
+    let mut scope = make_scope(&mut symbol_table);
 
-    assert_eq!(context.insert(&String::from("g"), Type::Char), Some(()));
+    assert_eq!(scope.insert(&String::from("g"), Type::Char), Some(()));
 
-    assert_ne!(context.get(&String::from("g")), Some(&Type::Bool));
+    assert_ne!(scope.get_type(&String::from("g")), Some(&Type::Bool));
   }
 }

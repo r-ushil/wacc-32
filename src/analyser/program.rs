@@ -1,24 +1,22 @@
 use super::{
-  context::{Context, ContextLocation},
+  context::{ContextLocation, ScopeMut, SymbolTable},
   stat::{ReturnBehaviour::*, *},
   unify::Unifiable,
   SemanticError,
 };
 use crate::ast::*;
 
-fn func(context: &Context, errors: &mut Vec<SemanticError>, func: &Func) -> Option<()> {
-  let func_scope = &mut context.new_context(ContextLocation::Function);
+fn func(scope: &ScopeMut, errors: &mut Vec<SemanticError>, func: &mut Func) -> Option<()> {
+  let func_scope = &mut scope.new_scope(&mut func.symbol_table);
 
   /* Add parameters to inner scope. */
-  let result = func
-    .signature
-    .params
-    .iter()
-    .try_for_each(|(pt, pi)| func_scope.insert(pi, pt.clone()));
+  for (pt, pi) in func.signature.params.iter() {
+    func_scope.insert(pi, pt.clone())?;
+  }
 
   /* Type check function body and make sure it returns value of correct type. */
 
-  match stat(func_scope, errors, &func.body)? {
+  match stat(func_scope, errors, &mut func.body)? {
     AtEnd(t) if t.clone().unify(func.signature.return_type.clone()) == None => {
       func_scope.add_error(
         errors,
@@ -29,7 +27,7 @@ fn func(context: &Context, errors: &mut Vec<SemanticError>, func: &Func) -> Opti
       );
       return None;
     }
-    AtEnd(_) => result,
+    AtEnd(_) => Some(()),
     _ => {
       func_scope.add_error(
         errors,
@@ -43,36 +41,30 @@ fn func(context: &Context, errors: &mut Vec<SemanticError>, func: &Func) -> Opti
 /* Semantically checks an entire program. */
 /* This function initialises the symbol table and function table. */
 #[allow(dead_code)]
-pub fn program(
-  context: &mut Context,
-  errors: &mut Vec<SemanticError>,
-  program: &Program,
-) -> Option<()> {
-  /* Add all function signatures to global. */
-  program.funcs.iter().try_for_each(|func| {
-    context.insert(&func.ident, Type::Func(Box::new(func.signature.clone())))
-  })?;
+pub fn program(errors: &mut Vec<SemanticError>, program: &mut Program) -> Option<()> {
+  /* root, global scope. */
+  let mut scope = ScopeMut::new(&mut program.symbol_table);
 
-  /* Add all functions to the symbol table. */
-  let result = program
-    .funcs
-    .iter()
-    .try_for_each(|f| func(context, errors, f));
+  /* Add all function signatures to global before analysing. (hoisting) */
+  for func in program.funcs.iter() {
+    scope.insert(&func.ident, Type::Func(Box::new(func.signature.clone())))?;
+  }
+
+  /* Analyse functions. */
+  for f in program.funcs.iter_mut() {
+    func(&scope, errors, f)?;
+  }
 
   /* Program body must never return, but it can exit. */
-  match stat(
-    &mut context.new_context(ContextLocation::ProgramBody),
-    errors,
-    &program.statement,
-  )? {
+  match scoped_stat(&mut scope, errors, &mut program.statement)? {
     MidWay(t) | AtEnd(t) if t != Type::Any => {
-      context.add_error(
+      scope.add_error(
         errors,
         SemanticError::Normal(format!("Cannot have 'return' statement in main")),
       );
       None
     }
-    _ => result,
+    _ => Some(()),
   }
 }
 
@@ -82,7 +74,8 @@ mod tests {
 
   #[test]
   fn func_parameters_checked() {
-    let context = &mut Context::new();
+    let mut symbol_table = SymbolTable::default();
+    let scope = &mut ScopeMut::new(&mut symbol_table);
 
     /* Function */
     /* int double(int x) is return x * 2 end */
@@ -97,23 +90,24 @@ mod tests {
         BinaryOper::Mul,
         Box::new(Expr::IntLiter(2)),
       )),
+      symbol_table: SymbolTable::default(),
     };
 
     /* Works in it's default form. */
-    assert!(func(context, &mut vec![], &f).is_some());
+    assert!(func(scope, &mut vec![], &mut f.clone()).is_some());
 
     /* Doesn't work if wrong type returned. */
     /* int double(int x) is return false end */
     let mut f1 = f.clone();
     f1.body = Stat::Return(Expr::BoolLiter(false));
-    assert!(func(context, &mut vec![], &f1).is_none());
+    assert!(func(scope, &mut vec![], &mut f1).is_none());
 
     /* Can compare parameter type with return type. */
     /* bool double(int x) is return x end */
     let mut f2 = f.clone();
     f2.signature.return_type = Type::Bool;
     f2.body = Stat::Return(Expr::Ident(String::from("x")));
-    assert!(func(context, &mut vec![], &f2).is_none());
+    assert!(func(scope, &mut vec![], &mut f2).is_none());
   }
 
   #[test]
@@ -131,6 +125,7 @@ mod tests {
         BinaryOper::Mul,
         Box::new(Expr::IntLiter(2)),
       )),
+      symbol_table: SymbolTable::default(),
     };
 
     /* Both branches of if statements must return correct type. */
@@ -140,10 +135,15 @@ mod tests {
     let mut f3 = f.clone();
     f3.body = Stat::If(
       Expr::BoolLiter(false),
-      Box::new(Stat::Return(Expr::IntLiter(5))),
-      Box::new(Stat::Return(Expr::IntLiter(2))),
+      ScopedStat::new(Stat::Return(Expr::IntLiter(5))),
+      ScopedStat::new(Stat::Return(Expr::IntLiter(2))),
     );
-    assert!(func(&mut Context::new(), &mut vec![], &f3).is_some());
+    assert!(func(
+      &mut ScopeMut::new(&mut SymbolTable::default()),
+      &mut vec![],
+      &mut f3
+    )
+    .is_some());
 
     /* int double(int x) is
       if true then return false else return 2 fi
@@ -151,11 +151,16 @@ mod tests {
     let mut f4 = f.clone();
     f4.body = Stat::If(
       Expr::BoolLiter(false),
-      Box::new(Stat::Return(Expr::BoolLiter(false))),
-      Box::new(Stat::Return(Expr::IntLiter(2))),
+      ScopedStat::new(Stat::Return(Expr::BoolLiter(false))),
+      ScopedStat::new(Stat::Return(Expr::IntLiter(2))),
     );
 
-    assert!(func(&mut Context::new(), &mut vec![], &f4).is_none());
+    assert!(func(
+      &mut ScopeMut::new(&mut SymbolTable::default()),
+      &mut vec![],
+      &mut f4
+    )
+    .is_none());
 
     /* Only one statement has to return. */
     /* int double(int x) is
@@ -166,7 +171,11 @@ mod tests {
       Box::new(Stat::Print(Expr::StrLiter(String::from("hello world")))),
       Box::new(Stat::Return(Expr::IntLiter(5))),
     );
-    let x = func(&mut Context::new(), &mut vec![], &f5);
+    let x = func(
+      &mut ScopeMut::new(&mut SymbolTable::default()),
+      &mut vec![],
+      &mut f5,
+    );
     assert!(x.is_some());
 
     /* Spots erroneous returns. */
@@ -178,11 +187,16 @@ mod tests {
     f6.body = Stat::Sequence(
       Box::new(Stat::If(
         Expr::BoolLiter(true),
-        Box::new(Stat::Return(Expr::BoolLiter(true))),
-        Box::new(Stat::Skip),
+        ScopedStat::new(Stat::Return(Expr::BoolLiter(true))),
+        ScopedStat::new(Stat::Skip),
       )),
       Box::new(Stat::Print(Expr::StrLiter(String::from("Hello World")))),
     );
-    assert!(func(&mut Context::new(), &mut vec![], &f6).is_none());
+    assert!(func(
+      &mut ScopeMut::new(&mut SymbolTable::default()),
+      &mut vec![],
+      &mut f6
+    )
+    .is_none());
   }
 }

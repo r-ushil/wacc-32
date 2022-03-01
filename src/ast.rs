@@ -1,7 +1,10 @@
+use crate::analyser::context::SymbolTable;
+
 #[derive(PartialEq, Debug, Clone)]
 pub struct Program {
   pub funcs: Vec<Func>,
-  pub statement: Stat,
+  pub statement: ScopedStat,
+  pub symbol_table: SymbolTable,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -9,6 +12,7 @@ pub struct Func {
   pub ident: Ident,
   pub signature: FuncSig,
   pub body: Stat,
+  pub symbol_table: SymbolTable,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -28,10 +32,37 @@ pub enum Stat {
   Exit(Expr),
   Print(Expr),
   Println(Expr),
-  If(Expr, Box<Stat>, Box<Stat>),
-  While(Expr, Box<Stat>),
-  Scope(Box<Stat>),
   Sequence(Box<Stat>, Box<Stat>),
+
+  /* SCOPING STATEMENTS */
+  /* These statements hold their own symbol table, which contains the variables
+  declared within, and a reference to the parent symbol table. */
+  If(Expr, ScopedStat, ScopedStat),
+  While(Expr, ScopedStat),
+  Scope(ScopedStat),
+}
+
+impl Stat {
+  pub fn sequence(s1: Stat, s2: Stat) -> Stat {
+    Stat::Sequence(Box::new(s1), Box::new(s2))
+  }
+
+  pub fn declaration(t: Type, i: impl Into<Ident>, r: impl Into<AssignRhs>) -> Stat {
+    Stat::Declaration(t, i.into(), r.into())
+  }
+
+  pub fn return_(e: impl Into<Expr>) -> Stat {
+    Stat::Return(e.into())
+  }
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct ScopedStat(pub SymbolTable, pub Box<Stat>);
+
+impl ScopedStat {
+  pub fn new(statement: Stat) -> ScopedStat {
+    ScopedStat(SymbolTable::default(), Box::new(statement))
+  }
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -48,6 +79,16 @@ pub enum AssignRhs {
   Pair(Expr, Expr),
   PairElem(PairElem),
   Call(Ident, Vec<Expr>),
+}
+
+/* Expr => AssignRhs::Expr */
+impl<E> From<E> for AssignRhs
+where
+  E: Into<Expr>,
+{
+  fn from(e: E) -> Self {
+    AssignRhs::Expr(e.into())
+  }
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -68,6 +109,19 @@ pub enum Type {
   Func(Box<FuncSig>),
 }
 
+impl Type {
+  /* Returns how many bytes are required to store a value of this type. */
+  pub fn size(&self) -> u32 {
+    use Type::*;
+    match self {
+      Bool | Char => 1,
+      Any => panic!("Size of Type::Any can not be known."),
+      Func(_) => 0,
+      _ => 4,
+    }
+  }
+}
+
 #[derive(PartialEq, Debug, Clone)]
 pub enum Expr {
   IntLiter(i32),
@@ -79,6 +133,18 @@ pub enum Expr {
   ArrayElem(ArrayElem),
   UnaryApp(UnaryOper, Box<Expr>),
   BinaryApp(Box<Expr>, BinaryOper, Box<Expr>),
+}
+
+impl Expr {
+  pub fn ident(s: impl Into<String>) -> Expr {
+    Expr::Ident(s.into())
+  }
+}
+
+impl From<i32> for Expr {
+  fn from(n: i32) -> Self {
+    Expr::IntLiter(n)
+  }
 }
 
 #[derive(PartialEq, Debug, Clone)]

@@ -52,8 +52,8 @@ fn main() {
   let program_string = read_file(fs::File::open(source_path).unwrap());
   let program_str = program_string.as_str();
 
-  let ast = parse(program_str);
-  analyse(&ast);
+  let mut ast = parse(program_str);
+  analyse(&mut ast);
 
   if analysis_only {
     println!("Halted after analysis stage. ");
@@ -70,8 +70,8 @@ fn write_asm(code: GeneratedCode, destination_path: &str) {
   fs::write(destination_path, asm_text).unwrap();
 }
 
-fn analyse(ast: &ast::Program) {
-  match analyser::analyse(&ast) {
+fn analyse(ast: &mut ast::Program) {
+  match analyser::analyse(ast) {
     Ok(()) => {
       println!("Successful semantic analysis.");
     }

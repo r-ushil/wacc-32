@@ -1,4 +1,4 @@
-mod context;
+pub mod context;
 mod expr;
 mod program;
 mod stat;
@@ -6,7 +6,7 @@ mod unify;
 
 use std::fmt::Display;
 
-use context::{Context, ContextLocation};
+use context::{ContextLocation, ScopeMut};
 use unify::Unifiable;
 
 use crate::ast::*;
@@ -41,18 +41,18 @@ check things, and when an AST represents a value, returns their type. */
 /* If types are the same, return that type.
 Otherwise, error. */
 fn equal_types<L: HasType, R: HasType>(
-  context: &Context,
+  scope: &ScopeMut,
   errors: &mut Vec<SemanticError>,
   lhs: L,
   rhs: R,
 ) -> Option<Type> {
   if let (Some(lhs_type), Some(rhs_type)) =
-    (lhs.get_type(context, errors), rhs.get_type(context, errors))
+    (lhs.get_type(scope, errors), rhs.get_type(scope, errors))
   {
     if let Some(t) = lhs_type.clone().unify(rhs_type.clone()) {
       Some(t)
     } else {
-      context.add_error(
+      scope.add_error(
         errors,
         SemanticError::Normal(format!(
           "TYPE ERROR: Type mismatch between.\n\tType 1: {:?}Type 2:\n\t{:?}",
@@ -69,17 +69,17 @@ fn equal_types<L: HasType, R: HasType>(
 
 /* Errors if AST node does not have expected type. */
 fn expected_type<'a, A: HasType>(
-  context: &Context,
+  scope: &ScopeMut,
   errors: &mut Vec<SemanticError>,
   expected_type: &'a Type,
   actual: A,
 ) -> Option<&'a Type> {
-  let actual_type = actual.get_type(context, errors)?;
+  let actual_type = actual.get_type(scope, errors)?;
 
   if expected_type.clone().unify(actual_type.clone()).is_some() {
     Some(expected_type)
   } else {
-    context.add_error(
+    scope.add_error(
       errors,
       SemanticError::Normal(format!(
         "TYPE ERROR: Unexpected type.\n\tExpected: {:?}\n\tActual: {:?}",
@@ -100,27 +100,33 @@ retrieve it without worrying what AST node it is. */
 /* E.g: IntLiter(5).get_type(_) = Ok(BaseType(Int)) */
 pub trait HasType {
   // TODO: make this return a reference to the type instead of a copy.
-  fn get_type(&self, context: &Context, errors: &mut Vec<SemanticError>) -> Option<Type>;
+  fn get_type(&self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type>;
 }
 
 impl<T: HasType> HasType for &T {
-  fn get_type(&self, context: &Context, errors: &mut Vec<SemanticError>) -> Option<Type> {
-    (**self).get_type(context, errors)
+  fn get_type(&self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
+    (**self).get_type(scope, errors)
+  }
+}
+
+impl<T: HasType> HasType for &mut T {
+  fn get_type(&self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
+    (**self).get_type(scope, errors)
   }
 }
 
 impl<T: HasType> HasType for Box<T> {
-  fn get_type(&self, context: &Context, errors: &mut Vec<SemanticError>) -> Option<Type> {
-    (**self).get_type(context, errors)
+  fn get_type(&self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
+    (**self).get_type(scope, errors)
   }
 }
 
 impl HasType for Ident {
-  fn get_type(&self, context: &Context, errors: &mut Vec<SemanticError>) -> Option<Type> {
-    match context.get(self) {
+  fn get_type(&self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
+    match scope.get_type(self) {
       Some(t) => Some(t.clone()),
       None => {
-        context.add_error(
+        scope.add_error(
           errors,
           SemanticError::Normal(format!("Use of undeclared variable: {:?}", self)),
         );
@@ -131,13 +137,13 @@ impl HasType for Ident {
 }
 
 impl HasType for ArrayElem {
-  fn get_type(&self, context: &Context, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
     let ArrayElem(id, indexes) = self;
     let mut errored = false;
 
     /* Ensure all indexes are ints */
     for index in indexes {
-      if index.get_type(context, errors) != Some(Type::Int) {
+      if index.get_type(scope, errors) != Some(Type::Int) {
         errored = true;
       }
     }
@@ -147,14 +153,14 @@ impl HasType for ArrayElem {
     }
 
     /* Gets type of the array being looked up. */
-    let mut curr_type = id.get_type(context, errors)?;
+    let mut curr_type = id.get_type(scope, errors)?;
 
     /* For each index, unwrap the type by one array. */
     for _ in indexes {
       curr_type = match curr_type {
         Type::Array(t) => *t,
         t => {
-          context.add_error(
+          scope.add_error(
             errors,
             SemanticError::Normal(format!("Expected array, found {:?}", t)),
           );
@@ -167,11 +173,10 @@ impl HasType for ArrayElem {
   }
 }
 
-pub fn analyse(program: &Program) -> Result<(), Vec<SemanticError>> {
+pub fn analyse(program: &mut Program) -> Result<(), Vec<SemanticError>> {
   let mut errors = Vec::new();
-  let mut context = Context::new();
 
-  if program::program(&mut context, &mut errors, program).is_some() {
+  if program::program(&mut errors, program).is_some() {
     Ok(())
   } else {
     Err(errors)
@@ -184,27 +189,30 @@ pub fn analyse(program: &Program) -> Result<(), Vec<SemanticError>> {
 #[cfg(test)]
 
 mod tests {
+  use crate::analyser::context::SymbolTable;
+
   use super::*;
 
   #[test]
   fn charlie_test() {
     let id = String::from("x");
 
-    let mut context = Context::new();
+    let mut symbol_table = SymbolTable::default();
+    let mut scope = ScopeMut::new(&mut symbol_table);
 
     /* x: Array(Array(Int)) */
-    context.insert(&id, Type::Array(Box::new(Type::Array(Box::new(Type::Int)))));
+    scope.insert(&id, Type::Array(Box::new(Type::Array(Box::new(Type::Int)))));
 
     /* x[5]['a'] is error */
-    println!("{:?}", id.clone().get_type(&context, &mut vec!()));
+    println!("{:?}", id.clone().get_type(&scope, &mut vec!()));
     println!(
       "{:?}",
       ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::CharLiter('a')])
-        .get_type(&context, &mut vec![])
+        .get_type(&scope, &mut vec![])
     );
     assert!(
       ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::CharLiter('a')])
-        .get_type(&context, &mut vec![])
+        .get_type(&scope, &mut vec![])
         .is_none()
     );
   }
@@ -213,14 +221,15 @@ mod tests {
   fn idents() {
     let x = String::from("x");
     let x_type = Type::Int;
-    let mut context = Context::new();
+    let mut symbol_table = SymbolTable::default();
+    let mut scope = ScopeMut::new(&mut symbol_table);
 
     /* x: BaseType(Int) */
-    context.insert(&x, x_type.clone()).unwrap();
+    scope.insert(&x, x_type.clone()).unwrap();
 
-    assert_eq!(x.get_type(&context, &mut vec![]), Some(x_type));
+    assert_eq!(x.get_type(&scope, &mut vec![]), Some(x_type));
     assert!(String::from("hello")
-      .get_type(&context, &mut vec![])
+      .get_type(&scope, &mut vec![])
       .is_none());
   }
 
@@ -228,28 +237,29 @@ mod tests {
   fn array_elems() {
     let id = String::from("x");
 
-    let mut context = Context::new();
+    let mut symbol_table = SymbolTable::default();
+    let mut scope = ScopeMut::new(&mut symbol_table);
 
     /* x: Array(Array(Int)) */
-    context.insert(&id, Type::Array(Box::new(Type::Array(Box::new(Type::Int)))));
+    scope.insert(&id, Type::Array(Box::new(Type::Array(Box::new(Type::Int)))));
 
     /* x[5][2]: Int */
     assert_eq!(
       ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::IntLiter(2)])
-        .get_type(&context, &mut vec![]),
+        .get_type(&scope, &mut vec![]),
       Some(Type::Int),
     );
 
     /* x[5]['a'] is error */
     assert!(
       ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::CharLiter('a')])
-        .get_type(&context, &mut vec![])
+        .get_type(&scope, &mut vec![])
         .is_none()
     );
 
     /* x[5]: Array(Int) */
     assert_eq!(
-      ArrayElem(id.clone(), vec![Expr::IntLiter(5)]).get_type(&context, &mut vec![]),
+      ArrayElem(id.clone(), vec![Expr::IntLiter(5)]).get_type(&scope, &mut vec![]),
       Some(Type::Array(Box::new(Type::Int))),
     );
 
@@ -258,7 +268,7 @@ mod tests {
       id.clone(),
       vec![Expr::IntLiter(5), Expr::IntLiter(2), Expr::IntLiter(1)]
     )
-    .get_type(&context, &mut vec![])
+    .get_type(&scope, &mut vec![])
     .is_none());
   }
 }

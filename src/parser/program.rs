@@ -9,6 +9,7 @@ use nom_supreme::{error::ErrorTree, final_parser};
 use super::shared::*;
 use super::stat::*;
 use super::type_::*;
+use crate::analyser::context::SymbolTable;
 use crate::ast::*;
 
 pub fn final_program_parser(input: &str) -> Result<Program, ErrorTree<&str>> {
@@ -23,7 +24,14 @@ pub fn program(input: &str) -> IResult<&str, Program, ErrorTree<&str>> {
     tok("end"),
   )(input)?;
 
-  Ok((input, Program { funcs, statement }))
+  Ok((
+    input,
+    Program {
+      funcs,
+      statement: ScopedStat::new(statement),
+      symbol_table: SymbolTable::default(),
+    },
+  ))
 }
 
 /* func ::= <type> <ident> '(' <param-list>? ')' 'is' <stat> 'end' */
@@ -51,6 +59,7 @@ fn func(input: &str) -> IResult<&str, Func, ErrorTree<&str>> {
         return_type,
       },
       body,
+      symbol_table: SymbolTable::default(),
     },
   ))
 }
@@ -78,8 +87,9 @@ mod tests {
           },
           ident: "foo".to_string(),
           body: Stat::Return(Expr::Ident("x".to_string())),
+          symbol_table: SymbolTable::default(),
         }),
-        statement: Stat::Declaration(
+        statement: ScopedStat::new(Stat::Declaration(
           Type::Int,
           "y".to_string(),
           AssignRhs::Call(
@@ -90,7 +100,8 @@ mod tests {
               Box::new(Expr::IntLiter(1)),
             )),
           )
-        )
+        )),
+        symbol_table: SymbolTable::default(),
       }
     ));
   }
@@ -111,7 +122,8 @@ mod tests {
           Box::new(Expr::Ident("x".to_string())),
           BinaryOper::Add,
           Box::new(Expr::Ident("y".to_string()))
-        ))
+        )),
+        symbol_table: SymbolTable::default(),
       }
     ));
 
@@ -125,7 +137,8 @@ mod tests {
           return_type: Type::Int
         },
         ident: "exitThree".to_string(),
-        body: Stat::Exit(Expr::IntLiter(3))
+        body: Stat::Exit(Expr::IntLiter(3)),
+        symbol_table: SymbolTable::default(),
       }
     ));
   }
