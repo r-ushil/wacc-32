@@ -19,14 +19,14 @@ impl Generatable for ArrayLiter {
 }
 
 impl Generatable for Stat {
-  fn generate(&self, code: &mut GeneratedCode, min_reg: &mut RegNum) {
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, min_reg: &mut RegNum) {
     match self {
       Stat::Skip => (),
       Stat::Declaration(_, _, _) => todo!(),
       Stat::Assignment(_, _) => todo!(),
       Stat::Read(expr) => {
         // expr is expected to be an identifier, needs to read into a variable
-        expr.generate(code, min_reg); //generate expr, load into min_reg
+        expr.generate(scope, code, min_reg); //generate expr, load into min_reg
 
         /* MOV r0, {min_reg} */
         code.text.push(Asm::Instr(
@@ -58,8 +58,8 @@ impl Generatable for Stat {
       Stat::Free(expr) => {
         //expr must be of type ident, referring to a pair
 
-        expr.generate(code, min_reg); //load pair address into min_reg
-                                      /* MOV r0, {min_reg}        //move pair address into r0 */
+        expr.generate(scope, code, min_reg); //load pair address into min_reg
+                                             /* MOV r0, {min_reg}        //move pair address into r0 */
         code.text.push(Asm::Instr(
           CondCode::AL,
           Instr::Unary(
@@ -80,7 +80,7 @@ impl Generatable for Stat {
         *min_reg = *min_reg - 1; //decrement min_reg by 1, no longer needed
       }
       Stat::Return(expr) => {
-        expr.generate(code, min_reg); //return value will be stored in min_reg
+        expr.generate(scope, code, min_reg); //return value will be stored in min_reg
 
         /* MOV r0, {min_reg} */
         code.text.push(Asm::Instr(
@@ -123,7 +123,7 @@ impl Generatable for Stat {
       }
       Stat::Exit(expr) => {
         /* Evalutates expression into min_reg */
-        expr.generate(code, min_reg);
+        expr.generate(scope, code, min_reg);
 
         /* MOV r0, r{min_reg} */
         code.text.push(Asm::Instr(
@@ -144,14 +144,14 @@ impl Generatable for Stat {
       }
 
       Stat::Print(expr) => {
-        expr.generate(code, min_reg);
+        expr.generate(scope, code, min_reg);
         todo!(); //get type of expr, and switch to the appropriate print branch
 
         // print_stat_gen(code, expr.get_type);
       }
 
       Stat::Println(expr) => {
-        expr.generate(code, min_reg);
+        expr.generate(scope, code, min_reg);
         todo!();
         // print_stat_gen(code, expr.get_type);
         // code.predefs.println = true;
@@ -162,8 +162,8 @@ impl Generatable for Stat {
       Stat::While(_, _) => todo!(),
       Stat::Scope(_) => todo!(),
       Stat::Sequence(head, tail) => {
-        head.generate(code, min_reg);
-        tail.generate(code, min_reg);
+        head.generate(scope, code, min_reg);
+        tail.generate(scope, code, min_reg);
       }
     }
   }
@@ -217,17 +217,19 @@ mod tests {
 
   #[test]
   fn exit_statement() {
+    let symbol_table = SymbolTable::default();
+    let scope = &Scope::new(&symbol_table);
     let expr = Expr::IntLiter(0);
     let stat = Stat::Exit(expr.clone());
     let min_regs = &mut 4;
 
     /* Actual output. */
     let mut actual_code = GeneratedCode::default();
-    stat.generate(&mut actual_code, min_regs);
+    stat.generate(scope, &mut actual_code, min_regs);
 
     /* Expected output. */
     let mut expected_code = GeneratedCode::default();
-    expr.generate(&mut expected_code, min_regs);
+    expr.generate(scope, &mut expected_code, min_regs);
 
     /* MOV r0, r4 */
     expected_code.text.push(Asm::Instr(
