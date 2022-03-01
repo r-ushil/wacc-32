@@ -8,13 +8,9 @@
 
 begin
   int inc(int x) is
-    return x + 1
+    int y = x + 1;
+    return y
   end
   int x = 0 ;
-  x = call inc(x) ;
-  println x ;
-  x = call inc(x) ;
-  x = call inc(x) ;
-  x = call inc(x) ;
-  println x
+  x = call inc(x)
 end
