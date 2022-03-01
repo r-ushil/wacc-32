@@ -24,6 +24,12 @@ pub struct GeneratedCode {
   pub predefs: GeneratePredefs,
 }
 
+impl GeneratedCode {
+  pub fn asm<I: Into<Asm>>(&mut self, i: I) {
+    self.text.push(i.into())
+  }
+}
+
 impl Default for GeneratedCode {
   fn default() -> Self {
     Self {
@@ -83,6 +89,15 @@ impl Asm {
   }
 }
 
+impl<I> From<I> for Asm
+where
+  I: Into<Instr>,
+{
+  fn from(i: I) -> Self {
+    Asm::Instr(CondCode::AL, i.into())
+  }
+}
+
 #[derive(PartialEq, Debug)]
 pub enum Directive {
   Text,          /* .text */
@@ -124,6 +139,18 @@ pub enum Instr {
 
   /* SMULL{CondCode} {Reg}, {Reg}, {Reg}, {Reg}  */
   Multiply(Reg, Reg, Reg, Reg), // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289902800.htm
+}
+
+impl<Op, D, S, O> From<(Op, D, S, O)> for Instr
+where
+  Op: Into<BinaryInstr>,
+  D: Into<Reg>,
+  S: Into<Reg>,
+  O: Into<Op2>,
+{
+  fn from((op, dst, src, op2): (Op, D, S, O)) -> Self {
+    Instr::Binary(op.into(), dst.into(), src.into(), op2.into(), false)
+  }
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -173,6 +200,12 @@ pub enum Op2 {
   Char(char),
   /* Register shifted right {Shift} times. */
   Reg(Reg, Shift),
+}
+
+impl From<Imm> for Op2 {
+  fn from(i: Imm) -> Self {
+    Op2::Imm(i)
+  }
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
