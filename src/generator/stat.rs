@@ -1,4 +1,4 @@
-use super::*;
+use super::{predef::ReadFmt, *};
 use Directive::*;
 use Instr::*;
 
@@ -24,7 +24,28 @@ impl Generatable for Stat {
       Stat::Skip => (),
       Stat::Declaration(_, _, _) => todo!(),
       Stat::Assignment(_, _) => todo!(),
-      Stat::Read(_) => todo!(),
+      Stat::Read(expr) => {
+        // expr is expected to be an identifier, needs to read into a variable
+        expr.generate(code, min_reg); //generate expr, load into min_reg
+                                      /* MOV r0, {min_reg} */
+        code.text.push(Asm::Instr(
+          CondCode::AL,
+          Instr::Unary(
+            UnaryInstr::Mov,
+            Reg::RegNum(0),
+            Op2::Reg(Reg::RegNum(*min_reg), 0),
+            false,
+          ),
+        ));
+        //expr.get_type //todo!() get type of ident
+        let read_type = if true { ReadFmt::Char } else { ReadFmt::Int }; //replace true with expr type check
+                                                                         /* BL p_read_{read_type} */
+        code.text.push(Asm::Instr(
+          CondCode::AL,
+          Instr::Branch(true, format!("p_read_",)),
+        )); //todo!() add display for ReadFmt
+        *min_reg = *min_reg - 1; //decrement min_reg by 1, no longer needed
+      }
       Stat::Free(_) => todo!(),
       Stat::Return(_) => todo!(),
       Stat::Exit(expr) => {
