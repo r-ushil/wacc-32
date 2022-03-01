@@ -104,26 +104,10 @@ mod tests {
   fn exit_statement() {
     let expr = Expr::IntLiter(0);
     let stat = Stat::Exit(expr.clone());
-    let min_regs= &mut 4;
+    let min_regs = &mut 4;
 
     /* Actual output. */
-    let mut actual_code = GeneratedCode {
-      data: vec![],
-      text: vec![],
-      predefs: GeneratePredefs {
-        print_ints: false,
-        print_strings: false,
-        print_bools: false,
-        print_refs: false,
-        println: false,
-        read_char: false,
-        read_int: false,
-        free_pair: false,
-        runtime_err: false,
-        overflow_err: false,
-        div_by_zero: false,
-      },
-    };
+    let mut actual_code = GeneratedCode::default();
     stat.generate(&mut actual_code, min_regs);
 
     /* Expected output. */
