@@ -31,7 +31,6 @@ impl Default for GeneratedCode {
       text: vec![
         Asm::Directive(Directive::Label(String::from(".text"))),
         Asm::Directive(Directive::Label(String::from(".global main"))),
-        Asm::Directive(Directive::Label(String::from("main"))),
       ],
       predefs: GeneratePredefs::default(),
     }
@@ -78,6 +77,13 @@ impl Default for GeneratePredefs {
 pub enum Asm {
   Directive(Directive),
   Instr(CondCode, Instr),
+}
+
+impl Asm {
+  /* Wraps instruction in an assembly line which always executes. */
+  pub fn always(i: Instr) -> Asm {
+    Asm::Instr(CondCode::AL, i)
+  }
 }
 
 #[derive(PartialEq, Debug)]
