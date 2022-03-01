@@ -55,7 +55,28 @@ impl Generatable for Stat {
 
         *min_reg = *min_reg - 1; //decrement min_reg by 1, no longer needed
       }
-      Stat::Free(_) => todo!(),
+      Stat::Free(expr) => {
+        //expr must be of type ident, referring to a pair
+
+        expr.generate(code, min_reg); //load pair address into min_reg
+                                      /* MOV r0, {min_reg}        //move pair address into r0 */
+        code.text.push(Asm::Instr(
+          CondCode::AL,
+          Instr::Unary(
+            UnaryInstr::Mov,
+            Reg::RegNum(0),
+            Op2::Reg(Reg::RegNum(*min_reg), 0),
+            false,
+          ),
+        ));
+
+        code.predefs.free_pair = true; //set free_pair flag to true
+                                       /* BL p_free_pair */
+        code.text.push(Asm::Instr(
+          CondCode::AL,
+          Instr::Branch(true, String::from("p_free_pair")),
+        ));
+      }
       Stat::Return(_) => todo!(),
       Stat::Exit(expr) => {
         /* Evalutates expression into min_reg */

@@ -6,7 +6,7 @@
 # Program:
 
 begin
-  pair(int, char) a = newpair(10, 'a');
-  free a
+  pair(int, char) a = newpair(10, 'a')
+  #free a
 end
 
