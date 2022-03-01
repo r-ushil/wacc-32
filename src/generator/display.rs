@@ -38,7 +38,7 @@ impl Display for Directive {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     use Directive::*;
     match self {
-      Text => write!(f, ".text"),
+      Text => write!(f, ".text\n.global main"),
       Data => write!(f, ".data"),
       Assemble => write!(f, ".ltorg"),
       Label(l) => write!(f, "{}:", l),
