@@ -38,12 +38,18 @@ impl Generatable for Stat {
           ),
         ));
         //expr.get_type //todo!() get type of ident
-        let read_type = if true { ReadFmt::Char } else { ReadFmt::Int }; //replace true with expr type check
-                                                                         /* BL p_read_{read_type} */
+        let read_type = if true {
+          code.predefs.read_char = true;
+          ReadFmt::Char
+        } else {
+          code.predefs.read_int = true;
+          ReadFmt::Int
+        }; //replace true with expr type check
+           /* BL p_read_{read_type} */
         code.text.push(Asm::Instr(
           CondCode::AL,
-          Instr::Branch(true, format!("p_read_",)),
-        )); //todo!() add display for ReadFmt
+          Instr::Branch(true, format!("p_read_{}", read_type)),
+        ));
         *min_reg = *min_reg - 1; //decrement min_reg by 1, no longer needed
       }
       Stat::Free(_) => todo!(),
