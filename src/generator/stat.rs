@@ -22,8 +22,8 @@ impl Generatable for Stat {
   fn generate(&self, scope: &Scope, code: &mut GeneratedCode, min_reg: &mut RegNum) {
     match self {
       Stat::Skip => (),
-      Stat::Declaration(_, _, _) => todo!(),
-      Stat::Assignment(_, _) => todo!(),
+      // Stat::Declaration(_, _, _) => todo!(),
+      // Stat::Assignment(_, _) => todo!(),
       Stat::Read(expr) => {
         // expr is expected to be an identifier, needs to read into a variable
         expr.generate(scope, code, min_reg); //generate expr, load into min_reg
@@ -158,13 +158,17 @@ impl Generatable for Stat {
         // /* BL println */
         // code.text.push(Asm::Instr(CondCode::AL, Instr::Branch(true, String::from("println"))));
       }
-      Stat::If(_, _, _) => todo!(),
-      Stat::While(_, _) => todo!(),
-      Stat::Scope(_) => todo!(),
+      // Stat::If(_, _, _) => todo!(),
+      // Stat::While(_, _) => todo!(),
+      // Stat::Scope(_) => todo!(),
       Stat::Sequence(head, tail) => {
         head.generate(scope, code, min_reg);
         tail.generate(scope, code, min_reg);
       }
+      _ => code.text.push(Asm::Directive(Directive::Label(format!(
+        "{:?}.generate(_, {:?})",
+        self, min_reg
+      )))),
     }
   }
 }

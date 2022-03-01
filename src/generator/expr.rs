@@ -69,9 +69,9 @@ impl Generatable for Expr {
         ))
       }
 
-      Expr::PairLiter => todo!(),
-      Expr::Ident(_) => todo!(),
-      Expr::ArrayElem(_) => todo!(),
+      // Expr::PairLiter => todo!(),
+      // Expr::Ident(_) => todo!(),
+      // Expr::ArrayElem(_) => todo!(),
       Expr::UnaryApp(op, exp) => {
         exp.generate(scope, code, min_regs);
         let reg = Reg::RegNum(*min_regs);
@@ -88,6 +88,10 @@ impl Generatable for Expr {
 
         binary_op_gen(op, code, reg1, reg2);
       }
+      _ => code.text.push(Asm::Directive(Directive::Label(format!(
+        "{:?}.generate(_, {:?})",
+        self, min_regs
+      )))),
     }
   }
 }
