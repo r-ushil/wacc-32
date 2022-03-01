@@ -1,8 +1,9 @@
-
-#ignore other junk files
+#ignore junk files
 *~
 
-
 # Added by cargo
-
 /target
+
+# ignore our compiled test cases
+./test_integration/wacc_examples_assembled/wacc_examples_assembled_ours/**/*.s
+./test_integration/wacc_examples_exit_codes/wacc_examples_exit_codes_ours/**/*.exitcode
