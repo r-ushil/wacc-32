@@ -1,7 +1,10 @@
+use crate::analyser::context::SymbolTable;
+
 #[derive(PartialEq, Debug, Clone)]
 pub struct Program {
   pub funcs: Vec<Func>,
   pub statement: Stat,
+  pub symbol_table: SymbolTable,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -9,6 +12,7 @@ pub struct Func {
   pub ident: Ident,
   pub signature: FuncSig,
   pub body: Stat,
+  pub symbol_table: SymbolTable,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -28,10 +32,23 @@ pub enum Stat {
   Exit(Expr),
   Print(Expr),
   Println(Expr),
-  If(Expr, Box<Stat>, Box<Stat>),
-  While(Expr, Box<Stat>),
-  Scope(Box<Stat>),
   Sequence(Box<Stat>, Box<Stat>),
+
+  /* SCOPING STATEMENTS */
+  /* These statements hold their own symbol table, which contains the variables
+  declared within, and a reference to the parent symbol table. */
+  If(Expr, ScopedStat, ScopedStat),
+  While(Expr, ScopedStat),
+  Scope(ScopedStat),
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct ScopedStat(pub SymbolTable, pub Box<Stat>);
+
+impl ScopedStat {
+  pub fn new(statement: Stat) -> ScopedStat {
+    ScopedStat(SymbolTable::new(), Box::new(statement))
+  }
 }
 
 #[derive(PartialEq, Debug, Clone)]

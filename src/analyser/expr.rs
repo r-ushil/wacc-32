@@ -98,6 +98,8 @@ impl HasType for Expr {
 #[cfg(test)]
 mod tests {
 
+  use crate::analyser::context::SymbolTable;
+
   use super::*;
 
   /* Defines a scope with 10 variables, each starting with prefix and ending
@@ -112,7 +114,8 @@ mod tests {
 
   #[test]
   fn literals() {
-    let scope = &Scope::new();
+    let mut symbol_table = SymbolTable::new();
+    let scope = &Scope::new(&mut symbol_table);
 
     assert_eq!(
       Expr::IntLiter(5).get_type(scope, &mut vec!()),
@@ -134,7 +137,8 @@ mod tests {
 
   #[test]
   fn idents() {
-    let mut scope = Scope::new();
+    let mut symbol_table = SymbolTable::new();
+    let mut scope = Scope::new(&mut symbol_table);
     populate_scope(&mut scope, "var");
 
     assert_eq!(
@@ -148,7 +152,8 @@ mod tests {
     let x = String::from("x");
     let x_type = Type::Array(Box::new(Type::Int));
 
-    let mut scope = Scope::new();
+    let mut symbol_table = SymbolTable::new();
+    let mut scope = Scope::new(&mut symbol_table);
     scope.insert(&x, x_type);
 
     assert_eq!(
@@ -160,7 +165,8 @@ mod tests {
   #[test]
   fn unary_apps() {
     /* Symbol Table */
-    let scope = &mut Scope::new();
+    let mut symbol_table = SymbolTable::new();
+    let scope = &mut Scope::new(&mut symbol_table);
 
     /* BANG */
     /* !false: Bool */
@@ -235,7 +241,8 @@ mod tests {
 
   #[test]
   fn binary_apps() {
-    let scope = &mut Scope::new();
+    let mut symbol_table = SymbolTable::new();
+    let scope = &mut Scope::new(&mut symbol_table);
 
     /* 5 + false: ERROR */
     assert!(Expr::BinaryApp(

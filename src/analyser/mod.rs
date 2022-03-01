@@ -1,4 +1,4 @@
-mod context;
+pub mod context;
 mod expr;
 mod program;
 mod stat;
@@ -109,6 +109,12 @@ impl<T: HasType> HasType for &T {
   }
 }
 
+impl<T: HasType> HasType for &mut T {
+  fn get_type(&self, scope: &Scope, errors: &mut Vec<SemanticError>) -> Option<Type> {
+    (**self).get_type(scope, errors)
+  }
+}
+
 impl<T: HasType> HasType for Box<T> {
   fn get_type(&self, scope: &Scope, errors: &mut Vec<SemanticError>) -> Option<Type> {
     (**self).get_type(scope, errors)
@@ -167,11 +173,10 @@ impl HasType for ArrayElem {
   }
 }
 
-pub fn analyse(program: &Program) -> Result<(), Vec<SemanticError>> {
+pub fn analyse(program: &mut Program) -> Result<(), Vec<SemanticError>> {
   let mut errors = Vec::new();
-  let mut scope = Scope::new();
 
-  if program::program(&mut scope, &mut errors, program).is_some() {
+  if program::program(&mut errors, program).is_some() {
     Ok(())
   } else {
     Err(errors)
@@ -184,13 +189,16 @@ pub fn analyse(program: &Program) -> Result<(), Vec<SemanticError>> {
 #[cfg(test)]
 
 mod tests {
+  use crate::analyser::context::SymbolTable;
+
   use super::*;
 
   #[test]
   fn charlie_test() {
     let id = String::from("x");
 
-    let mut scope = Scope::new();
+    let mut symbol_table = SymbolTable::new();
+    let mut scope = Scope::new(&mut symbol_table);
 
     /* x: Array(Array(Int)) */
     scope.insert(&id, Type::Array(Box::new(Type::Array(Box::new(Type::Int)))));
@@ -213,7 +221,8 @@ mod tests {
   fn idents() {
     let x = String::from("x");
     let x_type = Type::Int;
-    let mut scope = Scope::new();
+    let mut symbol_table = SymbolTable::new();
+    let mut scope = Scope::new(&mut symbol_table);
 
     /* x: BaseType(Int) */
     scope.insert(&x, x_type.clone()).unwrap();
@@ -228,7 +237,8 @@ mod tests {
   fn array_elems() {
     let id = String::from("x");
 
-    let mut scope = Scope::new();
+    let mut symbol_table = SymbolTable::new();
+    let mut scope = Scope::new(&mut symbol_table);
 
     /* x: Array(Array(Int)) */
     scope.insert(&id, Type::Array(Box::new(Type::Array(Box::new(Type::Int)))));

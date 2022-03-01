@@ -57,16 +57,18 @@ fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
       stat,
       tok("fi"),
     )),
-    |(_, e, _, stat_if, _, stat_else, _)| Stat::If(e, Box::new(stat_if), Box::new(stat_else)),
+    |(_, e, _, stat_if, _, stat_else, _)| {
+      Stat::If(e, ScopedStat::new(stat_if), ScopedStat::new(stat_else))
+    },
   );
 
   let while_ = map(
     tuple((tok("while"), expr, tok("do"), stat, tok("done"))),
-    |(_, e, _, s, _)| Stat::While(e, Box::new(s)),
+    |(_, e, _, s, _)| Stat::While(e, ScopedStat::new(s)),
   );
 
   let begin = map(tuple((tok("begin"), stat, tok("end"))), |(_, s, _)| {
-    Stat::Scope(Box::new(s))
+    Stat::Scope(ScopedStat::new(s))
   });
 
   alt((
@@ -506,11 +508,11 @@ mod tests {
             BinaryOper::Eq,
             Box::new(Expr::IntLiter(2)),
           ),
-          Box::new(Stat::Assignment(
+          ScopedStat::new(Stat::Assignment(
             AssignLhs::Ident("x".to_string()),
             AssignRhs::Expr(Expr::IntLiter(5)),
           )),
-          Box::new(Stat::Assignment(
+          ScopedStat::new(Stat::Assignment(
             AssignLhs::Ident("x".to_string()),
             AssignRhs::Expr(Expr::IntLiter(6)),
           )),
@@ -530,7 +532,7 @@ mod tests {
             BinaryOper::Neq,
             Box::new(Expr::IntLiter(0)),
           ),
-          Box::new(Stat::Sequence(
+          ScopedStat::new(Stat::Sequence(
             Box::new(Stat::Assignment(
               AssignLhs::Ident("acc".to_string()),
               AssignRhs::Expr(Expr::BinaryApp(
@@ -556,7 +558,7 @@ mod tests {
   fn test_stat_scope() {
     assert!(matches!(
       stat("begin skip end"),
-      Ok(("", ast)) if ast == Stat::Scope(Box::new(Stat::Skip))
+      Ok(("", ast)) if ast == Stat::Scope(ScopedStat::new(Stat::Skip))
     ));
 
     // assert!(matches!(

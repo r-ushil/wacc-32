@@ -1,5 +1,5 @@
 use super::{
-  context::{ContextLocation, Scope},
+  context::{ContextLocation, Scope, SymbolTable},
   equal_types, expected_type,
   unify::Unifiable,
   HasType, SemanticError,
@@ -168,6 +168,19 @@ impl HasType for ArrayLiter {
   }
 }
 
+pub fn scoped_stat(
+  scope: &Scope,
+  errors: &mut Vec<SemanticError>,
+  ScopedStat(new_symbol_table, statement): &mut ScopedStat,
+) -> Option<ReturnBehaviour> {
+  /* Create a new scope, so declarations in {statement} don't bleed into
+  surrounding scope. */
+  let mut new_scope = scope.new_scope(new_symbol_table);
+
+  /* Analyse statement. */
+  stat(&mut new_scope, errors, statement)
+}
+
 /* Type checks a statement.
 Declarations will add to the symbol table.
 Scopes will make a new scope within the symbol table.
@@ -176,7 +189,7 @@ If the statment ALWAYS returns with the same type, returns that type. */
 pub fn stat(
   scope: &mut Scope,
   errors: &mut Vec<SemanticError>,
-  statement: &Stat,
+  statement: &mut Stat,
 ) -> Option<ReturnBehaviour> {
   use ReturnBehaviour::*;
 
@@ -246,8 +259,8 @@ pub fn stat(
       /* If both branches return the same type, the if statement can
       be relied on to return that type. */
       if let (Some(true_behaviour), Some(false_behaviour)) = (
-        stat(&mut scope.new_scope(ContextLocation::If), errors, if_stat),
-        stat(&mut scope.new_scope(ContextLocation::If), errors, else_stat),
+        scoped_stat(scope, errors, if_stat),
+        scoped_stat(scope, errors, else_stat),
       ) {
         if !cond_fine {
           return None;
@@ -287,7 +300,7 @@ pub fn stat(
     Stat::While(cond, body) => {
       let cond_fine = cond.get_type(scope, errors) == Some(Type::Bool);
 
-      let statement_result = stat(&mut scope.new_scope(ContextLocation::While), errors, body)?;
+      let statement_result = scoped_stat(scope, errors, body)?;
 
       if !cond_fine {
         return None;
@@ -301,7 +314,7 @@ pub fn stat(
         b => b,
       })
     }
-    Stat::Scope(body) => stat(&mut scope.new_scope(ContextLocation::Scope), errors, body),
+    Stat::Scope(body) => scoped_stat(scope, errors, body),
     Stat::Sequence(fst, snd) => {
       /* CHECK: no definite returns before last line. */
       if let (Some(lhs), Some(rhs)) = (stat(scope, errors, fst), stat(scope, errors, snd)) {
@@ -325,7 +338,8 @@ mod tests {
 
   #[test]
   fn assign_lhs() {
-    let scope = &mut Scope::new();
+    let mut symbol_table = SymbolTable::new();
+    let scope = &mut Scope::new(&mut symbol_table);
 
     /* Identifiers cause */
     let x_id = String::from("x");
@@ -349,5 +363,80 @@ mod tests {
         .get_type(scope, &mut vec![]),
       Some(Type::Int)
     );
+  }
+
+  #[test]
+  fn declare_adds_symbol_table() {
+    /*
+    int x = 5
+    */
+    let x = || String::from("x");
+    let mut intx5 = Stat::Declaration(Type::Int, x(), AssignRhs::Expr(Expr::IntLiter(5)));
+
+    let mut outer_symbol_table = SymbolTable::new();
+    let mut outer_scope = Scope::new(&mut outer_symbol_table);
+
+    stat(&mut outer_scope, &mut vec![], &mut intx5);
+
+    assert_eq!(outer_scope.get(&x()), Some(&Type::Int));
+  }
+
+  #[test]
+  fn scoping() {
+    /*
+    int y should be able to access the symbol table about to type check x,
+    but must also allow z to be defined in that symbol table afterwards.
+
+    begin
+      int x = 5;
+      begin
+        int y = x
+      end;
+      int z = 7
+    end
+    */
+    let x = || String::from("x");
+    let y = || String::from("y");
+    let z = || String::from("z");
+    let intx5 = Stat::Declaration(Type::Int, x(), AssignRhs::Expr(Expr::IntLiter(5)));
+    let intyx = Stat::Declaration(Type::Int, y(), AssignRhs::Expr(Expr::Ident(x())));
+    let intz7 = Stat::Declaration(Type::Int, z(), AssignRhs::Expr(Expr::IntLiter(7)));
+    let mut statement = Stat::Scope(ScopedStat::new(Stat::Sequence(
+      Box::new(intx5),
+      Box::new(Stat::Sequence(
+        Box::new(Stat::Scope(ScopedStat::new(intyx))),
+        Box::new(intz7),
+      )),
+    )));
+
+    let mut outer_symbol_table = SymbolTable::new();
+    let mut outer_scope = Scope::new(&mut outer_symbol_table);
+
+    stat(&mut outer_scope, &mut vec![], &mut statement);
+    /* x and z should now be in outer scope */
+
+    /* Retrieve inner and outer st from statement ast. */
+    let (st, inner_st) = if let Stat::Scope(ScopedStat(st, statement)) = statement {
+      if let Stat::Sequence(_intx5, everything_else) = *statement {
+        if let Stat::Sequence(inner_scope_stat, _intz7) = *everything_else {
+          if let Stat::Scope(ScopedStat(inner_st, _)) = *inner_scope_stat {
+            (st, inner_st)
+          } else {
+            panic!("inner statement isnt a scope!")
+          }
+        } else {
+          panic!("only two statements!");
+        }
+      } else {
+        panic!("inner statement structure has been changed!")
+      }
+    } else {
+      panic!("outer statement structure has been changed!")
+    };
+
+    assert_eq!(st.get(&x()), Some(&Type::Int));
+    assert_eq!(st.get(&z()), Some(&Type::Int));
+
+    assert_eq!(inner_st.get(&y()), Some(&Type::Int));
   }
 }

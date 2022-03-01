@@ -12,12 +12,12 @@ pub enum ContextLocation {
   If,
 }
 
-type SymbolTable = HashMap<Ident, Type>;
+pub type SymbolTable = HashMap<Ident, Type>;
 
 #[derive(Debug)]
 pub struct Scope<'a> {
   /* Maps identifiers to types for each variable declared in this scope. */
-  symbol_table: SymbolTable,
+  symbol_table: &'a mut SymbolTable,
   /* The scope this scope is inside of,
   and where abouts within that scope it is. */
   /* context: None means this is the global scope. */
@@ -25,11 +25,11 @@ pub struct Scope<'a> {
 }
 
 #[allow(dead_code)]
-impl<'a> Scope<'a> {
+impl Scope<'_> {
   /* Makes new Symbol table with initial global scope. */
-  pub fn new() -> Self {
-    Self {
-      symbol_table: HashMap::new(),
+  pub fn new<'a>(symbol_table: &'a mut SymbolTable) -> Scope<'a> {
+    Scope {
+      symbol_table,
       context: None,
     }
   }
@@ -67,10 +67,10 @@ impl<'a> Scope<'a> {
     }
   }
 
-  pub fn new_scope(&'a self, location: ContextLocation) -> Self {
-    Self {
-      symbol_table: SymbolTable::new(),
-      context: Some((location, self)),
+  pub fn new_scope<'a>(&'a self, symbol_table: &'a mut SymbolTable) -> Scope<'a> {
+    Scope {
+      symbol_table,
+      context: Some((ContextLocation::Scope, self)),
     }
   }
 }
@@ -79,12 +79,10 @@ impl<'a> Scope<'a> {
 mod tests {
   use super::*;
 
-  fn make_scope<'a>() -> Scope<'a> {
-    let mut scope = Scope::new();
+  fn make_scope<'a>(symbol_table: &'a mut SymbolTable) -> Scope<'a> {
+    let mut scope = Scope::new(symbol_table);
 
     for i in 0..4 {
-      let mut curr: HashMap<String, Type> = HashMap::new();
-
       let var1 = format!("{}{}", "x", i);
       let var2 = format!("{}{}", "y", i);
       let var3 = format!("{}{}", "z", i);
@@ -92,8 +90,6 @@ mod tests {
       scope.insert(&var1, Type::Bool);
       scope.insert(&var2, Type::Int);
       scope.insert(&var3, Type::String);
-
-      scope.new_scope(ContextLocation::Function);
     }
 
     scope
@@ -101,7 +97,8 @@ mod tests {
 
   #[test]
   fn test_table_lookup() {
-    let scope = make_scope();
+    let mut symbol_table = SymbolTable::new();
+    let scope = make_scope(&mut symbol_table);
 
     assert_eq!(scope.get(&String::from("x3")), Some(&Type::Bool));
     assert_eq!(scope.get(&String::from("z3")), Some(&Type::String));
@@ -112,7 +109,8 @@ mod tests {
 
   #[test]
   fn test_table_update() {
-    let mut scope = make_scope();
+    let mut symbol_table = SymbolTable::new();
+    let mut scope = make_scope(&mut symbol_table);
 
     assert_eq!(scope.insert(&String::from("g"), Type::Char), Some(()));
 
