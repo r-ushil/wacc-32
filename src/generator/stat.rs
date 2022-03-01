@@ -170,7 +170,7 @@ impl Generatable for Stat {
 }
 
 // todo!(), add parameter for expr_type
-fn print_stat_gen(code: &mut GeneratedCode) {
+fn print_stat_gen(code: &mut GeneratedCode, min_reg: &mut RegNum) {
 
   //   let branch_name = match expr_type {
   //     Type::String => {
@@ -191,8 +191,13 @@ fn print_stat_gen(code: &mut GeneratedCode) {
   //     }
   //   };
 
+  // /* MOV r0, min_reg */
+  // code.text.push(Asm::Instr(CondCode::AL, Instr::Unary(UnaryInstr::Mov, Reg::RegNum(0), Op2::Reg(Reg::RegNum(*min_reg), 0), false)));
+
   // /* BL {branch_name} */
   // code.text.push(Asm::Instr(CondCode::AL, Instr::Branch(true, branch_name)));
+
+  // *min_reg = *min_reg - 1; //decrement min_reg by 1, no longer needed
 }
 
 /*
