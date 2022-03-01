@@ -55,8 +55,72 @@ impl Generatable for Stat {
 
         *min_reg = *min_reg - 1; //decrement min_reg by 1, no longer needed
       }
-      Stat::Free(_) => todo!(),
-      Stat::Return(_) => todo!(),
+      Stat::Free(expr) => {
+        //expr must be of type ident, referring to a pair
+
+        expr.generate(code, min_reg); //load pair address into min_reg
+                                      /* MOV r0, {min_reg}        //move pair address into r0 */
+        code.text.push(Asm::Instr(
+          CondCode::AL,
+          Instr::Unary(
+            UnaryInstr::Mov,
+            Reg::RegNum(0),
+            Op2::Reg(Reg::RegNum(*min_reg), 0),
+            false,
+          ),
+        ));
+
+        code.predefs.free_pair = true; //set free_pair flag to true
+                                       /* BL p_free_pair */
+        code.text.push(Asm::Instr(
+          CondCode::AL,
+          Instr::Branch(true, String::from("p_free_pair")),
+        ));
+
+        *min_reg = *min_reg - 1; //decrement min_reg by 1, no longer needed
+      }
+      Stat::Return(expr) => {
+        expr.generate(code, min_reg); //return value will be stored in min_reg
+
+        /* MOV r0, {min_reg} */
+        code.text.push(Asm::Instr(
+          CondCode::AL,
+          Instr::Unary(
+            UnaryInstr::Mov,
+            Reg::RegNum(0),
+            Op2::Reg(Reg::RegNum(*min_reg), 0),
+            false,
+          ),
+        ));
+
+        // todo!()
+        // total_offset = somehow get total stack offset for all local vars
+        let total_offset = 0;
+
+        /* ADD sp, sp, #{total_offset} */
+        code.text.push(Asm::Instr(
+          CondCode::AL,
+          Instr::Binary(
+            BinaryInstr::Add,
+            Reg::StackPointer,
+            Reg::StackPointer,
+            Op2::Imm(total_offset),
+            false,
+          ),
+        ));
+
+        /* POP {pc} */
+        code
+          .text
+          .push(Asm::Instr(CondCode::AL, Instr::Pop(Reg::PC)));
+
+        /* POP {pc} */
+        code
+          .text
+          .push(Asm::Instr(CondCode::AL, Instr::Pop(Reg::PC)));
+
+        *min_reg = *min_reg - 1; //decrement min_reg by 1, no longer needed
+      }
       Stat::Exit(expr) => {
         /* Evalutates expression into min_reg */
         expr.generate(code, min_reg);
@@ -97,13 +161,16 @@ impl Generatable for Stat {
       Stat::If(_, _, _) => todo!(),
       Stat::While(_, _) => todo!(),
       Stat::Scope(_) => todo!(),
-      Stat::Sequence(_, _) => todo!(),
+      Stat::Sequence(head, tail) => {
+        head.generate(code, min_reg);
+        tail.generate(code, min_reg);
+      }
     }
   }
 }
 
 // todo!(), add parameter for expr_type
-fn print_stat_gen(code: &mut GeneratedCode) {
+fn print_stat_gen(code: &mut GeneratedCode, min_reg: &mut RegNum) {
 
   //   let branch_name = match expr_type {
   //     Type::String => {
@@ -124,8 +191,13 @@ fn print_stat_gen(code: &mut GeneratedCode) {
   //     }
   //   };
 
+  // /* MOV r0, min_reg */
+  // code.text.push(Asm::Instr(CondCode::AL, Instr::Unary(UnaryInstr::Mov, Reg::RegNum(0), Op2::Reg(Reg::RegNum(*min_reg), 0), false)));
+
   // /* BL {branch_name} */
   // code.text.push(Asm::Instr(CondCode::AL, Instr::Branch(true, branch_name)));
+
+  // *min_reg = *min_reg - 1; //decrement min_reg by 1, no longer needed
 }
 
 /*
