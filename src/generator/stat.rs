@@ -61,6 +61,8 @@ impl Generatable for Stat {
         expr.generate(code, min_regs);
         todo!();
         // print_stat_gen(code, expr.get_type);
+        // /* BL println */
+        // code.text.push(Asm::Instr(CondCode::AL, Instr::Branch(true, String::from("println"))));
       }
       Stat::If(_, _, _) => todo!(),
       Stat::While(_, _) => todo!(),
