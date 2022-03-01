@@ -27,5 +27,7 @@ test_integration: wacc
 # clean up all of the compiled files
 clean:
 	cargo clean
+	rm -f ./test_integration/wacc_examples_assembled/wacc_examples_assembled_ours/**/*.s
+	rm -f ./test_integration/wacc_examples_exit_codes/wacc_examples_exit_codes_ours/**/*.exitcode
 
 .PHONY: all clean test test_unit test_integration wacc wacc_docker
