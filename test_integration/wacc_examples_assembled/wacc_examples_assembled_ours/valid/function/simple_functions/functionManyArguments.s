@@ -1,5 +1,0 @@
-.data:
-.text:
-.global main:
-main:
-Program { funcs: [Func { ident: "doSomething", signature: FuncSig { params: [(Int, "a"), (Bool, "b"), (Char, "c"), (String, "d"), (Array(Bool), "e"), (Array(Int), "f")], return_type: Char }, body: Sequence(Print(StrLiter("a is ")), Sequence(Println(Ident("a")), Sequence(Print(StrLiter("b is ")), Sequence(Println(Ident("b")), Sequence(Print(StrLiter("c is ")), Sequence(Println(Ident("c")), Sequence(Print(StrLiter("d is ")), Sequence(Println(Ident("d")), Sequence(Print(StrLiter("e is ")), Sequence(Println(Ident("e")), Sequence(Print(StrLiter("f is ")), Sequence(Println(Ident("f")), Return(CharLiter('g')))))))))))))) }], statement: Sequence(Declaration(Array(Bool), "bools", ArrayLiter(ArrayLiter([BoolLiter(false), BoolLiter(true)]))), Sequence(Declaration(Array(Int), "ints", ArrayLiter(ArrayLiter([IntLiter(1), IntLiter(2)]))), Sequence(Declaration(Char, "answer", Call("doSomething", [IntLiter(42), BoolLiter(true), CharLiter('u'), StrLiter("hello"), Ident("bools"), Ident("ints")])), Sequence(Print(StrLiter("answer is ")), Println(Ident("answer")))))) }.generate(_, 4):
