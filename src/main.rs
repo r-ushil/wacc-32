@@ -21,8 +21,8 @@ fn main() {
   let args: Vec<String> = env::args().collect();
 
   // Ensure that a single argument was given
-  if args.len() != 3 {
-    incorrect_usage("Error: incorrect number of arguments. ")
+  if args.len() < 3 {
+    incorrect_usage("Error: not enough arguments. ")
   }
 
   // Ensure that this argument is a path leading to file
@@ -32,14 +32,35 @@ fn main() {
     incorrect_usage("Error: input file does not exist. ")
   }
 
+  /* OPTIONS */
+  // TODO: Accept these options before source and destination files
+  // TODO: Multiple options
+  // TODO: Options for long / short options
+  // TODO: Update usage
+  let mut analysis_only = false;
+  if args.len() > 3 {
+    // There are flags present
+
+    // TODO: Shouldn't need to input output file if this
+    // (or earlier termination) are desired
+    if &args[3] == "--analysis" {
+      analysis_only = true;
+    }
+  }
+
   // Read the contents of this file
   let program_string = read_file(fs::File::open(source_path).unwrap());
   let program_str = program_string.as_str();
 
   let ast = parse(program_str);
   analyse(&ast);
-  let code = generator::generate(&ast);
 
+  if analysis_only {
+    println!("Halted after analysis stage. ");
+    exit(0);
+  }
+
+  let code = generator::generate(&ast);
   write_asm(code, destination_path);
 }
 
