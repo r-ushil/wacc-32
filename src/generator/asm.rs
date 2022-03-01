@@ -27,11 +27,8 @@ pub struct GeneratedCode {
 impl Default for GeneratedCode {
   fn default() -> Self {
     Self {
-      data: vec![Asm::Directive(Directive::Label(String::from(".data")))],
-      text: vec![
-        Asm::Directive(Directive::Label(String::from(".text"))),
-        Asm::Directive(Directive::Label(String::from(".global main"))),
-      ],
+      data: vec![Asm::Directive(Directive::Data)],
+      text: vec![Asm::Directive(Directive::Text)],
       predefs: GeneratePredefs::default(),
     }
   }
