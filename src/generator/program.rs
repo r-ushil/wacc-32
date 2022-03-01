@@ -31,6 +31,9 @@ impl Generatable for Program {
 
 impl Generatable for Func {
   fn generate(&self, scope: &Scope, code: &mut GeneratedCode, min_reg: &mut RegNum) {
+    // TODO: make this a more robust check
+    let main = self.ident == "main";
+
     /* Comments reflect the following example:
     int foo(int x) is
       int y = 5;
@@ -44,7 +47,8 @@ impl Generatable for Func {
     /* Function label.
     foo: */
     code.text.push(Asm::Directive(Directive::Label(format!(
-      "f_{}",
+      "{}{}",
+      if main { "" } else { "f_" },
       self.ident
     ))));
 
@@ -71,7 +75,7 @@ impl Generatable for Func {
 
     /* Put a second jump if not in main to mimick refcompile behaviour.
     POP {pc} */
-    if self.ident != "main" {
+    if !main {
       code.text.push(Asm::always(Instr::Pop(Reg::PC)));
     }
 
