@@ -28,7 +28,7 @@ pub fn program(input: &str) -> IResult<&str, Program, ErrorTree<&str>> {
     input,
     Program {
       funcs,
-      statement,
+      statement: ScopedStat::new(statement),
       symbol_table: SymbolTable::default(),
     },
   ))
@@ -89,7 +89,7 @@ mod tests {
           body: Stat::Return(Expr::Ident("x".to_string())),
           symbol_table: SymbolTable::default(),
         }),
-        statement: Stat::Declaration(
+        statement: ScopedStat::new(Stat::Declaration(
           Type::Int,
           "y".to_string(),
           AssignRhs::Call(
@@ -100,7 +100,7 @@ mod tests {
               Box::new(Expr::IntLiter(1)),
             )),
           )
-        ),
+        )),
         symbol_table: SymbolTable::default(),
       }
     ));

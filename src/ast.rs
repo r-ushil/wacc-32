@@ -3,7 +3,7 @@ use crate::analyser::context::SymbolTable;
 #[derive(PartialEq, Debug, Clone)]
 pub struct Program {
   pub funcs: Vec<Func>,
-  pub statement: Stat,
+  pub statement: ScopedStat,
   pub symbol_table: SymbolTable,
 }
 

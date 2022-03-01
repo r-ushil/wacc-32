@@ -22,8 +22,8 @@ impl Generatable for Program {
         params: Vec::new(),
         return_type: Type::Int,
       },
-      body: self.statement.clone(),
-      symbol_table: self.symbol_table.clone(),
+      body: *self.statement.1.clone(),
+      symbol_table: self.statement.0.clone(),
     }
     .generate(scope, code, min_regs);
   }
