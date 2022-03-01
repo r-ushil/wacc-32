@@ -29,7 +29,7 @@ impl Display for Asm {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       Asm::Directive(d) => write!(f, "{}", d),
-      Asm::Instr(cond, i) => write!(f, "{}{}", cond, i),
+      Asm::Instr(cond, i) => write!(f, "  {}{}", cond, i),
     }
   }
 }
