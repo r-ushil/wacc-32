@@ -1,4 +1,4 @@
-use super::*;
+use super::{predef::ReadFmt, *};
 use Directive::*;
 use Instr::*;
 
@@ -24,7 +24,37 @@ impl Generatable for Stat {
       Stat::Skip => (),
       Stat::Declaration(_, _, _) => todo!(),
       Stat::Assignment(_, _) => todo!(),
-      Stat::Read(_) => todo!(),
+      Stat::Read(expr) => {
+        // expr is expected to be an identifier, needs to read into a variable
+        expr.generate(code, min_reg); //generate expr, load into min_reg
+
+        /* MOV r0, {min_reg} */
+        code.text.push(Asm::Instr(
+          CondCode::AL,
+          Instr::Unary(
+            UnaryInstr::Mov,
+            Reg::RegNum(0),
+            Op2::Reg(Reg::RegNum(*min_reg), 0),
+            false,
+          ),
+        ));
+        //expr.get_type //todo!() get type of ident
+        let read_type = if true {
+          code.predefs.read_char = true;
+          ReadFmt::Char
+        } else {
+          code.predefs.read_int = true;
+          ReadFmt::Int
+        }; //replace true with expr type check
+
+        /* BL p_read_{read_type} */
+        code.text.push(Asm::Instr(
+          CondCode::AL,
+          Instr::Branch(true, format!("p_read_{}", read_type)),
+        ));
+
+        *min_reg = *min_reg - 1; //decrement min_reg by 1, no longer needed
+      }
       Stat::Free(_) => todo!(),
       Stat::Return(_) => todo!(),
       Stat::Exit(expr) => {
@@ -60,6 +90,7 @@ impl Generatable for Stat {
         expr.generate(code, min_reg);
         todo!();
         // print_stat_gen(code, expr.get_type);
+        // code.predefs.println = true;
         // /* BL println */
         // code.text.push(Asm::Instr(CondCode::AL, Instr::Branch(true, String::from("println"))));
       }
@@ -71,15 +102,27 @@ impl Generatable for Stat {
   }
 }
 
-//todo!(), add parameter for expr_type
+// todo!(), add parameter for expr_type
 fn print_stat_gen(code: &mut GeneratedCode) {
 
-  // let branch_name = match expr_type {
-  //   Type::String => String::from("p_print_string"),
-  //   Type::Bool => String::from("p_print_bool"),
-  //   Type::Int => String::from("p_print_int"),
-  //   Type::Ref => String::from("p_print_reference"),
-  // };
+  //   let branch_name = match expr_type {
+  //     Type::String => {
+  //       code.predefs.print_strings = true;
+  //       String::from("p_print_string")
+  //     }
+  //     Type::Bool => {
+  //       code.predefs.print_bools = true;
+  //       String::from("p_print_bool")
+  //     }
+  //     Type::Int => {
+  //       code.predefs.print_ints = true;
+  //       String::from("p_print_int")
+  //     }
+  //     Type::Ref => {
+  //       code.predefs.print_refs = true;
+  //       String::from("p_print_reference")
+  //     }
+  //   };
 
   // /* BL {branch_name} */
   // code.text.push(Asm::Instr(CondCode::AL, Instr::Branch(true, branch_name)));

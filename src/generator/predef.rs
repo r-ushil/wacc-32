@@ -7,6 +7,15 @@ pub enum ReadFmt {
   Int,
 }
 
+impl Display for ReadFmt {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      ReadFmt::Char => write!(f, "char"),
+      ReadFmt::Int => write!(f, "int"),
+    }
+  }
+}
+
 fn read(code: &mut GeneratedCode, fmt: ReadFmt) {
   use self::CondCode::*;
   use self::Directive::*;
@@ -33,10 +42,10 @@ fn read(code: &mut GeneratedCode, fmt: ReadFmt) {
     code.data.push(Directive(Ascii(String::from("%c\\0"))));
   }
 
-  /* Generate a p_read label to branch to when reading an int or a char */
+  /* Generate a p_read_{fmt} label to branch to when reading an int or a char */
 
-  /* p_read: */
-  code.data.push(Directive(Label("p_read".to_string())));
+  /* p_read_{fmt}: */
+  code.data.push(Directive(Label(format!("p_read_{}", fmt))));
   /*  PUSH {lr}            //push link reg */
   code.text.push(Instr(AL, Push(Reg::Link)));
   /*  MOV r1, r0            //move r0 to r1 */
@@ -50,27 +59,15 @@ fn read(code: &mut GeneratedCode, fmt: ReadFmt) {
     ),
   ));
 
-  if fmt == ReadFmt::Int {
-    /*  LDR r0, =msg_read_int   //load the result of msg_read_int */
-    code.text.push(Instr(
-      AL,
-      Load(
-        DataSize::Word,
-        Reg::RegNum(0),
-        LoadArg::Label(String::from("msg_read_int")),
-      ),
-    ));
-  } else if fmt == ReadFmt::Char {
-    /*  LDR r0, =msg_read_char   //load the result of msg_read_char */
-    code.text.push(Instr(
-      AL,
-      Load(
-        DataSize::Word,
-        Reg::RegNum(0),
-        LoadArg::Label(String::from("msg_read_char")),
-      ),
-    ));
-  }
+  /*  LDR r0, =msg_read_{fmt}   //load the result of msg_read_{fmt} */
+  code.text.push(Instr(
+    AL,
+    Load(
+      DataSize::Word,
+      Reg::RegNum(0),
+      LoadArg::Label(format!("msg_read_{}", fmt)),
+    ),
+  ));
 
   /*  ADD r0, r0, #4        //add 4 to r0 and store in r0 */
   code.text.push(Instr(
