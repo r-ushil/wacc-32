@@ -67,7 +67,7 @@ impl Display for MemAddress {
 impl Display for LoadArg {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
-      LoadArg::Imm(val) => write!(f, "#{}", val),
+      LoadArg::Imm(val) => write!(f, "={}", val),
       LoadArg::MemAddress(addr) => write!(f, "{}", addr),
       LoadArg::Label(msg) => write!(f, "={}", msg),
     }
