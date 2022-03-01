@@ -8,10 +8,16 @@ converted to text for an assembly file. */
 
 impl Display for GeneratedCode {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    self
-      .data
-      .iter()
-      .try_for_each(|asm| write!(f, "{}\n", asm))?;
+    if self.data.len() > 1 {
+      /* If there is only a single thing in data, that's ".data", and there's
+      no point outputting that if there is nothing in the data segment. */
+      self
+        .data
+        .iter()
+        .try_for_each(|asm| write!(f, "{}\n", asm))?;
+    }
+
+    /* Always output .text segment. */
     self
       .text
       .iter()
