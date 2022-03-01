@@ -40,6 +40,9 @@ fn main() {
   let mut analysis_only = false;
   if args.len() > 3 {
     // There are flags present
+
+    // TODO: Shouldn't need to input output file if this
+    // (or earlier termination) are desired
     if &args[3] == "--analysis" {
       analysis_only = true;
     }
@@ -53,6 +56,7 @@ fn main() {
   analyse(&ast);
 
   if analysis_only {
+    println!("Halted after analysis stage. ");
     exit(0);
   }
 
