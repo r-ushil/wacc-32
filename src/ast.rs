@@ -87,7 +87,7 @@ pub enum Type {
 
 impl Type {
   /* Returns how many bytes are required to store a value of this type. */
-  pub fn get_size(&self) -> u32 {
+  pub fn size(&self) -> u32 {
     use Type::*;
     match self {
       Bool | Char => 1,

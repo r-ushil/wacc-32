@@ -18,20 +18,20 @@ also stores the total size of this stack frame. */
 pub type SymbolTable = (HashMap<Ident, (Type, Offset)>, Offset);
 
 #[derive(Debug)]
-pub struct Scope<'a> {
+pub struct ScopeMut<'a> {
   /* Maps identifiers to types for each variable declared in this scope. */
   symbol_table: &'a mut SymbolTable,
   /* The scope this scope is inside of,
   and where abouts within that scope it is. */
   /* context: None means this is the global scope. */
-  context: Option<(ContextLocation, &'a Scope<'a>)>,
+  context: Option<(ContextLocation, &'a ScopeMut<'a>)>,
 }
 
 #[allow(dead_code)]
-impl Scope<'_> {
+impl ScopeMut<'_> {
   /* Makes new Symbol table with initial global scope. */
-  pub fn new<'a>(symbol_table: &'a mut SymbolTable) -> Scope<'a> {
-    Scope {
+  pub fn new<'a>(symbol_table: &'a mut SymbolTable) -> ScopeMut<'a> {
+    ScopeMut {
       symbol_table,
       context: None,
     }
@@ -70,7 +70,7 @@ impl Scope<'_> {
   returns old value. */
   pub fn insert(&mut self, ident: &Ident, val: Type) -> Option<()> {
     /* Stackframe will be increased in size by val bytes */
-    self.symbol_table.1 += val.get_size();
+    self.symbol_table.1 += val.size();
 
     /* Offset of this variable from top of stack frame will be size
     of stack from. */
@@ -86,8 +86,8 @@ impl Scope<'_> {
     }
   }
 
-  pub fn new_scope<'a>(&'a self, symbol_table: &'a mut SymbolTable) -> Scope<'a> {
-    Scope {
+  pub fn new_scope<'a>(&'a self, symbol_table: &'a mut SymbolTable) -> ScopeMut<'a> {
+    ScopeMut {
       symbol_table,
       context: Some((ContextLocation::Scope, self)),
     }
@@ -98,8 +98,8 @@ impl Scope<'_> {
 mod tests {
   use super::*;
 
-  fn make_scope<'a>(symbol_table: &'a mut SymbolTable) -> Scope<'a> {
-    let mut scope = Scope::new(symbol_table);
+  fn make_scope<'a>(symbol_table: &'a mut SymbolTable) -> ScopeMut<'a> {
+    let mut scope = ScopeMut::new(symbol_table);
 
     for i in 0..4 {
       let var1 = format!("{}{}", "x", i);

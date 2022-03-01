@@ -1,5 +1,5 @@
 use super::{
-  context::{ContextLocation, Scope, SymbolTable},
+  context::{ContextLocation, ScopeMut, SymbolTable},
   equal_types, expected_type,
   unify::Unifiable,
   HasType, SemanticError,
@@ -21,7 +21,7 @@ impl ReturnBehaviour {
 }
 
 impl HasType for AssignLhs {
-  fn get_type(&self, scope: &Scope, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
     match self {
       AssignLhs::Ident(id) => id.get_type(scope, errors),
       AssignLhs::ArrayElem(elem) => elem.get_type(scope, errors),
@@ -32,7 +32,7 @@ impl HasType for AssignLhs {
 
 #[allow(unused_variables)]
 impl HasType for AssignRhs {
-  fn get_type(&self, scope: &Scope, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
     match self {
       AssignRhs::Expr(exp) => exp.get_type(scope, errors),
       AssignRhs::ArrayLiter(lit) => lit.get_type(scope, errors),
@@ -104,7 +104,7 @@ impl HasType for AssignRhs {
 }
 
 impl HasType for PairElem {
-  fn get_type(&self, scope: &Scope, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
     match self {
       PairElem::Fst(p) => match p.get_type(scope, errors)? {
         Type::Pair(left, _) => match *left {
@@ -149,7 +149,7 @@ impl HasType for PairElem {
 }
 
 impl HasType for ArrayLiter {
-  fn get_type(&self, scope: &Scope, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
     let ArrayLiter(exprs) = self;
 
     /* Take first element as source of truth. */
@@ -169,7 +169,7 @@ impl HasType for ArrayLiter {
 }
 
 pub fn scoped_stat(
-  scope: &Scope,
+  scope: &ScopeMut,
   errors: &mut Vec<SemanticError>,
   ScopedStat(new_symbol_table, statement): &mut ScopedStat,
 ) -> Option<ReturnBehaviour> {
@@ -187,7 +187,7 @@ Scopes will make a new scope within the symbol table.
 If the statment ALWAYS returns with the same type, returns that type. */
 #[allow(dead_code)]
 pub fn stat(
-  scope: &mut Scope,
+  scope: &mut ScopeMut,
   errors: &mut Vec<SemanticError>,
   statement: &mut Stat,
 ) -> Option<ReturnBehaviour> {
@@ -339,7 +339,7 @@ mod tests {
   #[test]
   fn assign_lhs() {
     let mut symbol_table = SymbolTable::default();
-    let scope = &mut Scope::new(&mut symbol_table);
+    let scope = &mut ScopeMut::new(&mut symbol_table);
 
     /* Identifiers cause */
     let x_id = String::from("x");
@@ -374,7 +374,7 @@ mod tests {
     let mut intx5 = Stat::Declaration(Type::Int, x(), AssignRhs::Expr(Expr::IntLiter(5)));
 
     let mut outer_symbol_table = SymbolTable::default();
-    let mut outer_scope = Scope::new(&mut outer_symbol_table);
+    let mut outer_scope = ScopeMut::new(&mut outer_symbol_table);
 
     stat(&mut outer_scope, &mut vec![], &mut intx5);
 
@@ -410,7 +410,7 @@ mod tests {
     )));
 
     let mut outer_symbol_table = SymbolTable::default();
-    let mut global_scope = Scope::new(&mut outer_symbol_table);
+    let mut global_scope = ScopeMut::new(&mut outer_symbol_table);
 
     stat(&mut global_scope, &mut vec![], &mut statement);
     /* x and z should now be in outer scope */
@@ -435,7 +435,7 @@ mod tests {
     };
 
     /* When in outer scope, x and z should be ints. */
-    let outer_scope = Scope::new(&mut st);
+    let outer_scope = ScopeMut::new(&mut st);
     assert_eq!(outer_scope.get_type(&x()), Some(&Type::Int));
     assert_eq!(outer_scope.get_type(&z()), Some(&Type::Int));
 
