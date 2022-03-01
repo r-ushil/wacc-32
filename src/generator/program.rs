@@ -69,6 +69,15 @@ impl Generatable for Func {
     ADD sp, sp, #4 */
     self.body.generate(scope, code, min_reg);
 
+    /* Main function implicitly ends in return 0. */
+    if main {
+      code.text.push(Asm::always(Instr::Load(
+        DataSize::Word,
+        Reg::RegNum(0),
+        LoadArg::Imm(0),
+      )))
+    }
+
     /* Jump back to caller.
     POP {pc} */
     code.text.push(Asm::always(Instr::Pop(Reg::PC)));
