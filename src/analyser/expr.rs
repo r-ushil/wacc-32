@@ -114,7 +114,7 @@ mod tests {
 
   #[test]
   fn literals() {
-    let mut symbol_table = SymbolTable::new();
+    let mut symbol_table = SymbolTable::default();
     let scope = &Scope::new(&mut symbol_table);
 
     assert_eq!(
@@ -137,7 +137,7 @@ mod tests {
 
   #[test]
   fn idents() {
-    let mut symbol_table = SymbolTable::new();
+    let mut symbol_table = SymbolTable::default();
     let mut scope = Scope::new(&mut symbol_table);
     populate_scope(&mut scope, "var");
 
@@ -152,7 +152,7 @@ mod tests {
     let x = String::from("x");
     let x_type = Type::Array(Box::new(Type::Int));
 
-    let mut symbol_table = SymbolTable::new();
+    let mut symbol_table = SymbolTable::default();
     let mut scope = Scope::new(&mut symbol_table);
     scope.insert(&x, x_type);
 
@@ -165,7 +165,7 @@ mod tests {
   #[test]
   fn unary_apps() {
     /* Symbol Table */
-    let mut symbol_table = SymbolTable::new();
+    let mut symbol_table = SymbolTable::default();
     let scope = &mut Scope::new(&mut symbol_table);
 
     /* BANG */
@@ -241,7 +241,7 @@ mod tests {
 
   #[test]
   fn binary_apps() {
-    let mut symbol_table = SymbolTable::new();
+    let mut symbol_table = SymbolTable::default();
     let scope = &mut Scope::new(&mut symbol_table);
 
     /* 5 + false: ERROR */

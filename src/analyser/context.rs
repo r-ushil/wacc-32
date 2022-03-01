@@ -12,7 +12,10 @@ pub enum ContextLocation {
   If,
 }
 
-pub type SymbolTable = HashMap<Ident, Type>;
+pub type Offset = u32;
+/* Associates each ident with an offset from the TOP of this stack frame,
+also stores the total size of this stack frame. */
+pub type SymbolTable = (HashMap<Ident, (Type, Offset)>, Offset);
 
 #[derive(Debug)]
 pub struct Scope<'a> {
@@ -45,19 +48,35 @@ impl Scope<'_> {
   }
 
   /* Returns type of given ident */
-  pub fn get(&self, ident: &Ident) -> Option<&Type> {
-    match self.symbol_table.get(ident) {
+  pub fn get_type(&self, ident: &Ident) -> Option<&Type> {
+    match self.symbol_table.0.get(ident) {
       /* Identifier declared in this scope, return. */
-      Some(t) => Some(t),
+      Some((t, _)) => Some(t),
       /* Look for identifier in parent scope, recurse. */
-      None => self.context?.1.get(ident),
+      None => self.context?.1.get_type(ident),
+    }
+  }
+
+  pub fn get_offset(&self, ident: &Ident) -> Option<u32> {
+    match self.symbol_table.0.get(ident) {
+      /* Identifier declared in this scope, return. */
+      Some((_, base_offset)) => Some(self.symbol_table.1 - base_offset),
+      /* Look for identifier in parent scope, recurse. */
+      None => Some(self.context?.1.get_offset(ident)? + self.symbol_table.1),
     }
   }
 
   /* Sets type of ident to val, if ident already exists, updates it and
   returns old value. */
   pub fn insert(&mut self, ident: &Ident, val: Type) -> Option<()> {
-    match self.symbol_table.insert(ident.clone(), val) {
+    /* Stackframe will be increased in size by val bytes */
+    self.symbol_table.1 += val.get_size();
+
+    /* Offset of this variable from top of stack frame will be size
+    of stack from. */
+    let offset = self.symbol_table.1;
+
+    match self.symbol_table.0.insert(ident.clone(), (val, offset)) {
       /* Val replaced something but we aren't allowed to change the type of
       variables, return None signifiying error. */
       Some(_) => None,
@@ -97,23 +116,23 @@ mod tests {
 
   #[test]
   fn test_table_lookup() {
-    let mut symbol_table = SymbolTable::new();
+    let mut symbol_table = SymbolTable::default();
     let scope = make_scope(&mut symbol_table);
 
-    assert_eq!(scope.get(&String::from("x3")), Some(&Type::Bool));
-    assert_eq!(scope.get(&String::from("z3")), Some(&Type::String));
-    assert_ne!(scope.get(&String::from("v3")), Some(&Type::String));
+    assert_eq!(scope.get_type(&String::from("x3")), Some(&Type::Bool));
+    assert_eq!(scope.get_type(&String::from("z3")), Some(&Type::String));
+    assert_ne!(scope.get_type(&String::from("v3")), Some(&Type::String));
 
-    assert_eq!(scope.get(&String::from("random")), None,);
+    assert_eq!(scope.get_type(&String::from("random")), None,);
   }
 
   #[test]
   fn test_table_update() {
-    let mut symbol_table = SymbolTable::new();
+    let mut symbol_table = SymbolTable::default();
     let mut scope = make_scope(&mut symbol_table);
 
     assert_eq!(scope.insert(&String::from("g"), Type::Char), Some(()));
 
-    assert_ne!(scope.get(&String::from("g")), Some(&Type::Bool));
+    assert_ne!(scope.get_type(&String::from("g")), Some(&Type::Bool));
   }
 }

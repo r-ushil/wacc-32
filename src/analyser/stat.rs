@@ -338,7 +338,7 @@ mod tests {
 
   #[test]
   fn assign_lhs() {
-    let mut symbol_table = SymbolTable::new();
+    let mut symbol_table = SymbolTable::default();
     let scope = &mut Scope::new(&mut symbol_table);
 
     /* Identifiers cause */
@@ -373,12 +373,12 @@ mod tests {
     let x = || String::from("x");
     let mut intx5 = Stat::Declaration(Type::Int, x(), AssignRhs::Expr(Expr::IntLiter(5)));
 
-    let mut outer_symbol_table = SymbolTable::new();
+    let mut outer_symbol_table = SymbolTable::default();
     let mut outer_scope = Scope::new(&mut outer_symbol_table);
 
     stat(&mut outer_scope, &mut vec![], &mut intx5);
 
-    assert_eq!(outer_scope.get(&x()), Some(&Type::Int));
+    assert_eq!(outer_scope.get_type(&x()), Some(&Type::Int));
   }
 
   #[test]
@@ -409,14 +409,14 @@ mod tests {
       )),
     )));
 
-    let mut outer_symbol_table = SymbolTable::new();
-    let mut outer_scope = Scope::new(&mut outer_symbol_table);
+    let mut outer_symbol_table = SymbolTable::default();
+    let mut global_scope = Scope::new(&mut outer_symbol_table);
 
-    stat(&mut outer_scope, &mut vec![], &mut statement);
+    stat(&mut global_scope, &mut vec![], &mut statement);
     /* x and z should now be in outer scope */
 
     /* Retrieve inner and outer st from statement ast. */
-    let (st, inner_st) = if let Stat::Scope(ScopedStat(st, statement)) = statement {
+    let (mut st, mut inner_st) = if let Stat::Scope(ScopedStat(st, statement)) = statement {
       if let Stat::Sequence(_intx5, everything_else) = *statement {
         if let Stat::Sequence(inner_scope_stat, _intz7) = *everything_else {
           if let Stat::Scope(ScopedStat(inner_st, _)) = *inner_scope_stat {
@@ -434,9 +434,26 @@ mod tests {
       panic!("outer statement structure has been changed!")
     };
 
-    assert_eq!(st.get(&x()), Some(&Type::Int));
-    assert_eq!(st.get(&z()), Some(&Type::Int));
+    /* When in outer scope, x and z should be ints. */
+    let outer_scope = Scope::new(&mut st);
+    assert_eq!(outer_scope.get_type(&x()), Some(&Type::Int));
+    assert_eq!(outer_scope.get_type(&z()), Some(&Type::Int));
 
-    assert_eq!(inner_st.get(&y()), Some(&Type::Int));
+    /* Check offsets are correct from outer scope. */
+    assert_eq!(outer_scope.get_offset(&x()), Some(4));
+    assert_eq!(outer_scope.get_offset(&z()), Some(0));
+
+    /* When in inner scope, x, y, and z should be ints. */
+    let inner_scope = outer_scope.new_scope(&mut inner_st);
+    assert_eq!(inner_scope.get_type(&x()), Some(&Type::Int));
+    assert_eq!(inner_scope.get_type(&y()), Some(&Type::Int));
+    assert_eq!(inner_scope.get_type(&z()), Some(&Type::Int));
+
+    /* x and z's offsets should be offset by 4 more now because y is using 4 bytes. */
+    assert_eq!(inner_scope.get_offset(&x()), Some(8));
+    assert_eq!(inner_scope.get_offset(&z()), Some(4));
+
+    /* y should now have +0 offset */
+    assert_eq!(inner_scope.get_offset(&y()), Some(0));
   }
 }

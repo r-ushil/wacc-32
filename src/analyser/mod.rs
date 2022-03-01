@@ -123,7 +123,7 @@ impl<T: HasType> HasType for Box<T> {
 
 impl HasType for Ident {
   fn get_type(&self, scope: &Scope, errors: &mut Vec<SemanticError>) -> Option<Type> {
-    match scope.get(self) {
+    match scope.get_type(self) {
       Some(t) => Some(t.clone()),
       None => {
         scope.add_error(
@@ -197,7 +197,7 @@ mod tests {
   fn charlie_test() {
     let id = String::from("x");
 
-    let mut symbol_table = SymbolTable::new();
+    let mut symbol_table = SymbolTable::default();
     let mut scope = Scope::new(&mut symbol_table);
 
     /* x: Array(Array(Int)) */
@@ -221,7 +221,7 @@ mod tests {
   fn idents() {
     let x = String::from("x");
     let x_type = Type::Int;
-    let mut symbol_table = SymbolTable::new();
+    let mut symbol_table = SymbolTable::default();
     let mut scope = Scope::new(&mut symbol_table);
 
     /* x: BaseType(Int) */
@@ -237,7 +237,7 @@ mod tests {
   fn array_elems() {
     let id = String::from("x");
 
-    let mut symbol_table = SymbolTable::new();
+    let mut symbol_table = SymbolTable::default();
     let mut scope = Scope::new(&mut symbol_table);
 
     /* x: Array(Array(Int)) */

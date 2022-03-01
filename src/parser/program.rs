@@ -29,7 +29,7 @@ pub fn program(input: &str) -> IResult<&str, Program, ErrorTree<&str>> {
     Program {
       funcs,
       statement,
-      symbol_table: SymbolTable::new(),
+      symbol_table: SymbolTable::default(),
     },
   ))
 }
@@ -59,7 +59,7 @@ fn func(input: &str) -> IResult<&str, Func, ErrorTree<&str>> {
         return_type,
       },
       body,
-      symbol_table: SymbolTable::new(),
+      symbol_table: SymbolTable::default(),
     },
   ))
 }
@@ -87,7 +87,7 @@ mod tests {
           },
           ident: "foo".to_string(),
           body: Stat::Return(Expr::Ident("x".to_string())),
-          symbol_table: SymbolTable::new(),
+          symbol_table: SymbolTable::default(),
         }),
         statement: Stat::Declaration(
           Type::Int,
@@ -101,7 +101,7 @@ mod tests {
             )),
           )
         ),
-        symbol_table: SymbolTable::new(),
+        symbol_table: SymbolTable::default(),
       }
     ));
   }
@@ -123,7 +123,7 @@ mod tests {
           BinaryOper::Add,
           Box::new(Expr::Ident("y".to_string()))
         )),
-        symbol_table: SymbolTable::new(),
+        symbol_table: SymbolTable::default(),
       }
     ));
 
@@ -138,7 +138,7 @@ mod tests {
         },
         ident: "exitThree".to_string(),
         body: Stat::Exit(Expr::IntLiter(3)),
-        symbol_table: SymbolTable::new(),
+        symbol_table: SymbolTable::default(),
       }
     ));
   }

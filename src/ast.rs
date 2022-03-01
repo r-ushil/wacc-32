@@ -47,7 +47,7 @@ pub struct ScopedStat(pub SymbolTable, pub Box<Stat>);
 
 impl ScopedStat {
   pub fn new(statement: Stat) -> ScopedStat {
-    ScopedStat(SymbolTable::new(), Box::new(statement))
+    ScopedStat(SymbolTable::default(), Box::new(statement))
   }
 }
 
@@ -83,6 +83,19 @@ pub enum Type {
   Array(Box<Type>),
   Pair(Box<Type>, Box<Type>),
   Func(Box<FuncSig>),
+}
+
+impl Type {
+  /* Returns how many bytes are required to store a value of this type. */
+  pub fn get_size(&self) -> u32 {
+    use Type::*;
+    match self {
+      Bool | Char => 1,
+      Any => panic!("Size of Type::Any can not be known."),
+      Func(_) => 0,
+      _ => 4,
+    }
+  }
 }
 
 #[derive(PartialEq, Debug, Clone)]

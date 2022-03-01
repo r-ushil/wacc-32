@@ -74,7 +74,7 @@ mod tests {
 
   #[test]
   fn func_parameters_checked() {
-    let mut symbol_table = SymbolTable::new();
+    let mut symbol_table = SymbolTable::default();
     let scope = &mut Scope::new(&mut symbol_table);
 
     /* Function */
@@ -90,7 +90,7 @@ mod tests {
         BinaryOper::Mul,
         Box::new(Expr::IntLiter(2)),
       )),
-      symbol_table: SymbolTable::new(),
+      symbol_table: SymbolTable::default(),
     };
 
     /* Works in it's default form. */
@@ -125,7 +125,7 @@ mod tests {
         BinaryOper::Mul,
         Box::new(Expr::IntLiter(2)),
       )),
-      symbol_table: SymbolTable::new(),
+      symbol_table: SymbolTable::default(),
     };
 
     /* Both branches of if statements must return correct type. */
@@ -139,7 +139,7 @@ mod tests {
       ScopedStat::new(Stat::Return(Expr::IntLiter(2))),
     );
     assert!(func(
-      &mut Scope::new(&mut SymbolTable::new()),
+      &mut Scope::new(&mut SymbolTable::default()),
       &mut vec![],
       &mut f3
     )
@@ -156,7 +156,7 @@ mod tests {
     );
 
     assert!(func(
-      &mut Scope::new(&mut SymbolTable::new()),
+      &mut Scope::new(&mut SymbolTable::default()),
       &mut vec![],
       &mut f4
     )
@@ -172,7 +172,7 @@ mod tests {
       Box::new(Stat::Return(Expr::IntLiter(5))),
     );
     let x = func(
-      &mut Scope::new(&mut SymbolTable::new()),
+      &mut Scope::new(&mut SymbolTable::default()),
       &mut vec![],
       &mut f5,
     );
@@ -193,7 +193,7 @@ mod tests {
       Box::new(Stat::Print(Expr::StrLiter(String::from("Hello World")))),
     );
     assert!(func(
-      &mut Scope::new(&mut SymbolTable::new()),
+      &mut Scope::new(&mut SymbolTable::default()),
       &mut vec![],
       &mut f6
     )
