@@ -157,7 +157,10 @@ impl Generatable for Stat {
       Stat::If(_, _, _) => todo!(),
       Stat::While(_, _) => todo!(),
       Stat::Scope(_) => todo!(),
-      Stat::Sequence(_, _) => todo!(),
+      Stat::Sequence(head, tail) => {
+        head.generate(code, min_reg);
+        tail.generate(code, min_reg);
+      }
     }
   }
 }
