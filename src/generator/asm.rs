@@ -208,13 +208,25 @@ impl From<Imm> for Op2 {
   }
 }
 
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum Reg {
   RegNum(RegNum),
   StackPointer,
   Link,
   PC,
 }
+
+/* General purpose registers usable for expression evaluation. */
+pub const GENERAL_REGS: [Reg; 8] = [
+  Reg::RegNum(4),
+  Reg::RegNum(5),
+  Reg::RegNum(6),
+  Reg::RegNum(7),
+  Reg::RegNum(8),
+  Reg::RegNum(9),
+  Reg::RegNum(10),
+  Reg::RegNum(11),
+];
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum CondCode {

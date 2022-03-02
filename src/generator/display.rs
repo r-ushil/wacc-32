@@ -8,10 +8,16 @@ converted to text for an assembly file. */
 
 impl Display for GeneratedCode {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    self
-      .data
-      .iter()
-      .try_for_each(|asm| write!(f, "{}\n", asm))?;
+    if self.data.len() > 1 {
+      /* If there is only a single thing in data, that's ".data", and there's
+      no point outputting that if there is nothing in the data segment. */
+      self
+        .data
+        .iter()
+        .try_for_each(|asm| write!(f, "{}\n", asm))?;
+    }
+
+    /* Always output .text segment. */
     self
       .text
       .iter()
@@ -29,7 +35,7 @@ impl Display for Asm {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       Asm::Directive(d) => write!(f, "{}", d),
-      Asm::Instr(cond, i) => write!(f, "  {}{}", cond, i),
+      Asm::Instr(cond, i) => write!(f, "\t{}{}", cond, i),
     }
   }
 }
@@ -38,9 +44,9 @@ impl Display for Directive {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     use Directive::*;
     match self {
-      Text => write!(f, ".text\n.global main"),
+      Text => write!(f, ".text\n\n.global main"),
       Data => write!(f, ".data"),
-      Assemble => write!(f, ".ltorg"),
+      Assemble => write!(f, "\t.ltorg"),
       Label(l) => write!(f, "{}:", l),
       Word(n) => write!(f, ".word {}", n),
       Ascii(s) => write!(f, ".ascii \"{}\"", s),
@@ -61,7 +67,7 @@ impl Display for MemAddress {
 impl Display for LoadArg {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
-      LoadArg::Imm(val) => write!(f, "#{}", val),
+      LoadArg::Imm(val) => write!(f, "={}", val),
       LoadArg::MemAddress(addr) => write!(f, "{}", addr),
       LoadArg::Label(msg) => write!(f, "={}", msg),
     }

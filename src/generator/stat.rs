@@ -19,78 +19,76 @@ impl Generatable for ArrayLiter {
 }
 
 impl Generatable for Stat {
-  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, min_reg: &mut RegNum) {
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
     match self {
       Stat::Skip => (),
       // Stat::Declaration(_, _, _) => todo!(),
       // Stat::Assignment(_, _) => todo!(),
-      Stat::Read(expr) => {
-        // expr is expected to be an identifier, needs to read into a variable
-        expr.generate(scope, code, min_reg); //generate expr, load into min_reg
+      // Stat::Read(expr) => {
+      // TODO: expr is not and Expr or an Ident, function needs re-writing.
+      // // expr is expected to be an identifier, needs to read into a variable
+      // expr.generate(scope, code, regs); //generate expr, load into min_reg
 
-        /* MOV r0, {min_reg} */
-        code.text.push(Asm::Instr(
-          CondCode::AL,
-          Instr::Unary(
-            UnaryInstr::Mov,
-            Reg::RegNum(0),
-            Op2::Reg(Reg::RegNum(*min_reg), 0),
-            false,
-          ),
-        ));
-        //expr.get_type //todo!() get type of ident
-        let read_type = if true {
-          code.predefs.read_char = true;
-          ReadFmt::Char
-        } else {
-          code.predefs.read_int = true;
-          ReadFmt::Int
-        }; //replace true with expr type check
+      // /* MOV r0, {min_reg} */
+      // code.text.push(Asm::Instr(
+      //   CondCode::AL,
+      //   Instr::Unary(
+      //     UnaryInstr::Mov,
+      //     Reg::General(0),
+      //     Op2::Reg(Reg::General(*regs), 0),
+      //     false,
+      //   ),
+      // ));
+      // //expr.get_type //todo!() get type of ident
+      // let read_type = if true {
+      //   code.predefs.read_char = true;
+      //   ReadFmt::Char
+      // } else {
+      //   code.predefs.read_int = true;
+      //   ReadFmt::Int
+      // }; //replace true with expr type check
 
-        /* BL p_read_{read_type} */
-        code.text.push(Asm::Instr(
-          CondCode::AL,
-          Instr::Branch(true, format!("p_read_{}", read_type)),
-        ));
+      // /* BL p_read_{read_type} */
+      // code.text.push(Asm::Instr(
+      //   CondCode::AL,
+      //   Instr::Branch(true, format!("p_read_{}", read_type)),
+      // ));
 
-        *min_reg = *min_reg - 1; //decrement min_reg by 1, no longer needed
-      }
-      Stat::Free(expr) => {
-        //expr must be of type ident, referring to a pair
+      // *regs = *regs - 1; //decrement min_reg by 1, no longer needed
+      // }
+      // Stat::Free(expr) => {
+      // TODO: expr is not and Expr or an Ident, function needs re-writing.
+      // //expr must be of type ident, referring to a pair
 
-        expr.generate(scope, code, min_reg); //load pair address into min_reg
-                                             /* MOV r0, {min_reg}        //move pair address into r0 */
-        code.text.push(Asm::Instr(
-          CondCode::AL,
-          Instr::Unary(
-            UnaryInstr::Mov,
-            Reg::RegNum(0),
-            Op2::Reg(Reg::RegNum(*min_reg), 0),
-            false,
-          ),
-        ));
+      // expr.generate(scope, code, regs); //load pair address into min_reg
+      //                                   /* MOV r0, {min_reg}        //move pair address into r0 */
+      // code.text.push(Asm::Instr(
+      //   CondCode::AL,
+      //   Instr::Unary(
+      //     UnaryInstr::Mov,
+      //     Reg::General(0),
+      //     Op2::Reg(Reg::General(*regs), 0),
+      //     false,
+      //   ),
+      // ));
 
-        code.predefs.free_pair = true; //set free_pair flag to true
-                                       /* BL p_free_pair */
-        code.text.push(Asm::Instr(
-          CondCode::AL,
-          Instr::Branch(true, String::from("p_free_pair")),
-        ));
+      // code.predefs.free_pair = true; //set free_pair flag to true
+      //                                /* BL p_free_pair */
+      // code.text.push(Asm::Instr(
+      //   CondCode::AL,
+      //   Instr::Branch(true, String::from("p_free_pair")),
+      // ));
 
-        *min_reg = *min_reg - 1; //decrement min_reg by 1, no longer needed
-      }
+      // *regs = *regs - 1; //decrement min_reg by 1, no longer needed
+      // }
       Stat::Return(expr) => {
-        expr.generate(scope, code, min_reg); //return value will be stored in min_reg
+        /* regs[0] = eval(expr) */
+        expr.generate(scope, code, regs);
 
-        /* MOV r0, {min_reg} */
+        /* r0 = regs[0] */
         code.text.push(Asm::Instr(
           CondCode::AL,
-          Instr::Unary(
-            UnaryInstr::Mov,
-            Reg::RegNum(0),
-            Op2::Reg(Reg::RegNum(*min_reg), 0),
-            false,
-          ),
+          Instr::Unary(UnaryInstr::Mov, Reg::RegNum(0), Op2::Reg(regs[0], 0), false),
         ));
 
         // todo!()
@@ -118,22 +116,15 @@ impl Generatable for Stat {
         code
           .text
           .push(Asm::Instr(CondCode::AL, Instr::Pop(Reg::PC)));
-
-        *min_reg = *min_reg - 1; //decrement min_reg by 1, no longer needed
       }
       Stat::Exit(expr) => {
-        /* Evalutates expression into min_reg */
-        expr.generate(scope, code, min_reg);
+        /* regs[0] = eval(expr) */
+        expr.generate(scope, code, regs);
 
-        /* MOV r0, r{min_reg} */
+        /* r0 = regs[0] */
         code.text.push(Asm::Instr(
           CondCode::AL,
-          Instr::Unary(
-            UnaryInstr::Mov,
-            Reg::RegNum(0),
-            Op2::Reg(Reg::RegNum(*min_reg), 0),
-            false,
-          ),
+          Instr::Unary(UnaryInstr::Mov, Reg::RegNum(0), Op2::Reg(regs[0], 0), false),
         ));
 
         /* B exit */
@@ -162,12 +153,12 @@ impl Generatable for Stat {
       // Stat::While(_, _) => todo!(),
       // Stat::Scope(_) => todo!(),
       Stat::Sequence(head, tail) => {
-        head.generate(scope, code, min_reg);
-        tail.generate(scope, code, min_reg);
+        head.generate(scope, code, regs);
+        tail.generate(scope, code, regs);
       }
       _ => code.text.push(Asm::Directive(Directive::Label(format!(
         "{:?}.generate(_, {:?})",
-        self, min_reg
+        self, regs
       )))),
     }
   }
@@ -225,15 +216,15 @@ mod tests {
     let scope = &Scope::new(&symbol_table);
     let expr = Expr::IntLiter(0);
     let stat = Stat::Exit(expr.clone());
-    let min_regs = &mut 4;
+    let regs = &GENERAL_REGS;
 
     /* Actual output. */
     let mut actual_code = GeneratedCode::default();
-    stat.generate(scope, &mut actual_code, min_regs);
+    stat.generate(scope, &mut actual_code, regs);
 
     /* Expected output. */
     let mut expected_code = GeneratedCode::default();
-    expr.generate(scope, &mut expected_code, min_regs);
+    expr.generate(scope, &mut expected_code, regs);
 
     /* MOV r0, r4 */
     expected_code.text.push(Asm::Instr(

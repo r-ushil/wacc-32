@@ -15,9 +15,9 @@
 ../wacc_examples/valid/basic/exit/exitBasic2.wacc,./wacc_examples_assembled_ours/valid/basic/exit/exitBasic2.s,./wacc_examples_assembled/valid/basic/exit/exitBasic2.s,fail
 ../wacc_examples/valid/basic/exit/exitBasic.wacc,./wacc_examples_assembled_ours/valid/basic/exit/exitBasic.s,./wacc_examples_assembled/valid/basic/exit/exitBasic.s,fail
 ../wacc_examples/valid/basic/exit/exitWrap.wacc,./wacc_examples_assembled_ours/valid/basic/exit/exitWrap.s,./wacc_examples_assembled/valid/basic/exit/exitWrap.s,fail
-../wacc_examples/valid/basic/skip/commentInLine.wacc,./wacc_examples_assembled_ours/valid/basic/skip/commentInLine.s,./wacc_examples_assembled/valid/basic/skip/commentInLine.s,fail
-../wacc_examples/valid/basic/skip/comment.wacc,./wacc_examples_assembled_ours/valid/basic/skip/comment.s,./wacc_examples_assembled/valid/basic/skip/comment.s,fail
-../wacc_examples/valid/basic/skip/skip.wacc,./wacc_examples_assembled_ours/valid/basic/skip/skip.s,./wacc_examples_assembled/valid/basic/skip/skip.s,fail
+../wacc_examples/valid/basic/skip/commentInLine.wacc,./wacc_examples_assembled_ours/valid/basic/skip/commentInLine.s,./wacc_examples_assembled/valid/basic/skip/commentInLine.s,pass
+../wacc_examples/valid/basic/skip/comment.wacc,./wacc_examples_assembled_ours/valid/basic/skip/comment.s,./wacc_examples_assembled/valid/basic/skip/comment.s,pass
+../wacc_examples/valid/basic/skip/skip.wacc,./wacc_examples_assembled_ours/valid/basic/skip/skip.s,./wacc_examples_assembled/valid/basic/skip/skip.s,pass
 ../wacc_examples/valid/expressions/andExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/andExpr.s,./wacc_examples_assembled/valid/expressions/andExpr.s,fail
 ../wacc_examples/valid/expressions/andOverOrExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/andOverOrExpr.s,./wacc_examples_assembled/valid/expressions/andOverOrExpr.s,fail
 ../wacc_examples/valid/expressions/boolCalc.wacc,./wacc_examples_assembled_ours/valid/expressions/boolCalc.s,./wacc_examples_assembled/valid/expressions/boolCalc.s,fail
@@ -168,8 +168,8 @@
 ../wacc_examples/valid/scope/scope.wacc,./wacc_examples_assembled_ours/valid/scope/scope.s,./wacc_examples_assembled/valid/scope/scope.s,fail
 ../wacc_examples/valid/scope/scopeWhileNested.wacc,./wacc_examples_assembled_ours/valid/scope/scopeWhileNested.s,./wacc_examples_assembled/valid/scope/scopeWhileNested.s,fail
 ../wacc_examples/valid/scope/scopeWhileRedefine.wacc,./wacc_examples_assembled_ours/valid/scope/scopeWhileRedefine.s,./wacc_examples_assembled/valid/scope/scopeWhileRedefine.s,fail
-../wacc_examples/valid/sequence/basicSeq2.wacc,./wacc_examples_assembled_ours/valid/sequence/basicSeq2.s,./wacc_examples_assembled/valid/sequence/basicSeq2.s,fail
-../wacc_examples/valid/sequence/basicSeq.wacc,./wacc_examples_assembled_ours/valid/sequence/basicSeq.s,./wacc_examples_assembled/valid/sequence/basicSeq.s,fail
+../wacc_examples/valid/sequence/basicSeq2.wacc,./wacc_examples_assembled_ours/valid/sequence/basicSeq2.s,./wacc_examples_assembled/valid/sequence/basicSeq2.s,pass
+../wacc_examples/valid/sequence/basicSeq.wacc,./wacc_examples_assembled_ours/valid/sequence/basicSeq.s,./wacc_examples_assembled/valid/sequence/basicSeq.s,pass
 ../wacc_examples/valid/sequence/boolAssignment.wacc,./wacc_examples_assembled_ours/valid/sequence/boolAssignment.s,./wacc_examples_assembled/valid/sequence/boolAssignment.s,fail
 ../wacc_examples/valid/sequence/charAssignment.wacc,./wacc_examples_assembled_ours/valid/sequence/charAssignment.s,./wacc_examples_assembled/valid/sequence/charAssignment.s,fail
 ../wacc_examples/valid/sequence/exitSimple.wacc,./wacc_examples_assembled_ours/valid/sequence/exitSimple.s,./wacc_examples_assembled/valid/sequence/exitSimple.s,fail

@@ -4,7 +4,10 @@ use super::*;
 
 // #[derive(PartialEq, Debug, Clone)]
 impl Generatable for Program {
-  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, min_regs: &mut u8) {
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
+    /* No registers should be in use by this point. */
+    assert!(regs == GENERAL_REGS);
+
     /* Move into program's scope. */
     let scope = &scope.new_scope(&self.symbol_table);
 
@@ -12,7 +15,7 @@ impl Generatable for Program {
      * Each function is allowed to use the registers from min_regs variable
      * and up. */
     for function in &self.funcs {
-      function.generate(scope, code, min_regs);
+      function.generate(scope, code, regs);
     }
     /* The statement of the program should be compiled as if it is in a
      * function called main, which takes nothing and returns an int exit code */
@@ -25,18 +28,23 @@ impl Generatable for Program {
       body: *self.statement.1.clone(),
       symbol_table: self.statement.0.clone(),
     }
-    .generate(scope, code, min_regs);
+    .generate(scope, code, regs);
   }
 }
 
 impl Generatable for Func {
-  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, min_reg: &mut RegNum) {
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
+    /* No registers should be in use by this point. */
+    assert!(regs == GENERAL_REGS);
+
+    // TODO: make this a more robust check
+    let main = self.ident == "main";
+
     /* Comments reflect the following example:
     int foo(int x) is
       int y = 5;
       return x
     end */
-    assert!(*min_reg == 4);
 
     /* Move into function scope. */
     let scope = &scope.new_scope(&self.symbol_table);
@@ -44,7 +52,8 @@ impl Generatable for Func {
     /* Function label.
     foo: */
     code.text.push(Asm::Directive(Directive::Label(format!(
-      "f_{}",
+      "{}{}",
+      if main { "" } else { "f_" },
       self.ident
     ))));
 
@@ -63,7 +72,16 @@ impl Generatable for Func {
     LDR r4, [sp, #8]
     MOV r0, r4
     ADD sp, sp, #4 */
-    self.body.generate(scope, code, min_reg);
+    self.body.generate(scope, code, regs);
+
+    /* Main function implicitly ends in return 0. */
+    if main {
+      code.text.push(Asm::always(Instr::Load(
+        DataSize::Word,
+        Reg::RegNum(0),
+        LoadArg::Imm(0),
+      )))
+    }
 
     /* Jump back to caller.
     POP {pc} */
@@ -71,7 +89,7 @@ impl Generatable for Func {
 
     /* Put a second jump if not in main to mimick refcompile behaviour.
     POP {pc} */
-    if self.ident != "main" {
+    if !main {
       code.text.push(Asm::always(Instr::Pop(Reg::PC)));
     }
 

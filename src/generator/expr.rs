@@ -3,13 +3,13 @@ use super::*;
 use crate::generator::asm::*;
 
 impl Generatable for Expr {
-  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, min_regs: &mut u8) {
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
     match self {
       Expr::IntLiter(val) => {
         /* LDR r{min_reg}, val */
         code.text.push(Asm::Instr(
           AL,
-          Instr::Load(DataSize::Word, Reg::RegNum(*min_regs), LoadArg::Imm(*val)),
+          Instr::Load(DataSize::Word, regs[0], LoadArg::Imm(*val)),
         ))
       }
 
@@ -20,12 +20,7 @@ impl Generatable for Expr {
         /* MOV r{min_reg}, #imm */
         code.text.push(Asm::Instr(
           AL,
-          Instr::Unary(
-            UnaryInstr::Mov,
-            Reg::RegNum(*min_regs),
-            Op2::Imm(imm),
-            false,
-          ),
+          Instr::Unary(UnaryInstr::Mov, regs[0], Op2::Imm(imm), false),
         ))
       }
 
@@ -33,12 +28,7 @@ impl Generatable for Expr {
         /* MOV r{min_reg}, #'val' */
         code.text.push(Asm::Instr(
           AL,
-          Instr::Unary(
-            UnaryInstr::Mov,
-            Reg::RegNum(*min_regs),
-            Op2::Char(*val),
-            false,
-          ),
+          Instr::Unary(UnaryInstr::Mov, regs[0], Op2::Char(*val), false),
         ))
       }
 
@@ -63,7 +53,7 @@ impl Generatable for Expr {
           AL,
           Instr::Load(
             DataSize::Word,
-            Reg::RegNum(*min_regs),
+            regs[0],
             LoadArg::Label(format!("msg_{}", msg_no)),
           ),
         ))
@@ -73,24 +63,25 @@ impl Generatable for Expr {
       // Expr::Ident(_) => todo!(),
       // Expr::ArrayElem(_) => todo!(),
       Expr::UnaryApp(op, exp) => {
-        exp.generate(scope, code, min_regs);
-        let reg = Reg::RegNum(*min_regs);
-        unary_op_gen(op, code, reg);
+        /* Stores expression's value in regs[0]. */
+        exp.generate(scope, code, regs);
+
+        /* Applies unary operator to regs[0]. */
+        unary_op_gen(op, code, regs[0]);
       }
       Expr::BinaryApp(exp1, op, exp2) => {
-        exp1.generate(scope, code, min_regs);
+        /* regs[0] = eval(exp1) */
+        exp1.generate(scope, code, regs);
 
-        let reg1 = Reg::RegNum(*min_regs);
-        *min_regs = *min_regs + 1;
-        exp2.generate(scope, code, &mut (*min_regs));
-        let reg2 = Reg::RegNum(*min_regs);
-        *min_regs = *min_regs - 1;
+        /* regs[1] = eval(exp2) */
+        exp2.generate(scope, code, &regs[1..]);
 
-        binary_op_gen(op, code, reg1, reg2);
+        /* regs[0] = regs[0] <op> regs[1] */
+        binary_op_gen(op, code, regs[0], regs[1]);
       }
       _ => code.text.push(Asm::Directive(Directive::Label(format!(
         "{:?}.generate(_, {:?})",
-        self, min_regs
+        self, regs
       )))),
     }
   }
