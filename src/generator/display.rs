@@ -60,7 +60,7 @@ impl Display for LoadArg {
       LoadArg::Imm(val) => write!(f, "={}", val),
       LoadArg::MemAddress(reg, offset) => {
         if *offset == 0 {
-          write!(f, "{}", reg)
+          write!(f, "[{}]", reg)
         } else {
           write!(f, "[{}, #{}]", reg, offset)
         }
@@ -87,7 +87,7 @@ impl Display for Instr {
       Store(size, dst, (src, off)) => {
         write!(f, "STR{} {}, ", size, dst)?;
         if *off == 0 {
-          write!(f, "{}", src)
+          write!(f, "[{}]", src)
         } else {
           write!(f, "[{}, #{}]", src, off)
         }
@@ -163,7 +163,7 @@ impl Display for Op2 {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     use Op2::*;
     match self {
-      Imm(val) => write!(f, "={}", val),
+      Imm(val) => write!(f, "#{}", val),
       Reg(reg, shift) => {
         write!(f, "{}", reg)?;
         if *shift > 0 {
