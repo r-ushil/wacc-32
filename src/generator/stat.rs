@@ -76,8 +76,20 @@ impl Generatable for Stat {
   fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
     match self {
       Stat::Skip => (),
-      // Stat::Declaration(_, _, _) => todo!(),
-      // Stat::Assignment(_, _) => todo!(),
+      Stat::Declaration(_, id, rhs) => {
+        Stat::Assignment(AssignLhs::Ident(id.clone()), rhs.clone()).generate(scope, code, regs);
+      }
+      Stat::Assignment(lhs, rhs) => {
+        /* regs[0] = eval(rhs) */
+        rhs.generate(scope, code, regs);
+
+        /* regs[1] = address of lhs */
+        lhs.generate(scope, code, &regs[1..]);
+
+        /* Write rhs to lhs */
+        // TODO: calculate data size instead of assuming word
+        Asm::always(Instr::Store(DataSize::Word, regs[0], (regs[1], 0)));
+      }
       // Stat::Read(expr) => {
       // TODO: expr is not and Expr or an Ident, function needs re-writing.
       // // expr is expected to be an identifier, needs to read into a variable
