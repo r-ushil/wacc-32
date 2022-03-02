@@ -21,15 +21,67 @@ fn generate_lhs(lhs: &AssignLhs, scope: &Scope, code: &mut GeneratedCode, regs: 
   }
 }
 
-impl Generatable for AssignRhs {
-  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
-    match self {
-      AssignRhs::Expr(expr) => expr.generate(scope, code, regs),
-      _ => code.text.push(Asm::Directive(Directive::Label(format!(
-        "{:?}.generate(_, {:?})",
-        self, regs
-      )))),
+fn generate_rhs(rhs: &AssignRhs, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], t: &Type) {
+  match rhs {
+    AssignRhs::Expr(expr) => expr.generate(scope, code, regs),
+    AssignRhs::ArrayLiter(ArrayLiter(exprs)) => {
+      /* Calculate size of elements. */
+      let elem_size = match t {
+        Type::Array(elem_type) => elem_type.size(),
+        /* Semantic analyser should ensure this is an array. */
+        _ => unreachable!(),
+      };
+
+      /* Malloc enough space for it.
+      LDR r0, =16
+      BL malloc
+      MOV r4, r0 */
+      code.text.push(Asm::always(Instr::Load(
+        DataSize::Word,
+        Reg::RegNum(0),
+        LoadArg::Imm(4 + elem_size * exprs.len() as i32),
+      )));
+      code
+        .text
+        .push(Asm::always(Instr::Branch(true, String::from("malloc"))));
+      code.text.push(Asm::always(Instr::Unary(
+        UnaryInstr::Mov,
+        regs[0],
+        Op2::Reg(Reg::RegNum(0), 0),
+        false,
+      )));
+
+      /* Write each expression to the array. */
+      for (i, expr) in exprs.iter().enumerate() {
+        /* Evaluate expr to r5. */
+        expr.generate(scope, code, &regs[1..]);
+
+        /* Write r5 array. */
+        code.text.push(Asm::always(Instr::Store(
+          elem_size.into(),
+          regs[1],
+          (regs[0], 4 + (i as i32) * elem_size),
+        )));
+      }
+
+      /* Write length to first byte.
+      LDR r5, =3
+      STR r5, [r4] */
+      code.text.push(Asm::always(Instr::Load(
+        DataSize::Word,
+        regs[1],
+        LoadArg::Imm(exprs.len() as i32),
+      )));
+      code.text.push(Asm::always(Instr::Store(
+        DataSize::Word,
+        regs[1],
+        (regs[0], 0),
+      )));
     }
+    _ => code.text.push(Asm::Directive(Directive::Label(format!(
+      "{:?}.generate(_, {:?})",
+      rhs, regs
+    )))),
   }
 }
 
@@ -88,7 +140,7 @@ impl Generatable for Stat {
       }
       Stat::Assignment(lhs, t, rhs) => {
         /* regs[0] = eval(rhs) */
-        rhs.generate(scope, code, regs);
+        generate_rhs(rhs, scope, code, regs, t);
 
         /* stores value of regs[0] into lhs */
         generate_lhs(lhs, scope, code, regs, t);
