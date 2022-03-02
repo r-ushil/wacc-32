@@ -23,11 +23,19 @@ impl Generatable for AssignLhs {
 }
 
 impl Generatable for AssignRhs {
-  // fn generate(&self, _code: &mut Vec<Instr>, _registers: &[Reg]) {}
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
+    match self {
+      AssignRhs::Expr(expr) => expr.generate(scope, code, regs),
+      _ => code.text.push(Asm::Directive(Directive::Label(format!(
+        "{:?}.generate(_, {:?})",
+        self, regs
+      )))),
+    }
+  }
 }
 
 impl Generatable for PairElem {
-  // fn generate(&self, _code: &mut Vec<Instr>, _registers: &[Reg]) {}
+  // fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {}
 }
 
 impl Generatable for ArrayLiter {
