@@ -59,17 +59,18 @@ impl Generatable for Func {
     code.text.push(Asm::always(Instr::Push(Reg::Link)));
 
     /* Make new 4 byte scope to reserve space for link register. */
-    let lr_table = (HashMap::new(), 4);
+    let mut lr_table = SymbolTable::default();
+    lr_table.size = 4;
     let scope = &scope.new_scope(&lr_table);
 
     /* Allocate space on stack for local vars. */
-    if self.symbol_table.1 != 0 {
+    if self.symbol_table.size != 0 {
       /* Don't modify sp if we're only doing to decrement by 0. */
       code.text.push(Asm::always(Instr::Binary(
         BinaryInstr::Sub,
         Reg::StackPointer,
         Reg::StackPointer,
-        Op2::Imm(self.symbol_table.1),
+        Op2::Imm(self.symbol_table.size),
         false,
       )));
     }

@@ -48,7 +48,7 @@ impl Generatable for ScopedStat {
     let ScopedStat(st, statement) = self;
 
     /* No need to decrement stack pointer if no vars declared. */
-    let skip_decrement = st.1 == 0;
+    let skip_decrement = st.size == 0;
 
     /* Allocate space on stack for variables declared in this scope. */
     if !skip_decrement {
@@ -56,7 +56,7 @@ impl Generatable for ScopedStat {
         BinaryInstr::Sub,
         Reg::StackPointer,
         Reg::StackPointer,
-        Op2::Imm(st.1),
+        Op2::Imm(st.size),
         false,
       )));
     }
@@ -73,7 +73,7 @@ impl Generatable for ScopedStat {
         BinaryInstr::Add,
         Reg::StackPointer,
         Reg::StackPointer,
-        Op2::Imm(st.1),
+        Op2::Imm(st.size),
         false,
       )));
     }

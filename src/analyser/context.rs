@@ -15,7 +15,12 @@ pub enum ContextLocation {
 pub type Offset = i32;
 /* Associates each ident with an offset from the TOP of this stack frame,
 also stores the total size of this stack frame. */
-pub type SymbolTable = (HashMap<Ident, (Type, Offset)>, Offset);
+#[derive(PartialEq, Clone, Debug, Default)]
+pub struct SymbolTable {
+  pub table: HashMap<Ident, (Type, Offset)>,
+  /* Sum of offsets in table */
+  pub size: Offset,
+}
 
 #[derive(Debug)]
 pub struct ScopeMut<'a> {
@@ -49,7 +54,7 @@ impl ScopeMut<'_> {
 
   /* Returns type of given ident */
   pub fn get_type(&self, ident: &Ident) -> Option<&Type> {
-    match self.symbol_table.0.get(ident) {
+    match self.symbol_table.table.get(ident) {
       /* Identifier declared in this scope, return. */
       Some((t, _)) => Some(t),
       /* Look for identifier in parent scope, recurse. */
@@ -58,11 +63,11 @@ impl ScopeMut<'_> {
   }
 
   pub fn get_offset(&self, ident: &Ident) -> Option<Offset> {
-    match self.symbol_table.0.get(ident) {
+    match self.symbol_table.table.get(ident) {
       /* Identifier declared in this scope, return. */
-      Some((_, base_offset)) => Some(self.symbol_table.1 - base_offset),
+      Some((_, base_offset)) => Some(self.symbol_table.size - base_offset),
       /* Look for identifier in parent scope, recurse. */
-      None => Some(self.context?.1.get_offset(ident)? + self.symbol_table.1),
+      None => Some(self.context?.1.get_offset(ident)? + self.symbol_table.size),
     }
   }
 
@@ -70,13 +75,13 @@ impl ScopeMut<'_> {
   returns old value. */
   pub fn insert(&mut self, ident: &Ident, val: Type) -> Option<()> {
     /* Stackframe will be increased in size by val bytes */
-    self.symbol_table.1 += val.size();
+    self.symbol_table.size += val.size();
 
     /* Offset of this variable from top of stack frame will be size
     of stack from. */
-    let offset = self.symbol_table.1;
+    let offset = self.symbol_table.size;
 
-    match self.symbol_table.0.insert(ident.clone(), (val, offset)) {
+    match self.symbol_table.table.insert(ident.clone(), (val, offset)) {
       /* Val replaced something but we aren't allowed to change the type of
       variables, return None signifiying error. */
       Some(_) => None,
