@@ -3,7 +3,23 @@ use Directive::*;
 use Instr::*;
 
 impl Generatable for AssignLhs {
-  // fn generate(&self, _code: &mut Vec<Instr>, _registers: &[Reg]) {}
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
+    match self {
+      AssignLhs::Ident(id) => {
+        let offset = scope.get_offset(id).unwrap();
+
+        code.text.push(Asm::always(Instr::Load(
+          DataSize::Word,
+          regs[0],
+          LoadArg::MemAddress(Reg::StackPointer, offset),
+        )))
+      }
+      _ => code.text.push(Asm::Directive(Directive::Label(format!(
+        "{:?}.generate(_, {:?})",
+        self, regs
+      )))),
+    }
+  }
 }
 
 impl Generatable for AssignRhs {
