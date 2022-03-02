@@ -3,15 +3,16 @@ use Directive::*;
 use Instr::*;
 
 impl Generatable for AssignLhs {
+  /* Writes regs[0] to value specified by AssignLhs */
   fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
     match self {
       AssignLhs::Ident(id) => {
         let offset = scope.get_offset(id).unwrap();
 
-        code.text.push(Asm::always(Instr::Load(
+        code.text.push(Asm::always(Instr::Store(
           DataSize::Word,
           regs[0],
-          LoadArg::MemAddress(Reg::StackPointer, offset),
+          (Reg::StackPointer, offset),
         )))
       }
       _ => code.text.push(Asm::Directive(Directive::Label(format!(
@@ -46,7 +47,7 @@ impl Generatable for ScopedStat {
   fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
     let ScopedStat(st, statement) = self;
 
-    /* Decrement stack pointer by size of symbol table. */
+    /* Allocate space on stack for variables declared in this scope. */
     code.text.push(Asm::always(Instr::Binary(
       BinaryInstr::Sub,
       Reg::StackPointer,
@@ -83,12 +84,8 @@ impl Generatable for Stat {
         /* regs[0] = eval(rhs) */
         rhs.generate(scope, code, regs);
 
-        /* regs[1] = address of lhs */
-        lhs.generate(scope, code, &regs[1..]);
-
-        /* Write rhs to lhs */
-        // TODO: calculate data size instead of assuming word
-        Asm::always(Instr::Store(DataSize::Word, regs[0], (regs[1], 0)));
+        /* stores value of regs[0] into lhs */
+        lhs.generate(scope, code, regs);
       }
       // Stat::Read(expr) => {
       // TODO: expr is not and Expr or an Ident, function needs re-writing.
