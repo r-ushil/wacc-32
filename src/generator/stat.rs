@@ -130,7 +130,7 @@ impl Generatable for Stat {
         /* B exit */
         code.text.push(Asm::Instr(
           CondCode::AL,
-          Instr::Branch(false, String::from("exit")),
+          Instr::Branch(true, String::from("exit")),
         ));
       }
 

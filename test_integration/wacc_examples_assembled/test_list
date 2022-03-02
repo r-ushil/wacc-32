@@ -11,10 +11,10 @@
 ../wacc_examples/valid/array/array.wacc,./wacc_examples_assembled_ours/valid/array/array.s,./wacc_examples_assembled/valid/array/array.s,fail
 ../wacc_examples/valid/array/modifyString.wacc,./wacc_examples_assembled_ours/valid/array/modifyString.s,./wacc_examples_assembled/valid/array/modifyString.s,fail
 ../wacc_examples/valid/array/printRef.wacc,./wacc_examples_assembled_ours/valid/array/printRef.s,./wacc_examples_assembled/valid/array/printRef.s,fail
-../wacc_examples/valid/basic/exit/exit-1.wacc,./wacc_examples_assembled_ours/valid/basic/exit/exit-1.s,./wacc_examples_assembled/valid/basic/exit/exit-1.s,fail
-../wacc_examples/valid/basic/exit/exitBasic2.wacc,./wacc_examples_assembled_ours/valid/basic/exit/exitBasic2.s,./wacc_examples_assembled/valid/basic/exit/exitBasic2.s,fail
-../wacc_examples/valid/basic/exit/exitBasic.wacc,./wacc_examples_assembled_ours/valid/basic/exit/exitBasic.s,./wacc_examples_assembled/valid/basic/exit/exitBasic.s,fail
-../wacc_examples/valid/basic/exit/exitWrap.wacc,./wacc_examples_assembled_ours/valid/basic/exit/exitWrap.s,./wacc_examples_assembled/valid/basic/exit/exitWrap.s,fail
+../wacc_examples/valid/basic/exit/exit-1.wacc,./wacc_examples_assembled_ours/valid/basic/exit/exit-1.s,./wacc_examples_assembled/valid/basic/exit/exit-1.s,pass
+../wacc_examples/valid/basic/exit/exitBasic2.wacc,./wacc_examples_assembled_ours/valid/basic/exit/exitBasic2.s,./wacc_examples_assembled/valid/basic/exit/exitBasic2.s,pass
+../wacc_examples/valid/basic/exit/exitBasic.wacc,./wacc_examples_assembled_ours/valid/basic/exit/exitBasic.s,./wacc_examples_assembled/valid/basic/exit/exitBasic.s,pass
+../wacc_examples/valid/basic/exit/exitWrap.wacc,./wacc_examples_assembled_ours/valid/basic/exit/exitWrap.s,./wacc_examples_assembled/valid/basic/exit/exitWrap.s,pass
 ../wacc_examples/valid/basic/skip/commentInLine.wacc,./wacc_examples_assembled_ours/valid/basic/skip/commentInLine.s,./wacc_examples_assembled/valid/basic/skip/commentInLine.s,pass
 ../wacc_examples/valid/basic/skip/comment.wacc,./wacc_examples_assembled_ours/valid/basic/skip/comment.s,./wacc_examples_assembled/valid/basic/skip/comment.s,pass
 ../wacc_examples/valid/basic/skip/skip.wacc,./wacc_examples_assembled_ours/valid/basic/skip/skip.s,./wacc_examples_assembled/valid/basic/skip/skip.s,pass
