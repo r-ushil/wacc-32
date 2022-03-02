@@ -12,11 +12,22 @@ impl Generatable for Expr {
       Expr::UnaryApp(op, expr) => generate_unary_app(code, regs, scope, op, expr),
       Expr::BinaryApp(expr1, op, expr2) => generate_binary_app(code, regs, scope, expr1, op, expr2),
       // Expr::PairLiter => todo!(),
-      // Expr::Ident(_) => todo!(),
+      Expr::Ident(id) => generate_ident(scope, code, regs, &id),
       // Expr::ArrayElem(_) => todo!(),
       _ => generate_temp_default(self, code, regs),
     }
   }
+}
+
+/* Stores value of local variable specified by ident to regs[0]. */
+fn generate_ident(scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], id: &Ident) {
+  let offset = scope.get_offset(id).unwrap();
+
+  code.text.push(Asm::always(Instr::Load(
+    scope.get_type(id).unwrap().size().into(),
+    regs[0],
+    LoadArg::MemAddress(Reg::StackPointer, offset),
+  )))
 }
 
 fn generate_int_liter(code: &mut GeneratedCode, regs: &[Reg], val: &i32) {
