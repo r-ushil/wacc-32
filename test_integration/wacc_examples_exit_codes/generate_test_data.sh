@@ -4,6 +4,7 @@ generate_our_test_data() {
     input_file=$(echo $in | cut -d, -f1)
     our_output_file=$(echo $in | cut -d, -f2)
 
+    mkdir -p $(dirname $our_output_file)
     ../../target/release/wacc_32 $input_file $our_output_file --analysis >/dev/null 2>&1
     echo $? > $our_output_file
 
@@ -30,6 +31,7 @@ generate_their_test_data() {
       exit_code=200
     fi
 
+    mkdir -p $(dirname $their_output_file)
     echo $exit_code > $their_output_file
 
   done < ./test_list
