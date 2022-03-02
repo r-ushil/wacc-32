@@ -2,24 +2,22 @@ use super::{predef::ReadFmt, *};
 use Directive::*;
 use Instr::*;
 
-impl Generatable for AssignLhs {
-  /* Writes regs[0] to value specified by AssignLhs */
-  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
-    match self {
-      AssignLhs::Ident(id) => {
-        let offset = scope.get_offset(id).unwrap();
+/* Writes regs[0] to value specified by AssignLhs */
+fn generate_lhs(lhs: &AssignLhs, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], t: &Type) {
+  match lhs {
+    AssignLhs::Ident(id) => {
+      let offset = scope.get_offset(id).unwrap();
 
-        code.text.push(Asm::always(Instr::Store(
-          DataSize::Word,
-          regs[0],
-          (Reg::StackPointer, offset),
-        )))
-      }
-      _ => code.text.push(Asm::Directive(Directive::Label(format!(
-        "{:?}.generate(_, {:?})",
-        self, regs
-      )))),
+      code.text.push(Asm::always(Instr::Store(
+        t.size().into(),
+        regs[0],
+        (Reg::StackPointer, offset),
+      )))
     }
+    _ => code.text.push(Asm::Directive(Directive::Label(format!(
+      "{:?}.generate(_, {:?})",
+      lhs, regs
+    )))),
   }
 }
 
@@ -90,7 +88,7 @@ impl Generatable for Stat {
       }
       Stat::Assignment(lhs, t, rhs) => {
         /* regs[0] = eval(rhs) */
-        rhs.generate(scope, code, regs);
+        generate_rhs(rhs, scope, code, regs, t);
 
         /* stores value of regs[0] into lhs */
         lhs.generate(scope, code, regs);
