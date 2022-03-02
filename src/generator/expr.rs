@@ -119,26 +119,10 @@ fn generate_temp_default(expr: &Expr, code: &mut GeneratedCode, regs: &[Reg]) {
 
 fn generate_unary_op(unary_op: &UnaryOper, code: &mut GeneratedCode, reg: Reg) {
   match unary_op {
-    UnaryOper::Bang => {
-      /* EOR reg, reg, #1 */
-      code.text.push(always_instruction(Instr::Binary(
-        BinaryInstr::Eor,
-        reg.clone(),
-        reg.clone(),
-        Op2::Imm(1),
-        false,
-      )));
-    }
-    UnaryOper::Neg => {
-      /* RSBS reg, reg, #0 */
-      code.text.push(always_instruction(Instr::Binary(
-        BinaryInstr::RevSub,
-        reg.clone(),
-        reg.clone(),
-        Op2::Imm(0),
-        false,
-      )));
-    }
+    UnaryOper::Bang => generate_unary_bang(code, reg, unary_op),
+    UnaryOper::Neg => generate_unary_negation(code, reg, unary_op),
+    UnaryOper::Ord => (), //handled as char is already moved into reg in main match statement
+    UnaryOper::Chr => (), //similar logic to above
     // UnaryOper::Len => {
     //   /* LDR r4, [sp, #4]
     //      LDR r4, [r4]
@@ -149,13 +133,33 @@ fn generate_unary_op(unary_op: &UnaryOper, code: &mut GeneratedCode, reg: Reg) {
     //   */
     //   todo!();
     // }
-    UnaryOper::Ord => (), //handled as char is already moved into reg in main match statement
-    UnaryOper::Chr => (), //similar logic to above
     _ => code.text.push(Asm::Directive(Directive::Label(format!(
       "{:?}.generate(_, {:?})",
       unary_op, reg
     )))),
   }
+}
+
+fn generate_unary_bang(code: &mut GeneratedCode, reg: Reg, unary_op: &UnaryOper) {
+  /* EOR reg, reg, #1 */
+  code.text.push(always_instruction(Instr::Binary(
+    BinaryInstr::Eor,
+    reg.clone(),
+    reg.clone(),
+    Op2::Imm(1),
+    false,
+  )));
+}
+
+fn generate_unary_negation(code: &mut GeneratedCode, reg: Reg, unary_op: &UnaryOper) {
+  /* RSBS reg, reg, #0 */
+  code.text.push(always_instruction(Instr::Binary(
+    BinaryInstr::RevSub,
+    reg.clone(),
+    reg.clone(),
+    Op2::Imm(0),
+    false,
+  )));
 }
 
 fn generate_binary_op(bin_op: &BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2: Reg) {
