@@ -88,10 +88,10 @@ impl Generatable for Stat {
       }
       Stat::Assignment(lhs, t, rhs) => {
         /* regs[0] = eval(rhs) */
-        generate_rhs(rhs, scope, code, regs, t);
+        rhs.generate(scope, code, regs);
 
         /* stores value of regs[0] into lhs */
-        lhs.generate(scope, code, regs);
+        generate_lhs(lhs, scope, code, regs, t);
       }
       // Stat::Read(expr) => {
       // TODO: expr is not and Expr or an Ident, function needs re-writing.
@@ -345,10 +345,10 @@ mod tests {
     /* B exit */
     expected_code.text.push(Asm::Instr(
       CondCode::AL,
-      Instr::Branch(false, String::from("exit")),
+      Instr::Branch(true, String::from("exit")),
     ));
 
-    assert_eq!(actual_code, expected_code);
+    assert_eq!(format!("{}", actual_code), format!("{}", expected_code));
   }
 
   // #[test]
