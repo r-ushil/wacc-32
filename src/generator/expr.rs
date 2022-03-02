@@ -121,18 +121,12 @@ fn generate_unary_op(unary_op: &UnaryOper, code: &mut GeneratedCode, reg: Reg) {
   match unary_op {
     UnaryOper::Bang => generate_unary_bang(code, reg, unary_op),
     UnaryOper::Neg => generate_unary_negation(code, reg, unary_op),
+    // TODO: Further explanation in comment
     UnaryOper::Ord => (), //handled as char is already moved into reg in main match statement
+    // TODO: Further explanation in comment.
     UnaryOper::Chr => (), //similar logic to above
-    // UnaryOper::Len => {
-    //   /* LDR r4, [sp, #4]
-    //      LDR r4, [r4]
-
-    //      // get array's stack offset, load into reg
-    //      // get value at reg address (first index) for length
-
-    //   */
-    //   todo!();
-    // }
+    // TODO: implement this function.
+    // UnaryOper::Len => generate_unary_length(code, reg, unary_op),
     _ => generate_unary_temp_default(code, reg, unary_op),
   }
 }
@@ -157,6 +151,18 @@ fn generate_unary_negation(code: &mut GeneratedCode, reg: Reg, unary_op: &UnaryO
     Op2::Imm(0),
     false,
   )));
+}
+
+//TODO: Implement this function
+fn generate_unary_length(code: &mut GeneratedCode, reg: Reg, unary_op: &UnaryOper) {
+  //   /* LDR r4, [sp, #4]
+  //      LDR r4, [r4]
+
+  //      // get array's stack offset, load into reg
+  //      // get value at reg address (first index) for length
+
+  //   */
+  //   todo!();
 }
 
 fn generate_unary_temp_default(code: &mut GeneratedCode, reg: Reg, unary_op: &UnaryOper) {
