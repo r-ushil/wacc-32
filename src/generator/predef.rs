@@ -17,7 +17,7 @@ pub struct GeneratePredefs {
 }
 
 #[derive(PartialEq, Debug)]
-pub enum GeneratePredefsNew {
+pub enum RequiredPredefs {
   PrintInt,
   PrintString,
   PrintBool,

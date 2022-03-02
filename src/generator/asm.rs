@@ -1,4 +1,5 @@
 use super::predef::GeneratePredefs;
+use super::predef::RequiredPredefs;
 use std::fs::File;
 
 /* ======== Type aliases. ======== */
@@ -23,6 +24,7 @@ pub struct GeneratedCode {
   pub data: Vec<Asm>,
   pub text: Vec<Asm>,
   pub predefs: GeneratePredefs,
+  pub required_predefs: Vec<RequiredPredefs>,
   next_label: u32,
 }
 
@@ -43,6 +45,7 @@ impl Default for GeneratedCode {
       data: vec![Asm::Directive(Directive::Data)],
       text: vec![Asm::Directive(Directive::Text)],
       predefs: GeneratePredefs::default(),
+      required_predefs: Vec::new(),
       next_label: 0,
     }
   }
