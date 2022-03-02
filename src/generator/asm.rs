@@ -22,9 +22,15 @@ pub struct GeneratedCode {
   pub data: Vec<Asm>,
   pub text: Vec<Asm>,
   pub predefs: GeneratePredefs,
+  next_label: u32,
 }
 
 impl GeneratedCode {
+  pub fn get_label(&mut self) -> Label {
+    let s = format!("L{}", self.next_label);
+    self.next_label += 1;
+    s
+  }
   pub fn asm<I: Into<Asm>>(&mut self, i: I) {
     self.text.push(i.into())
   }
@@ -36,6 +42,7 @@ impl Default for GeneratedCode {
       data: vec![Asm::Directive(Directive::Data)],
       text: vec![Asm::Directive(Directive::Text)],
       predefs: GeneratePredefs::default(),
+      next_label: 0,
     }
   }
 }
