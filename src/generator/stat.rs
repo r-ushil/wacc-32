@@ -84,10 +84,11 @@ impl Generatable for Stat {
   fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
     match self {
       Stat::Skip => (),
-      Stat::Declaration(_, id, rhs) => {
-        Stat::Assignment(AssignLhs::Ident(id.clone()), rhs.clone()).generate(scope, code, regs);
+      Stat::Declaration(t, id, rhs) => {
+        Stat::Assignment(AssignLhs::Ident(id.clone()), t.clone(), rhs.clone())
+          .generate(scope, code, regs);
       }
-      Stat::Assignment(lhs, rhs) => {
+      Stat::Assignment(lhs, t, rhs) => {
         /* regs[0] = eval(rhs) */
         rhs.generate(scope, code, regs);
 

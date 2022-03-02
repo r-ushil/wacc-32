@@ -25,13 +25,13 @@ pub struct FuncSig {
 pub enum Stat {
   Skip,
   Declaration(Type, Ident, AssignRhs),
-  Assignment(AssignLhs, AssignRhs),
+  Assignment(AssignLhs, Type, AssignRhs),
   Read(AssignLhs),
-  Free(Expr),
+  Free(Type, Expr),
   Return(Expr),
   Exit(Expr),
-  Print(Expr),
-  Println(Expr),
+  Print(Type, Expr),
+  Println(Type, Expr),
   Sequence(Box<Stat>, Box<Stat>),
 
   /* SCOPING STATEMENTS */
@@ -107,6 +107,12 @@ pub enum Type {
   Array(Box<Type>),
   Pair(Box<Type>, Box<Type>),
   Func(Box<FuncSig>),
+}
+
+impl Default for Type {
+  fn default() -> Self {
+    Type::Any
+  }
 }
 
 impl Type {
