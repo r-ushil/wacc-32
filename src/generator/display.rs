@@ -54,21 +54,17 @@ impl Display for Directive {
   }
 }
 
-impl Display for MemAddress {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    if self.offset.is_none() {
-      write!(f, "{}", self.reg)
-    } else {
-      write!(f, "[{}, #{}", self.reg, self.offset.unwrap())
-    }
-  }
-}
-
 impl Display for LoadArg {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       LoadArg::Imm(val) => write!(f, "={}", val),
-      LoadArg::MemAddress(addr) => write!(f, "{}", addr),
+      LoadArg::MemAddress(reg, offset) => {
+        if *offset == 0 {
+          write!(f, "{}", reg)
+        } else {
+          write!(f, "[{}, #{}]", reg, offset)
+        }
+      }
       LoadArg::Label(msg) => write!(f, "={}", msg),
     }
   }

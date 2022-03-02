@@ -156,14 +156,8 @@ where
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum LoadArg {
   Imm(Imm),
-  MemAddress(MemAddress),
+  MemAddress(Reg, Offset),
   Label(Label),
-}
-
-#[derive(PartialEq, Eq, Debug, Clone)]
-pub struct MemAddress {
-  pub reg: Reg,
-  pub offset: Option<Imm>,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
