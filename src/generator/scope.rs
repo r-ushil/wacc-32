@@ -36,7 +36,7 @@ impl Scope<'_> {
     }
   }
 
-  pub fn get_offset(&self, ident: &Ident) -> Option<u32> {
+  pub fn get_offset(&self, ident: &Ident) -> Option<Offset> {
     match self.symbol_table.0.get(ident) {
       /* Identifier declared in this scope, return. */
       Some((_, base_offset)) => Some(self.symbol_table.1 - base_offset),

@@ -12,7 +12,7 @@ pub enum ContextLocation {
   If,
 }
 
-pub type Offset = u32;
+pub type Offset = i32;
 /* Associates each ident with an offset from the TOP of this stack frame,
 also stores the total size of this stack frame. */
 pub type SymbolTable = (HashMap<Ident, (Type, Offset)>, Offset);
@@ -57,7 +57,7 @@ impl ScopeMut<'_> {
     }
   }
 
-  pub fn get_offset(&self, ident: &Ident) -> Option<u32> {
+  pub fn get_offset(&self, ident: &Ident) -> Option<Offset> {
     match self.symbol_table.0.get(ident) {
       /* Identifier declared in this scope, return. */
       Some((_, base_offset)) => Some(self.symbol_table.1 - base_offset),
