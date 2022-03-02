@@ -230,7 +230,7 @@ impl Generatable for Stat {
         /* Branch to false case if cond == 0. */
         code
           .text
-          .push(Asm::always(Branch(false, false_label.clone())));
+          .push(Asm::Instr(CondCode::EQ, Branch(false, false_label.clone())));
 
         /* True body. */
         true_body.generate(scope, code, regs);
