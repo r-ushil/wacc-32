@@ -174,6 +174,16 @@ pub enum DataSize {
   Word,
 }
 
+impl From<i32> for DataSize {
+  fn from(i: i32) -> Self {
+    match i {
+      1 => DataSize::Byte,
+      4 => DataSize::Word,
+      _ => unimplemented!(),
+    }
+  }
+}
+
 /*  */
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum UnaryInstr {
