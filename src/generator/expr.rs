@@ -5,86 +5,110 @@ use crate::generator::asm::*;
 impl Generatable for Expr {
   fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
     match self {
-      Expr::IntLiter(val) => {
-        /* LDR r{min_reg}, val */
-        code.text.push(Asm::Instr(
-          AL,
-          Instr::Load(DataSize::Word, regs[0], LoadArg::Imm(*val)),
-        ))
-      }
-
-      Expr::BoolLiter(val) => {
-        //set imm to 1 or 0 depending on val
-        let imm = if *val == true { 1 } else { 0 };
-
-        /* MOV r{min_reg}, #imm */
-        code.text.push(Asm::Instr(
-          AL,
-          Instr::Unary(UnaryInstr::Mov, regs[0], Op2::Imm(imm), false),
-        ))
-      }
-
-      Expr::CharLiter(val) => {
-        /* MOV r{min_reg}, #'val' */
-        code.text.push(Asm::Instr(
-          AL,
-          Instr::Unary(UnaryInstr::Mov, regs[0], Op2::Char(*val), false),
-        ))
-      }
-
-      Expr::StrLiter(val) => {
-        let count = val.chars().count();
-        let msg_no = code.data.len();
-
-        /* Create a label msg_{msg_no} to display the text */
-        /* msg_{msg_no}: */
-        code
-          .data
-          .push(Asm::Directive(Directive::Label(format!("msg_{}", msg_no))));
-        /* .word {count}         //allocate space for a word of size count */
-        code.data.push(Asm::Directive(Directive::Word(count)));
-        /* .ascii "{val}"         //convert into ascii */
-        code
-          .data
-          .push(Asm::Directive(Directive::Ascii(val.clone())));
-
-        /* LDR r{min_reg}, ={msg_{msg_no}} */
-        code.text.push(Asm::Instr(
-          AL,
-          Instr::Load(
-            DataSize::Word,
-            regs[0],
-            LoadArg::Label(format!("msg_{}", msg_no)),
-          ),
-        ))
-      }
-
+      Expr::IntLiter(val) => assemble_int_liter(code, regs, val),
+      Expr::BoolLiter(val) => assemble_bool_liter(code, regs, val),
+      Expr::CharLiter(val) => assemble_char_liter(code, regs, val),
+      Expr::StrLiter(val) => assemble_string_liter(code, regs, val),
+      Expr::UnaryApp(op, exp) => assemble_unary_app(code, regs, scope, op, exp),
+      Expr::BinaryApp(exp1, op, exp2) => assemble_binary_app(code, regs, scope, exp1, op, exp2),
       // Expr::PairLiter => todo!(),
       // Expr::Ident(_) => todo!(),
       // Expr::ArrayElem(_) => todo!(),
-      Expr::UnaryApp(op, exp) => {
-        /* Stores expression's value in regs[0]. */
-        exp.generate(scope, code, regs);
-
-        /* Applies unary operator to regs[0]. */
-        unary_op_gen(op, code, regs[0]);
-      }
-      Expr::BinaryApp(exp1, op, exp2) => {
-        /* regs[0] = eval(exp1) */
-        exp1.generate(scope, code, regs);
-
-        /* regs[1] = eval(exp2) */
-        exp2.generate(scope, code, &regs[1..]);
-
-        /* regs[0] = regs[0] <op> regs[1] */
-        binary_op_gen(op, code, regs[0], regs[1]);
-      }
-      _ => code.text.push(Asm::Directive(Directive::Label(format!(
-        "{:?}.generate(_, {:?})",
-        self, regs
-      )))),
+      _ => assemble_temp_default(self, code, regs),
     }
   }
+}
+fn assemble_int_liter(code: &mut GeneratedCode, regs: &[Reg], val: &i32) {
+  /* LDR r{min_reg}, val */
+  code.text.push(Asm::Instr(
+    AL,
+    Instr::Load(DataSize::Word, regs[0], LoadArg::Imm(*val)),
+  ))
+}
+
+fn assemble_bool_liter(code: &mut GeneratedCode, regs: &[Reg], val: &bool) {
+  //set imm to 1 or 0 depending on val
+  let imm = if *val == true { 1 } else { 0 };
+
+  /* MOV r{min_reg}, #imm */
+  code.text.push(Asm::Instr(
+    AL,
+    Instr::Unary(UnaryInstr::Mov, regs[0], Op2::Imm(imm), false),
+  ))
+}
+
+fn assemble_char_liter(code: &mut GeneratedCode, regs: &[Reg], val: &char) {
+  /* MOV r{min_reg}, #'val' */
+  code.text.push(Asm::Instr(
+    AL,
+    Instr::Unary(UnaryInstr::Mov, regs[0], Op2::Char(*val), false),
+  ))
+}
+
+fn assemble_string_liter(code: &mut GeneratedCode, regs: &[Reg], val: &String) {
+  let count = val.chars().count();
+  let msg_no = code.data.len();
+
+  /* Create a label msg_{msg_no} to display the text */
+  /* msg_{msg_no}: */
+  code
+    .data
+    .push(Asm::Directive(Directive::Label(format!("msg_{}", msg_no))));
+  /* .word {count}         //allocate space for a word of size count */
+  code.data.push(Asm::Directive(Directive::Word(count)));
+  /* .ascii "{val}"         //convert into ascii */
+  code
+    .data
+    .push(Asm::Directive(Directive::Ascii(val.clone())));
+
+  /* LDR r{min_reg}, ={msg_{msg_no}} */
+  code.text.push(Asm::Instr(
+    AL,
+    Instr::Load(
+      DataSize::Word,
+      regs[0],
+      LoadArg::Label(format!("msg_{}", msg_no)),
+    ),
+  ))
+}
+
+fn assemble_unary_app(
+  code: &mut GeneratedCode,
+  regs: &[Reg],
+  scope: &Scope,
+  op: &UnaryOper,
+  exp: &Box<Expr>,
+) {
+  /* Stores expression's value in regs[0]. */
+  exp.generate(scope, code, regs);
+
+  /* Applies unary operator to regs[0]. */
+  unary_op_gen(op, code, regs[0]);
+}
+
+fn assemble_binary_app(
+  code: &mut GeneratedCode,
+  regs: &[Reg],
+  scope: &Scope,
+  exp1: &Box<Expr>,
+  op: &BinaryOper,
+  exp2: &Box<Expr>,
+) {
+  /* regs[0] = eval(exp1) */
+  exp1.generate(scope, code, regs);
+
+  /* regs[1] = eval(exp2) */
+  exp2.generate(scope, code, &regs[1..]);
+
+  /* regs[0] = regs[0] <op> regs[1] */
+  binary_op_gen(op, code, regs[0], regs[1]);
+}
+
+fn assemble_temp_default(expr: &Expr, code: &mut GeneratedCode, regs: &[Reg]) {
+  code.text.push(Asm::Directive(Directive::Label(format!(
+    "{:?}.generate(_, {:?})",
+    expr, regs
+  ))))
 }
 
 fn unary_op_gen(unary_op: &UnaryOper, code: &mut GeneratedCode, reg: Reg) {
