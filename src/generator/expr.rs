@@ -133,10 +133,7 @@ fn generate_unary_op(unary_op: &UnaryOper, code: &mut GeneratedCode, reg: Reg) {
     //   */
     //   todo!();
     // }
-    _ => code.text.push(Asm::Directive(Directive::Label(format!(
-      "{:?}.generate(_, {:?})",
-      unary_op, reg
-    )))),
+    _ => generate_unary_temp_default(code, reg, unary_op),
   }
 }
 
@@ -160,6 +157,13 @@ fn generate_unary_negation(code: &mut GeneratedCode, reg: Reg, unary_op: &UnaryO
     Op2::Imm(0),
     false,
   )));
+}
+
+fn generate_unary_temp_default(code: &mut GeneratedCode, reg: Reg, unary_op: &UnaryOper) {
+  code.text.push(Asm::Directive(Directive::Label(format!(
+    "{:?}.generate(_, {:?})",
+    unary_op, reg
+  ))))
 }
 
 fn generate_binary_op(bin_op: &BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2: Reg) {
