@@ -16,6 +16,21 @@ pub struct GeneratePredefs {
   pub div_by_zero: bool,
 }
 
+#[derive(PartialEq, Debug)]
+pub enum GeneratePredefsNew {
+  PrintInt,
+  PrintString,
+  PrintBool,
+  PrintRefs,
+  PrintLn,
+  ReadChar,
+  ReadInt,
+  FreePair,
+  RuntimeError,
+  OverflowError,
+  DivideByZeroError,
+}
+
 impl Default for GeneratePredefs {
   fn default() -> Self {
     Self {
