@@ -26,6 +26,7 @@ pub enum RequiredPredefs {
   ReadChar,
   ReadInt,
   FreePair,
+  FreeArray, // TODO: Implement
   RuntimeError,
   OverflowError,
   DivideByZeroError,
