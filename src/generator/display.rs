@@ -33,9 +33,59 @@ impl Display for GeneratedCode {
 
 impl Display for Asm {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    use Instr::*;
     match self {
       Asm::Directive(d) => write!(f, "{}", d),
-      Asm::Instr(cond, i) => write!(f, "\t{}{}", cond, i),
+      Asm::Instr(cond, i) => {
+        write!(f, "\t")?;
+        match i {
+          Push(reg) => write!(f, "PUSH{} {{{}}}", cond, reg),
+
+          Pop(reg) => write!(f, "POP{} {{{}}}", cond, reg),
+
+          Branch(link, label) => {
+            write!(f, "B{}{} {}", cond, if *link { "L" } else { "" }, label)
+          }
+
+          Store(size, dst, (src, off)) => {
+            write!(f, "STR{}{} {}, ", cond, size, dst)?;
+            if *off == 0 {
+              write!(f, "[{}]", src)
+            } else {
+              write!(f, "[{}, #{}]", src, off)
+            }
+          }
+
+          Load(size, dst, load_arg) => write!(f, "LDR{}{} {}, {}", size, cond, dst, load_arg),
+
+          Binary(instr, dst, src, op2, flags) => {
+            write!(
+              f,
+              "{}{}{} {}, {}, {}",
+              instr,
+              if *flags { "S" } else { "" },
+              cond,
+              dst,
+              src,
+              op2
+            )
+          }
+
+          Unary(instr, dst, op2, flags) => {
+            write!(
+              f,
+              "{}{}{} {}, {}",
+              instr,
+              if *flags { "S" } else { "" },
+              cond,
+              dst,
+              op2
+            )
+          }
+
+          Multiply(r1, r2, r3, r4) => write!(f, "SMULL{} {}, {}, {}, {}", cond, r1, r2, r3, r4),
+        }
+      }
     }
   }
 }
@@ -71,57 +121,6 @@ impl Display for LoadArg {
 }
 
 /* ======== Instructions! ======== */
-
-impl Display for Instr {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    use Instr::*;
-    match self {
-      Push(reg) => write!(f, "PUSH {{{}}}", reg),
-
-      Pop(reg) => write!(f, "POP {{{}}}", reg),
-
-      Branch(link, label) => {
-        write!(f, "B{} {}", if *link { "L" } else { "" }, label)
-      }
-
-      Store(size, dst, (src, off)) => {
-        write!(f, "STR{} {}, ", size, dst)?;
-        if *off == 0 {
-          write!(f, "[{}]", src)
-        } else {
-          write!(f, "[{}, #{}]", src, off)
-        }
-      }
-
-      Load(size, dst, load_arg) => write!(f, "LDR{} {}, {}", size, dst, load_arg),
-
-      Binary(instr, dst, src, op2, flags) => {
-        write!(
-          f,
-          "{}{} {}, {}, {}",
-          instr,
-          if *flags { "S" } else { "" },
-          dst,
-          src,
-          op2
-        )
-      }
-
-      Unary(instr, dst, op2, flags) => {
-        write!(
-          f,
-          "{}{} {}, {}",
-          instr,
-          if *flags { "S" } else { "" },
-          dst,
-          op2
-        )
-      }
-
-      Multiply(r1, r2, r3, r4) => write!(f, "SMULL {}, {}, {}, {}", r1, r2, r3, r4),
-    }
-  }
-}
 
 impl Display for DataSize {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
