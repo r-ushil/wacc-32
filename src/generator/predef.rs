@@ -21,6 +21,7 @@ pub enum RequiredPredefs {
   PrintInt,
   PrintString,
   PrintBool,
+  PrintChar, // TODO: Implement
   PrintRefs,
   PrintLn,
   ReadChar,
@@ -45,18 +46,19 @@ impl RequiredPredefs {
 impl Generatable for RequiredPredefs {
   fn generate(&self, _scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
     match *self {
-      RequiredPredefs::PrintInt => (),
-      RequiredPredefs::PrintString => (),
-      RequiredPredefs::PrintBool => (),
-      RequiredPredefs::PrintRefs => (),
-      RequiredPredefs::PrintLn => (),
-      RequiredPredefs::ReadChar => (),
-      RequiredPredefs::ReadInt => (),
-      RequiredPredefs::FreePair => (),
-      RequiredPredefs::FreeArray => (),
-      RequiredPredefs::RuntimeError => (),
-      RequiredPredefs::OverflowError => (),
-      RequiredPredefs::DivideByZeroError => (),
+      RequiredPredefs::PrintInt => print_int_or_ref(code, PrintFmt::Int),
+      RequiredPredefs::PrintString => print_string(code),
+      RequiredPredefs::PrintBool => print_bool(code),
+      RequiredPredefs::PrintChar => todo!(), // TODO: Implement
+      RequiredPredefs::PrintRefs => print_int_or_ref(code, PrintFmt::Ref),
+      RequiredPredefs::PrintLn => println(code),
+      RequiredPredefs::ReadChar => read(code, ReadFmt::Char),
+      RequiredPredefs::ReadInt => read(code, ReadFmt::Int),
+      RequiredPredefs::FreePair => free_pair(code),
+      RequiredPredefs::FreeArray => todo!(), // TODO: Implement
+      RequiredPredefs::RuntimeError => throw_runtime_error(code),
+      RequiredPredefs::OverflowError => throw_overflow_error(code),
+      RequiredPredefs::DivideByZeroError => check_divide_by_zero(code),
     }
   }
 }
