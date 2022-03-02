@@ -265,14 +265,3 @@ pub enum Load {
   Imm(Imm),
   Label(Label),
 }
-
-fn output_assembly(instrs: Vec<Instr>) {
-  use std::io::Write;
-
-  let path = "output.s";
-  let mut file = File::create(path).unwrap();
-
-  for instr in instrs {
-    write!(file, "{}\n", instr).unwrap()
-  }
-}
