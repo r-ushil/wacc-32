@@ -9,8 +9,8 @@ impl Generatable for Expr {
       Expr::BoolLiter(val) => assemble_bool_liter(code, regs, val),
       Expr::CharLiter(val) => assemble_char_liter(code, regs, val),
       Expr::StrLiter(val) => assemble_string_liter(code, regs, val),
-      Expr::UnaryApp(op, exp) => assemble_unary_app(code, regs, scope, op, exp),
-      Expr::BinaryApp(exp1, op, exp2) => assemble_binary_app(code, regs, scope, exp1, op, exp2),
+      Expr::UnaryApp(op, expr) => assemble_unary_app(code, regs, scope, op, expr),
+      Expr::BinaryApp(expr1, op, expr2) => assemble_binary_app(code, regs, scope, expr1, op, expr2),
       // Expr::PairLiter => todo!(),
       // Expr::Ident(_) => todo!(),
       // Expr::ArrayElem(_) => todo!(),
@@ -77,10 +77,10 @@ fn assemble_unary_app(
   regs: &[Reg],
   scope: &Scope,
   op: &UnaryOper,
-  exp: &Box<Expr>,
+  expr: &Box<Expr>,
 ) {
   /* Stores expression's value in regs[0]. */
-  exp.generate(scope, code, regs);
+  expr.generate(scope, code, regs);
 
   /* Applies unary operator to regs[0]. */
   unary_op_gen(op, code, regs[0]);
@@ -90,15 +90,15 @@ fn assemble_binary_app(
   code: &mut GeneratedCode,
   regs: &[Reg],
   scope: &Scope,
-  exp1: &Box<Expr>,
+  expr1: &Box<Expr>,
   op: &BinaryOper,
-  exp2: &Box<Expr>,
+  expr2: &Box<Expr>,
 ) {
-  /* regs[0] = eval(exp1) */
-  exp1.generate(scope, code, regs);
+  /* regs[0] = eval(expr1) */
+  expr1.generate(scope, code, regs);
 
-  /* regs[1] = eval(exp2) */
-  exp2.generate(scope, code, &regs[1..]);
+  /* regs[1] = eval(expr2) */
+  expr2.generate(scope, code, &regs[1..]);
 
   /* regs[0] = regs[0] <op> regs[1] */
   binary_op_gen(op, code, regs[0], regs[1]);
