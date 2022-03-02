@@ -93,7 +93,7 @@
 ../wacc_examples/valid/if/if4.wacc,./wacc_examples_assembled_ours/valid/if/if4.s,./wacc_examples_assembled/valid/if/if4.s,fail
 ../wacc_examples/valid/if/if5.wacc,./wacc_examples_assembled_ours/valid/if/if5.s,./wacc_examples_assembled/valid/if/if5.s,fail
 ../wacc_examples/valid/if/if6.wacc,./wacc_examples_assembled_ours/valid/if/if6.s,./wacc_examples_assembled/valid/if/if6.s,fail
-../wacc_examples/valid/if/ifBasic.wacc,./wacc_examples_assembled_ours/valid/if/ifBasic.s,./wacc_examples_assembled/valid/if/ifBasic.s,fail
+../wacc_examples/valid/if/ifBasic.wacc,./wacc_examples_assembled_ours/valid/if/ifBasic.s,./wacc_examples_assembled/valid/if/ifBasic.s,pass
 ../wacc_examples/valid/if/ifFalse.wacc,./wacc_examples_assembled_ours/valid/if/ifFalse.s,./wacc_examples_assembled/valid/if/ifFalse.s,fail
 ../wacc_examples/valid/if/ifTrue.wacc,./wacc_examples_assembled_ours/valid/if/ifTrue.s,./wacc_examples_assembled/valid/if/ifTrue.s,fail
 ../wacc_examples/valid/if/whitespace.wacc,./wacc_examples_assembled_ours/valid/if/whitespace.s,./wacc_examples_assembled/valid/if/whitespace.s,fail

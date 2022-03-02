@@ -47,14 +47,19 @@ impl Generatable for ScopedStat {
   fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
     let ScopedStat(st, statement) = self;
 
+    /* No need to decrement stack pointer if no vars declared. */
+    let skip_decrement = st.1 == 0;
+
     /* Allocate space on stack for variables declared in this scope. */
-    code.text.push(Asm::always(Instr::Binary(
-      BinaryInstr::Sub,
-      Reg::StackPointer,
-      Reg::StackPointer,
-      Op2::Imm(st.1),
-      false,
-    )));
+    if !skip_decrement {
+      code.text.push(Asm::always(Instr::Binary(
+        BinaryInstr::Sub,
+        Reg::StackPointer,
+        Reg::StackPointer,
+        Op2::Imm(st.1),
+        false,
+      )));
+    }
 
     /* Enter new scope. */
     let scope = scope.new_scope(st);
@@ -63,13 +68,15 @@ impl Generatable for ScopedStat {
     statement.generate(&scope.new_scope(st), code, regs);
 
     /* Increment stack pointer to old position. */
-    code.text.push(Asm::always(Instr::Binary(
-      BinaryInstr::Add,
-      Reg::StackPointer,
-      Reg::StackPointer,
-      Op2::Imm(st.1),
-      false,
-    )));
+    if !skip_decrement {
+      code.text.push(Asm::always(Instr::Binary(
+        BinaryInstr::Add,
+        Reg::StackPointer,
+        Reg::StackPointer,
+        Op2::Imm(st.1),
+        false,
+      )));
+    }
   }
 }
 
