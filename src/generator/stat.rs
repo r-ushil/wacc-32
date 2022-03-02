@@ -15,7 +15,37 @@ impl Generatable for PairElem {
 }
 
 impl Generatable for ArrayLiter {
-  // fn generate(&self, _code: &mut Vec<Instr>, _registers: &[Reg]) {}
+  // fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {}
+}
+
+impl Generatable for ScopedStat {
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
+    let ScopedStat(st, statement) = self;
+
+    /* Decrement stack pointer by size of symbol table. */
+    code.text.push(Asm::always(Instr::Binary(
+      BinaryInstr::Sub,
+      Reg::StackPointer,
+      Reg::StackPointer,
+      Op2::Imm(st.1),
+      false,
+    )));
+
+    /* Enter new scope. */
+    let scope = scope.new_scope(st);
+
+    /* Generated statement. */
+    statement.generate(&scope.new_scope(st), code, regs);
+
+    /* Increment stack pointer to old position. */
+    code.text.push(Asm::always(Instr::Binary(
+      BinaryInstr::Add,
+      Reg::StackPointer,
+      Reg::StackPointer,
+      Op2::Imm(st.1),
+      false,
+    )));
+  }
 }
 
 impl Generatable for Stat {
@@ -149,7 +179,43 @@ impl Generatable for Stat {
       //   // /* BL println */
       //   // code.text.push(Asm::Instr(CondCode::AL, Instr::Branch(true, String::from("println"))));
       // }
-      // Stat::If(_, _, _) => todo!(),
+      Stat::If(cond, true_body, false_body) => {
+        let false_label = code.get_label();
+        let exit_label = code.get_label();
+
+        /* regs[0] = eval(cond) */
+        cond.generate(scope, code, regs);
+
+        /* cmp(regs[0], 0) */
+        code.text.push(Asm::always(Unary(
+          UnaryInstr::Cmp,
+          regs[0],
+          Op2::Imm(0),
+          false,
+        )));
+
+        /* Branch to false case if cond == 0. */
+        code
+          .text
+          .push(Asm::always(Branch(false, false_label.clone())));
+
+        /* True body. */
+        true_body.generate(scope, code, regs);
+
+        /* Exit if statement. */
+        code
+          .text
+          .push(Asm::always(Branch(false, exit_label.clone())));
+
+        /* Label for false case to skip to. */
+        code.text.push(Asm::Directive(Label(false_label)));
+
+        /* False body. */
+        false_body.generate(scope, code, regs);
+
+        /* Label to exit if statement. */
+        code.text.push(Asm::Directive(Label(exit_label)));
+      }
       // Stat::While(_, _) => todo!(),
       // Stat::Scope(_) => todo!(),
       Stat::Sequence(head, tail) => {
