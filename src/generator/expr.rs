@@ -350,12 +350,12 @@ fn binary_comp_ops(
   /* MOV{cond1} reg1, #1 */
   code.text.push(Asm::Instr(
     cond1,
-    Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(1), true),
+    Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(1), false),
   ));
   /* MOV{cond2} reg1, #0 */
   code.text.push(Asm::Instr(
     cond2,
-    Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(0), true),
+    Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(0), false),
   ));
 }
 
