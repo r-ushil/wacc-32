@@ -1,3 +1,4 @@
+use super::predef::GeneratePredefs;
 use std::fs::File;
 
 /* ======== Type aliases. ======== */
@@ -43,39 +44,6 @@ impl Default for GeneratedCode {
       text: vec![Asm::Directive(Directive::Text)],
       predefs: GeneratePredefs::default(),
       next_label: 0,
-    }
-  }
-}
-
-#[derive(PartialEq, Debug)]
-pub struct GeneratePredefs {
-  pub print_ints: bool,
-  pub print_strings: bool,
-  pub print_bools: bool,
-  pub print_refs: bool,
-  pub println: bool,
-  pub read_char: bool,
-  pub read_int: bool,
-  pub free_pair: bool,
-  pub runtime_err: bool,
-  pub overflow_err: bool,
-  pub div_by_zero: bool,
-}
-
-impl Default for GeneratePredefs {
-  fn default() -> Self {
-    Self {
-      print_ints: false,
-      print_strings: false,
-      print_bools: false,
-      print_refs: false,
-      println: false,
-      read_char: false,
-      read_int: false,
-      free_pair: false,
-      runtime_err: false,
-      overflow_err: false,
-      div_by_zero: false,
     }
   }
 }
