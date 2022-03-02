@@ -143,21 +143,21 @@ impl Generatable for Stat {
         ));
       }
 
-      Stat::Print(expr) => {
-        expr.generate(scope, code, min_reg);
-        todo!(); //get type of expr, and switch to the appropriate print branch
+      // Stat::Print(expr) => {
+      //   expr.generate(scope, code, min_reg);
+      //   todo!(); //get type of expr, and switch to the appropriate print branch
 
-        // print_stat_gen(code, expr.get_type);
-      }
+      //   // print_stat_gen(code, expr.get_type);
+      // }
 
-      Stat::Println(expr) => {
-        expr.generate(scope, code, min_reg);
-        todo!();
-        // print_stat_gen(code, expr.get_type);
-        // code.predefs.println = true;
-        // /* BL println */
-        // code.text.push(Asm::Instr(CondCode::AL, Instr::Branch(true, String::from("println"))));
-      }
+      // Stat::Println(expr) => {
+      //   expr.generate(scope, code, min_reg);
+      //   todo!();
+      //   // print_stat_gen(code, expr.get_type);
+      //   // code.predefs.println = true;
+      //   // /* BL println */
+      //   // code.text.push(Asm::Instr(CondCode::AL, Instr::Branch(true, String::from("println"))));
+      // }
       // Stat::If(_, _, _) => todo!(),
       // Stat::While(_, _) => todo!(),
       // Stat::Scope(_) => todo!(),

@@ -124,18 +124,22 @@ fn unary_op_gen(unary_op: &UnaryOper, code: &mut GeneratedCode, reg: Reg) {
         ),
       ));
     }
-    UnaryOper::Len => {
-      /* LDR r4, [sp, #4]
-         LDR r4, [r4]
+    // UnaryOper::Len => {
+    //   /* LDR r4, [sp, #4]
+    //      LDR r4, [r4]
 
-         // get array's stack offset, load into reg
-         // get value at reg address (first index) for length
+    //      // get array's stack offset, load into reg
+    //      // get value at reg address (first index) for length
 
-      */
-      todo!();
-    }
+    //   */
+    //   todo!();
+    // }
     UnaryOper::Ord => (), //handled as char is already moved into reg in main match statement
     UnaryOper::Chr => (), //similar logic to above
+    _ => code.text.push(Asm::Directive(Directive::Label(format!(
+      "{:?}.generate(_, {:?})",
+      unary_op, reg
+    )))),
   }
 }
 

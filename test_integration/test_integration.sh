@@ -7,6 +7,8 @@ failed_expected=0
 failed_unexpected=0
 
 function run_tests() {
+  echo Deleting old cache for $1 tests.
+  rm -rf $1/*_ours
   echo Generating actual data for $1 tests.
   (cd $1 && ./generate_test_data.sh ours)
 
