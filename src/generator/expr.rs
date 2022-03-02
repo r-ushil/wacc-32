@@ -5,21 +5,21 @@ use crate::generator::asm::*;
 impl Generatable for Expr {
   fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
     match self {
-      Expr::IntLiter(val) => assemble_int_liter(code, regs, val),
-      Expr::BoolLiter(val) => assemble_bool_liter(code, regs, val),
-      Expr::CharLiter(val) => assemble_char_liter(code, regs, val),
-      Expr::StrLiter(val) => assemble_string_liter(code, regs, val),
-      Expr::UnaryApp(op, expr) => assemble_unary_app(code, regs, scope, op, expr),
-      Expr::BinaryApp(expr1, op, expr2) => assemble_binary_app(code, regs, scope, expr1, op, expr2),
+      Expr::IntLiter(val) => generate_int_liter(code, regs, val),
+      Expr::BoolLiter(val) => generate_bool_liter(code, regs, val),
+      Expr::CharLiter(val) => generate_char_liter(code, regs, val),
+      Expr::StrLiter(val) => generate_string_liter(code, regs, val),
+      Expr::UnaryApp(op, expr) => generate_unary_app(code, regs, scope, op, expr),
+      Expr::BinaryApp(expr1, op, expr2) => generate_binary_app(code, regs, scope, expr1, op, expr2),
       // Expr::PairLiter => todo!(),
       // Expr::Ident(_) => todo!(),
       // Expr::ArrayElem(_) => todo!(),
-      _ => assemble_temp_default(self, code, regs),
+      _ => generate_temp_default(self, code, regs),
     }
   }
 }
 
-fn assemble_int_liter(code: &mut GeneratedCode, regs: &[Reg], val: &i32) {
+fn generate_int_liter(code: &mut GeneratedCode, regs: &[Reg], val: &i32) {
   /* LDR r{min_reg}, val */
   code.text.push(always_instruction(Instr::Load(
     DataSize::Word,
@@ -28,7 +28,7 @@ fn assemble_int_liter(code: &mut GeneratedCode, regs: &[Reg], val: &i32) {
   )))
 }
 
-fn assemble_bool_liter(code: &mut GeneratedCode, regs: &[Reg], val: &bool) {
+fn generate_bool_liter(code: &mut GeneratedCode, regs: &[Reg], val: &bool) {
   //set imm to 1 or 0 depending on val
   let imm = if *val == true { 1 } else { 0 };
   /* MOV r{min_reg}, #imm */
@@ -40,7 +40,7 @@ fn assemble_bool_liter(code: &mut GeneratedCode, regs: &[Reg], val: &bool) {
   )))
 }
 
-fn assemble_char_liter(code: &mut GeneratedCode, regs: &[Reg], val: &char) {
+fn generate_char_liter(code: &mut GeneratedCode, regs: &[Reg], val: &char) {
   /* MOV r{min_reg}, #'val' */
   code.text.push(always_instruction(Instr::Unary(
     UnaryInstr::Mov,
@@ -50,7 +50,7 @@ fn assemble_char_liter(code: &mut GeneratedCode, regs: &[Reg], val: &char) {
   )))
 }
 
-fn assemble_string_liter(code: &mut GeneratedCode, regs: &[Reg], val: &String) {
+fn generate_string_liter(code: &mut GeneratedCode, regs: &[Reg], val: &String) {
   let count = val.chars().count();
   let msg_no = code.data.len();
 
@@ -74,7 +74,7 @@ fn assemble_string_liter(code: &mut GeneratedCode, regs: &[Reg], val: &String) {
   )))
 }
 
-fn assemble_unary_app(
+fn generate_unary_app(
   code: &mut GeneratedCode,
   regs: &[Reg],
   scope: &Scope,
@@ -88,7 +88,7 @@ fn assemble_unary_app(
   unary_op_gen(op, code, regs[0]);
 }
 
-fn assemble_binary_app(
+fn generate_binary_app(
   code: &mut GeneratedCode,
   regs: &[Reg],
   scope: &Scope,
@@ -110,7 +110,7 @@ fn always_instruction(instruction: Instr) -> Asm {
   Asm::Instr(AL, instruction)
 }
 
-fn assemble_temp_default(expr: &Expr, code: &mut GeneratedCode, regs: &[Reg]) {
+fn generate_temp_default(expr: &Expr, code: &mut GeneratedCode, regs: &[Reg]) {
   code.text.push(Asm::Directive(Directive::Label(format!(
     "{:?}.generate(_, {:?})",
     expr, regs
