@@ -33,7 +33,7 @@ pub enum RequiredPredefs {
 }
 
 /* Pushes a pre-defined function to the vector on GeneratedCode if it doesn't
-already require this predef. */
+* already require this predef. */
 impl RequiredPredefs {
   pub fn mark(self, code: &mut GeneratedCode) {
     if !code.required_predefs.contains(&self) {
