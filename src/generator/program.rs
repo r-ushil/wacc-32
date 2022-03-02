@@ -46,9 +46,6 @@ impl Generatable for Func {
       return x
     end */
 
-    /* Move into function scope. */
-    let scope = &scope.new_scope(&self.symbol_table);
-
     /* Function label.
     foo: */
     code.text.push(Asm::Directive(Directive::Label(format!(
@@ -64,6 +61,21 @@ impl Generatable for Func {
     /* Make new 4 byte scope to reserve space for link register. */
     let lr_table = (HashMap::new(), 4);
     let scope = &scope.new_scope(&lr_table);
+
+    /* Allocate space on stack for local vars. */
+    if self.symbol_table.1 != 0 {
+      /* Don't modify sp if we're only doing to decrement by 0. */
+      code.text.push(Asm::always(Instr::Binary(
+        BinaryInstr::Sub,
+        Reg::StackPointer,
+        Reg::StackPointer,
+        Op2::Imm(self.symbol_table.1),
+        false,
+      )));
+    }
+
+    /* Move into function scope. */
+    let scope = &scope.new_scope(&self.symbol_table);
 
     /* Generate body.
     SUB sp, sp, #4
