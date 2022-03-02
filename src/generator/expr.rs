@@ -85,7 +85,7 @@ fn generate_unary_app(
   expr.generate(scope, code, regs);
 
   /* Applies unary operator to regs[0]. */
-  generate_unary_op(op, code, regs[0]);
+  generate_unary_op(code, regs[0], op);
 }
 
 fn generate_binary_app(
@@ -103,7 +103,7 @@ fn generate_binary_app(
   expr2.generate(scope, code, &regs[1..]);
 
   /* regs[0] = regs[0] <op> regs[1] */
-  generate_binary_op(op, code, regs[0], regs[1]);
+  generate_binary_op(code, regs[0], regs[1], op);
 }
 
 fn always_instruction(instruction: Instr) -> Asm {
@@ -117,7 +117,7 @@ fn generate_temp_default(expr: &Expr, code: &mut GeneratedCode, regs: &[Reg]) {
   ))))
 }
 
-fn generate_unary_op(unary_op: &UnaryOper, code: &mut GeneratedCode, reg: Reg) {
+fn generate_unary_op(code: &mut GeneratedCode, reg: Reg, unary_op: &UnaryOper) {
   // TODO: Briefly explain the pre-condition that you created in the caller
   match unary_op {
     UnaryOper::Bang => generate_unary_bang(code, reg, unary_op),
@@ -173,7 +173,7 @@ fn generate_unary_temp_default(code: &mut GeneratedCode, reg: Reg, unary_op: &Un
   ))))
 }
 
-fn generate_binary_op(bin_op: &BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2: Reg) {
+fn generate_binary_op(code: &mut GeneratedCode, reg1: Reg, reg2: Reg, bin_op: &BinaryOper) {
   // TODO: Briefly explain the pre-condition that you created in the caller
   let dst = reg1.clone();
   match bin_op {
