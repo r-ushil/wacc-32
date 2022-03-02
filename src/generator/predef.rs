@@ -42,6 +42,25 @@ impl RequiredPredefs {
   }
 }
 
+impl Generatable for RequiredPredefs {
+  fn generate(&self, _scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
+    match *self {
+      RequiredPredefs::PrintInt => (),
+      RequiredPredefs::PrintString => (),
+      RequiredPredefs::PrintBool => (),
+      RequiredPredefs::PrintRefs => (),
+      RequiredPredefs::PrintLn => (),
+      RequiredPredefs::ReadChar => (),
+      RequiredPredefs::ReadInt => (),
+      RequiredPredefs::FreePair => (),
+      RequiredPredefs::FreeArray => (),
+      RequiredPredefs::RuntimeError => (),
+      RequiredPredefs::OverflowError => (),
+      RequiredPredefs::DivideByZeroError => (),
+    }
+  }
+}
+
 impl Default for GeneratePredefs {
   fn default() -> Self {
     Self {
