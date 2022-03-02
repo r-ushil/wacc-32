@@ -160,12 +160,12 @@
 ../wacc_examples/valid/scope/indentationNotImportant.wacc,./wacc_examples_assembled_ours/valid/scope/indentationNotImportant.s,./wacc_examples_assembled/valid/scope/indentationNotImportant.s,fail
 ../wacc_examples/valid/scope/intsAndKeywords.wacc,./wacc_examples_assembled_ours/valid/scope/intsAndKeywords.s,./wacc_examples_assembled/valid/scope/intsAndKeywords.s,fail
 ../wacc_examples/valid/scope/printAllTypes.wacc,./wacc_examples_assembled_ours/valid/scope/printAllTypes.s,./wacc_examples_assembled/valid/scope/printAllTypes.s,fail
-../wacc_examples/valid/scope/scopeBasic.wacc,./wacc_examples_assembled_ours/valid/scope/scopeBasic.s,./wacc_examples_assembled/valid/scope/scopeBasic.s,fail
+../wacc_examples/valid/scope/scopeBasic.wacc,./wacc_examples_assembled_ours/valid/scope/scopeBasic.s,./wacc_examples_assembled/valid/scope/scopeBasic.s,pass
 ../wacc_examples/valid/scope/scopeIfRedefine.wacc,./wacc_examples_assembled_ours/valid/scope/scopeIfRedefine.s,./wacc_examples_assembled/valid/scope/scopeIfRedefine.s,fail
 ../wacc_examples/valid/scope/scopeRedefine.wacc,./wacc_examples_assembled_ours/valid/scope/scopeRedefine.s,./wacc_examples_assembled/valid/scope/scopeRedefine.s,fail
 ../wacc_examples/valid/scope/scopeSimpleRedefine.wacc,./wacc_examples_assembled_ours/valid/scope/scopeSimpleRedefine.s,./wacc_examples_assembled/valid/scope/scopeSimpleRedefine.s,fail
 ../wacc_examples/valid/scope/scopeVars.wacc,./wacc_examples_assembled_ours/valid/scope/scopeVars.s,./wacc_examples_assembled/valid/scope/scopeVars.s,fail
-../wacc_examples/valid/scope/scope.wacc,./wacc_examples_assembled_ours/valid/scope/scope.s,./wacc_examples_assembled/valid/scope/scope.s,fail
+../wacc_examples/valid/scope/scope.wacc,./wacc_examples_assembled_ours/valid/scope/scope.s,./wacc_examples_assembled/valid/scope/scope.s,pass
 ../wacc_examples/valid/scope/scopeWhileNested.wacc,./wacc_examples_assembled_ours/valid/scope/scopeWhileNested.s,./wacc_examples_assembled/valid/scope/scopeWhileNested.s,fail
 ../wacc_examples/valid/scope/scopeWhileRedefine.wacc,./wacc_examples_assembled_ours/valid/scope/scopeWhileRedefine.s,./wacc_examples_assembled/valid/scope/scopeWhileRedefine.s,fail
 ../wacc_examples/valid/sequence/basicSeq2.wacc,./wacc_examples_assembled_ours/valid/sequence/basicSeq2.s,./wacc_examples_assembled/valid/sequence/basicSeq2.s,pass

@@ -257,7 +257,7 @@ impl Generatable for Stat {
         code.text.push(Asm::Directive(Label(exit_label)));
       }
       // Stat::While(_, _) => todo!(),
-      // Stat::Scope(_) => todo!(),
+      Stat::Scope(stat) => stat.generate(scope, code, regs),
       Stat::Sequence(head, tail) => {
         head.generate(scope, code, regs);
         tail.generate(scope, code, regs);
