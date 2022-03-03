@@ -71,23 +71,7 @@ fn read(code: &mut GeneratedCode, fmt: ReadFmt) {
 
   /* Create a msg label for reading an integer or character */
 
-  if fmt == ReadFmt::Int {
-    /* msg_read_int: */
-    code.data.push(Directive(Label("msg_read_int".to_string())));
-    /* .word 3                   //allocate space for a word of size 3 FOR INT */
-    code.data.push(Directive(Word(3)));
-    /* .ascii "%d\0"         //convert into ascii */
-    code.data.push(Directive(Ascii(String::from("%d\\0"))));
-  } else if fmt == ReadFmt::Char {
-    /* msg_read_char: */
-    code
-      .data
-      .push(Directive(Label("msg_read_char".to_string())));
-    /* .word 4                   //allocate space for a word of size 4 FOR CHAR */
-    code.data.push(Directive(Word(4)));
-    /* .ascii "%c\0"         //convert into ascii */
-    code.data.push(Directive(Ascii(String::from("%c\\0"))));
-  }
+  let msg = code.get_msg(if fmt == ReadFmt::Int { "&d" } else { "&c" });
 
   /* Generate a p_read_{fmt} label to branch to when reading an int or a char */
 
@@ -109,11 +93,7 @@ fn read(code: &mut GeneratedCode, fmt: ReadFmt) {
   /*  LDR r0, =msg_read_{fmt}   //load the result of msg_read_{fmt} */
   code.text.push(Instr(
     AL,
-    Load(
-      DataSize::Word,
-      Reg::RegNum(0),
-      LoadArg::Label(format!("msg_read_{}", fmt)),
-    ),
+    Load(DataSize::Word, Reg::RegNum(0), LoadArg::Label(msg)),
   ));
 
   /*  ADD r0, r0, #4        //add 4 to r0 and store in r0 */

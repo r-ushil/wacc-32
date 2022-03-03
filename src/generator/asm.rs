@@ -24,6 +24,7 @@ pub struct GeneratedCode {
   pub text: Vec<Asm>,
   pub required_predefs: Vec<RequiredPredefs>,
   next_label: u32,
+  next_msg: u32,
 }
 
 impl GeneratedCode {
@@ -32,6 +33,25 @@ impl GeneratedCode {
     self.next_label += 1;
     s
   }
+
+  pub fn get_msg(&mut self, content: &str) -> Label {
+    use Directive::*;
+    let label = format!("msg_{}", self.next_msg);
+
+    /* msg_0: */
+    self.data.push(Asm::Directive(Label(label.clone())));
+
+    /* .word 4 */
+    self.data.push(Asm::Directive(Word(content.len() + 1)));
+
+    /* .ascii "%c\0" */
+    self
+      .data
+      .push(Asm::Directive(Ascii(format!("{}\\0", content))));
+
+    label
+  }
+
   pub fn asm<I: Into<Asm>>(&mut self, i: I) {
     self.text.push(i.into())
   }
@@ -44,6 +64,7 @@ impl Default for GeneratedCode {
       text: vec![Asm::Directive(Directive::Text)],
       required_predefs: Vec::new(),
       next_label: 0,
+      next_msg: 0,
     }
   }
 }
