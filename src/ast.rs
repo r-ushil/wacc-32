@@ -12,7 +12,8 @@ pub struct Func {
   pub ident: Ident,
   pub signature: FuncSig,
   pub body: Stat,
-  pub symbol_table: SymbolTable,
+  pub params_st: SymbolTable,
+  pub body_st: SymbolTable,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -93,8 +94,10 @@ where
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum PairElem {
-  Fst(Expr),
-  Snd(Expr),
+  /* Type of fst and snd elem respectively.
+  (fst and snd are concidered generic functions) */
+  Fst(Type, Expr),
+  Snd(Type, Expr),
 }
 
 #[derive(PartialEq, Debug, Clone)]

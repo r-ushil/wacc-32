@@ -10,6 +10,7 @@ pub const PREDEF_PRINTLN: &str = "p_print_ln";
 pub const PREDEF_FREE_PAIR: &str = "p_free_pair";
 
 pub const PREDEF_THROW_RUNTIME_ERR: &str = "p_throw_runtime_error";
+pub const PREDEF_CHECK_NULL_POINTER: &str = "p_check_null_pointer";
 
 pub const PREDEF_CHECK_ARRAY_BOUNDS: &str = "p_check_array_bounds";
 
@@ -29,6 +30,7 @@ pub enum RequiredPredefs {
   OverflowError,
   DivideByZeroError,
   ArrayBoundsError,
+  CheckNullPointer,
 }
 
 /* Pushes a pre-defined function to the vector on GeneratedCode if it doesn't
@@ -60,6 +62,7 @@ impl Generatable for RequiredPredefs {
       RequiredPredefs::OverflowError => throw_overflow_error(code),
       RequiredPredefs::DivideByZeroError => check_divide_by_zero(code),
       RequiredPredefs::ArrayBoundsError => check_array_bounds(code),
+      RequiredPredefs::CheckNullPointer => check_null_pointer(code),
     }
   }
 }
@@ -245,6 +248,46 @@ fn println(code: &mut GeneratedCode) {
     .text
     .push(Instr(AL, Branch(true, String::from("fflush"))));
   /*  POP {pc}              //pop the pc register */
+  code.text.push(Instr(AL, Pop(Reg::PC)));
+}
+
+fn check_null_pointer(code: &mut GeneratedCode) {
+  use self::CondCode::*;
+  use self::Directive::*;
+  use self::Instr::*;
+  use Asm::*;
+
+  /* Create a msg label to display when derefencing a null pointer. */
+  let msg_label = code.get_msg("NullReferenceError: dereference a null reference\n\0");
+
+  /* Generate label to throw a runtime error for whatever's in registers */
+  /* p_check_null_pointer: */
+  code
+    .text
+    .push(Directive(Label(String::from(PREDEF_CHECK_NULL_POINTER))));
+
+  /*  PUSH {lr}            //push link reg */
+  code.text.push(Instr(AL, Push(Reg::Link)));
+  /*  CMP r0, #0           //compare the contents of r0 to 0 and set flags */
+  code.text.push(Instr(
+    AL,
+    Unary(UnaryInstr::Cmp, Reg::RegNum(0), Op2::Imm(0), false),
+  ));
+  /*  LDREQ r0, =msg_label   //load error msg if r0 equals 0 */
+  code.text.push(Instr(
+    EQ,
+    Load(DataSize::Word, Reg::RegNum(0), LoadArg::Label(msg_label)),
+  ));
+
+  /*  BLEQ p_throw_runtime_error   //branch to runtime error if r0 equals 0 */
+  code.text.push(Instr(
+    EQ,
+    Branch(true, PREDEF_THROW_RUNTIME_ERR.to_string()),
+  ));
+  //set runtime error generation to true
+  RequiredPredefs::RuntimeError.mark(code);
+
+  /*  POP {pc}            //pop pc register */
   code.text.push(Instr(AL, Pop(Reg::PC)));
 }
 

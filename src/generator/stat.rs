@@ -22,7 +22,16 @@ impl Generatable for AssignLhs {
         /* Store address of array element into regs[1]. */
         let elem_size = elem.generate(scope, code, &regs[1..], ());
 
-        /* Write regs[0] to *regs[1]. */
+        /* *regs[1] = regs[0] */
+        code
+          .text
+          .push(Asm::always(Instr::Store(elem_size, regs[0], (regs[1], 0))));
+      }
+      AssignLhs::PairElem(elem) => {
+        /* Stores address of elem in regs[1]. */
+        let elem_size = elem.generate(scope, code, &regs[1..], ());
+
+        /* *regs[1] = regs[0] */
         code
           .text
           .push(Asm::always(Instr::Store(elem_size, regs[0], (regs[1], 0))));
@@ -160,6 +169,17 @@ impl Generatable for AssignRhs {
           (regs[0], 4),
         )));
       }
+      AssignRhs::PairElem(elem) => {
+        /* Puts element address in regs[0]. */
+        let elem_size = elem.generate(scope, code, regs, ());
+
+        /* Dereference. */
+        code.text.push(Asm::always(Instr::Load(
+          elem_size,
+          regs[0],
+          LoadArg::MemAddress(regs[0], 0),
+        )));
+      }
       _ => code.text.push(Asm::Directive(Directive::Label(format!(
         "{:?}.generate(...)",
         self
@@ -205,13 +225,41 @@ fn generate_print(t: &Type, expr: &Expr, scope: &Scope, code: &mut GeneratedCode
 
 impl Generatable for PairElem {
   type Input = ();
-  type Output = ();
+  type Output = DataSize;
 
-  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], aux: ()) {
-    code.text.push(Asm::Directive(Directive::Label(format!(
-      "{:?}.generate(...)",
-      self
-    ))));
+  /* Puts the address of the element in regs[0], returns size pointed to. */
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], _aux: ()) -> DataSize {
+    /*  */
+    let (t, pair, offset) = match self {
+      PairElem::Fst(t, pair) => (t, pair, 0),
+      PairElem::Snd(t, pair) => (t, pair, 4),
+    };
+
+    /* Store address of pair in regs[0]. */
+    pair.generate(scope, code, regs, ());
+
+    /* CHECK: regs[0] != NULL */
+    code.text.push(Asm::always(Instr::Unary(
+      UnaryInstr::Mov,
+      Reg::RegNum(0),
+      Op2::Reg(regs[0], 0),
+      false,
+    )));
+    code.text.push(Asm::always(Instr::Branch(
+      true,
+      String::from("p_check_null_pointer"),
+    )));
+    RequiredPredefs::CheckNullPointer.mark(code);
+
+    /* Dereference. */
+    code.text.push(Asm::always(Instr::Load(
+      DataSize::Word,
+      regs[0],
+      LoadArg::MemAddress(regs[0], offset),
+    )));
+
+    /* Return how much data needs to be read from regs[0]. */
+    t.size().into()
   }
 }
 

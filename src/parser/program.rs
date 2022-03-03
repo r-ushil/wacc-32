@@ -59,7 +59,8 @@ fn func(input: &str) -> IResult<&str, Func, ErrorTree<&str>> {
         return_type,
       },
       body,
-      symbol_table: SymbolTable::default(),
+      params_st: SymbolTable::default(),
+      body_st: SymbolTable::default(),
     },
   ))
 }
@@ -87,7 +88,8 @@ mod tests {
           },
           ident: "foo".to_string(),
           body: Stat::Return(Expr::Ident("x".to_string())),
-          symbol_table: SymbolTable::default(),
+          params_st: SymbolTable::default(),
+          body_st: SymbolTable::default(),
         }),
         statement: ScopedStat::new(Stat::Declaration(
           Type::Int,
@@ -123,7 +125,8 @@ mod tests {
           BinaryOper::Add,
           Box::new(Expr::Ident("y".to_string()))
         )),
-        symbol_table: SymbolTable::default(),
+        params_st: SymbolTable::default(),
+        body_st: SymbolTable::default(),
       }
     ));
 
@@ -138,7 +141,8 @@ mod tests {
         },
         ident: "exitThree".to_string(),
         body: Stat::Exit(Expr::IntLiter(3)),
-        symbol_table: SymbolTable::default(),
+        params_st: SymbolTable::default(),
+        body_st: SymbolTable::default(),
       }
     ));
   }
