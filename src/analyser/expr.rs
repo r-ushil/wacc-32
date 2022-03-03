@@ -2,7 +2,7 @@ use super::{context::ScopeMut, equal_types, expected_type, HasType, SemanticErro
 use crate::ast::*;
 
 impl HasType for Expr {
-  fn get_type(&self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&mut self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
     Some(match self {
       Expr::IntLiter(_) => Type::Int,
       Expr::BoolLiter(_) => Type::Bool,
