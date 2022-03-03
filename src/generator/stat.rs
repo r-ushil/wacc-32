@@ -14,6 +14,15 @@ fn generate_lhs(lhs: &AssignLhs, scope: &Scope, code: &mut GeneratedCode, regs: 
         (Reg::StackPointer, offset),
       )))
     }
+    AssignLhs::ArrayElem(elem) => {
+      /* Store address of array element into regs[1]. */
+      let elem_size = elem.generate(scope, code, &regs[1..]);
+
+      /* Write regs[0] to *regs[1]. */
+      code
+        .text
+        .push(Asm::always(Instr::Store(elem_size, regs[1], (regs[0], 0))));
+    }
     _ => code.text.push(Asm::Directive(Directive::Label(format!(
       "{:?}.generate(...)",
       lhs

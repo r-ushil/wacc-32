@@ -73,6 +73,8 @@ impl Display for ReadFmt {
   }
 }
 
+//todo!() make p_check_array_bounds
+
 fn read(code: &mut GeneratedCode, fmt: ReadFmt) {
   use self::CondCode::*;
   use self::Directive::*;
