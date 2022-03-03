@@ -86,7 +86,7 @@ fn generate_unary_app(
   expr.generate(scope, code, regs);
 
   /* Applies unary operator to regs[0]. */
-  generate_unary_op(code, scope, regs[0], op);
+  generate_unary_op(code, regs[0], op);
 }
 
 fn generate_binary_app(
@@ -118,7 +118,7 @@ fn generate_temp_default(expr: &Expr, code: &mut GeneratedCode, regs: &[Reg]) {
   ))))
 }
 
-fn generate_unary_op(code: &mut GeneratedCode, scope: &Scope, reg: Reg, unary_op: &UnaryOper) {
+fn generate_unary_op(code: &mut GeneratedCode, reg: Reg, unary_op: &UnaryOper) {
   // TODO: Briefly explain the pre-condition that you created in the caller
   match unary_op {
     UnaryOper::Bang => generate_unary_bang(code, reg),
@@ -127,9 +127,7 @@ fn generate_unary_op(code: &mut GeneratedCode, scope: &Scope, reg: Reg, unary_op
     UnaryOper::Ord => (), //handled as char is already moved into reg in main match statement
     // TODO: Further explanation in comment.
     UnaryOper::Chr => (), //similar logic to above
-    // TODO: implement this function.
-    // UnaryOper::Len => generate_unary_length(code, reg),
-    _ => generate_unary_temp_default(code, reg, unary_op),
+    UnaryOper::Len => generate_unary_length(code, reg),
   }
 }
 
@@ -155,8 +153,7 @@ fn generate_unary_negation(code: &mut GeneratedCode, reg: Reg) {
   )));
 }
 
-//TODO: Implement this function
-fn generate_unary_length(code: &mut GeneratedCode, scope: &Scope, reg: Reg) {
+fn generate_unary_length(code: &mut GeneratedCode, reg: Reg) {
   /* LDR reg, [reg]             //derefence value in reg */
   code.text.push(Asm::always(Instr::Load(
     DataSize::Word,
