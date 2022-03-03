@@ -1,4 +1,5 @@
 use self::CondCode::*;
+use super::predef::RequiredPredefs;
 use super::*;
 use crate::generator::asm::*;
 
@@ -217,8 +218,9 @@ fn generate_binary_op(code: &mut GeneratedCode, reg1: Reg, reg2: Reg, bin_op: &B
         true,
       )));
       //set overflow error branch to true
-      code.predefs.overflow_err = true;
-      /* BLVS p_throw_overflow_error */
+      RequiredPredefs::OverflowError.mark(code);
+      code.predefs.overflow_err = true; // TODO: Remove after switch
+                                        /* BLVS p_throw_overflow_error */
       code.text.push(Asm::Instr(
         VS,
         Instr::Branch(true, String::from("p_throw_overflow_error")),
@@ -234,8 +236,9 @@ fn generate_binary_op(code: &mut GeneratedCode, reg1: Reg, reg2: Reg, bin_op: &B
         true,
       )));
       //set overflow error branch to true
-      code.predefs.overflow_err = true;
-      /* BLVS p_throw_overflow_error */
+      RequiredPredefs::OverflowError.mark(code);
+      code.predefs.overflow_err = true; // TODO: Remove after switch
+                                        /* BLVS p_throw_overflow_error */
       code.text.push(Asm::Instr(
         VS,
         Instr::Branch(true, String::from("p_throw_overflow_error")),
@@ -288,7 +291,8 @@ fn binary_div_mod(op: BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2: Reg
     )));
 
     /* BL p_check_divide_by_zero */
-    code.predefs.div_by_zero = true;
+    RequiredPredefs::DivideByZeroError.mark(code);
+    code.predefs.div_by_zero = true; // TODO: Remove after switch
     code.text.push(always_instruction(Instr::Branch(
       true,
       String::from("p_check_divide_by_zero"),
@@ -316,7 +320,8 @@ fn binary_div_mod(op: BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2: Reg
     )));
 
     /* BL p_check_divide_by_zero */
-    code.predefs.div_by_zero = true;
+    RequiredPredefs::DivideByZeroError.mark(code);
+    code.predefs.div_by_zero = true; // TODO: Remove after switch
     code.text.push(always_instruction(Instr::Branch(
       true,
       String::from("p_check_divide_by_zero"),

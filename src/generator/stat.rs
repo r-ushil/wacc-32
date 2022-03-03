@@ -158,10 +158,11 @@ impl Generatable for Stat {
       // ));
       // //expr.get_type //todo!() get type of ident
       // let read_type = if true {
-      //   code.predefs.read_char = true;
+      //   ReadChar.mark(code);
+      //   code.predefs.read_char = true; // TODO: Remove after switch.
       //   ReadFmt::Char
       // } else {
-      //   code.predefs.read_int = true;
+      //   code.predefs.read_int = true; // TODO: Remove after switch
       //   ReadFmt::Int
       // }; //replace true with expr type check
 
@@ -188,9 +189,11 @@ impl Generatable for Stat {
       //     false,
       //   ),
       // ));
-
-      // code.predefs.free_pair = true; //set free_pair flag to true
-      //                                /* BL p_free_pair */
+      //set free_pair flag to true
+      /* BL p_free_pair */
+      // code.predefs.free_pair = true; // TODO: Remove after switch
+      // FreePair.mark(code);
+      //
       // code.text.push(Asm::Instr(
       //   CondCode::AL,
       //   Instr::Branch(true, String::from("p_free_pair")),
@@ -259,7 +262,8 @@ impl Generatable for Stat {
       //   expr.generate(scope, code, min_reg);
       //   todo!();
       //   // print_stat_gen(code, expr.get_type);
-      //   // code.predefs.println = true;
+      //   // PrintLn.mark(code);
+      //   // code.predefs.println = true; // TODO: Remove after switch
       //   // /* BL println */
       //   // code.text.push(Asm::Instr(CondCode::AL, Instr::Branch(true, String::from("println"))));
       // }
@@ -319,19 +323,23 @@ fn print_stat_gen(code: &mut GeneratedCode, min_reg: &mut RegNum) {
 
   //   let branch_name = match expr_type {
   //     Type::String => {
-  //       code.predefs.print_strings = true;
+  //       PrintString.mark(code);
+  //       code.predefs.print_strings = true; // TODO: Remove after switch
   //       String::from("p_print_string")
   //     }
   //     Type::Bool => {
-  //       code.predefs.print_bools = true;
+  //       PrintBool.mark(code);
+  //       code.predefs.print_bools = true; // TODO: Remove after switch
   //       String::from("p_print_bool")
   //     }
   //     Type::Int => {
-  //       code.predefs.print_ints = true;
+  //       PrintInt.mark(code);
+  //       code.predefs.print_ints = true; // TODO: Remove after switch
   //       String::from("p_print_int")
   //     }
   //     Type::Ref => {
-  //       code.predefs.print_refs = true;
+  //       PrintRefs.mark(code):
+  //       code.predefs.print_refs = true; // TODO: Remove after switch
   //       String::from("p_print_reference")
   //     }
   //   };

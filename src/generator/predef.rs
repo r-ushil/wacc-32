@@ -275,7 +275,9 @@ fn check_divide_by_zero(code: &mut GeneratedCode) {
     EQ,
     Branch(true, String::from("p_throw_runtime_error")),
   ));
-  code.predefs.runtime_err = true; //set runtime error generation to true
+  //set runtime error generation to true
+  code.predefs.runtime_err = true; // TODO: Remove after switch
+  RequiredPredefs::RuntimeError.mark(code);
 
   /*  POP {pc}            //pop pc register */
   code.text.push(Instr(AL, Pop(Reg::PC)));
@@ -316,7 +318,8 @@ fn throw_overflow_error(code: &mut GeneratedCode) {
     ),
   ));
   /* BL p_throw_runtime_error        //branch to runtime error */
-  code.predefs.runtime_err = true;
+  RequiredPredefs::RuntimeError.mark(code);
+  code.predefs.runtime_err = true; // TODO: Remove after switch
   code.text.push(Instr(
     AL,
     Branch(true, String::from("p_throw_runtime_error")),
@@ -369,8 +372,12 @@ fn free_pair(code: &mut GeneratedCode) {
     EQ,
     Branch(false, String::from("p_throw_runtime_error")),
   ));
-  code.predefs.runtime_err = true; //set runtime error generation to true
-                                   /*  PUSH {r0}           //push r0 */
+
+  //set runtime error generation to true
+  /*  PUSH {r0}           //push r0 */
+  code.predefs.runtime_err = true; // TODO: Remove after switch
+  RequiredPredefs::RuntimeError.mark(code);
+
   code.text.push(Instr(AL, Push(Reg::RegNum(0))));
   /*  LDR r0, [sp]        //load stack pointer address into r0 */
   code.text.push(Instr(
@@ -420,7 +427,8 @@ fn throw_runtime_error(code: &mut GeneratedCode) {
     .text
     .push(Instr(AL, Branch(true, String::from("p_print_string"))));
   /* MOV r0, #-1              //move -1 into r0*/
-  code.predefs.print_strings = true;
+  RequiredPredefs::PrintString.mark(code);
+  code.predefs.print_strings = true; // TODO: Remove after switch
   code.text.push(Instr(
     AL,
     Unary(UnaryInstr::Mov, Reg::RegNum(0), Op2::Imm(-1), false),
