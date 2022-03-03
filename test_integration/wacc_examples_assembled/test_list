@@ -132,7 +132,7 @@
 ../wacc_examples/valid/pairs/printPairOfNulls.wacc,./wacc_examples_assembled_ours/valid/pairs/printPairOfNulls.s,./wacc_examples_assembled/valid/pairs/printPairOfNulls.s,fail
 ../wacc_examples/valid/pairs/printPair.wacc,./wacc_examples_assembled_ours/valid/pairs/printPair.s,./wacc_examples_assembled/valid/pairs/printPair.s,fail
 ../wacc_examples/valid/pairs/readPair.wacc,./wacc_examples_assembled_ours/valid/pairs/readPair.s,./wacc_examples_assembled/valid/pairs/readPair.s,fail
-../wacc_examples/valid/pairs/writeFst.wacc,./wacc_examples_assembled_ours/valid/pairs/writeFst.s,./wacc_examples_assembled/valid/pairs/writeFst.s,fail
+../wacc_examples/valid/pairs/writeFst.wacc,./wacc_examples_assembled_ours/valid/pairs/writeFst.s,./wacc_examples_assembled/valid/pairs/writeFst.s,pass
 ../wacc_examples/valid/pairs/writeSnd.wacc,./wacc_examples_assembled_ours/valid/pairs/writeSnd.s,./wacc_examples_assembled/valid/pairs/writeSnd.s,fail
 ../wacc_examples/valid/runtimeErr/arrayOutOfBounds/arrayNegBounds.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/arrayOutOfBounds/arrayNegBounds.s,./wacc_examples_assembled/valid/runtimeErr/arrayOutOfBounds/arrayNegBounds.s,pass
 ../wacc_examples/valid/runtimeErr/arrayOutOfBounds/arrayOutOfBounds.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/arrayOutOfBounds/arrayOutOfBounds.s,./wacc_examples_assembled/valid/runtimeErr/arrayOutOfBounds/arrayOutOfBounds.s,pass

@@ -231,8 +231,8 @@ impl Generatable for PairElem {
   fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], _aux: ()) -> DataSize {
     /*  */
     let (t, pair, offset) = match self {
-      PairElem::Fst(t, pair) => (t, pair, false),
-      PairElem::Snd(t, pair) => (t, pair, true),
+      PairElem::Fst(t, pair) => (t, pair, 0),
+      PairElem::Snd(t, pair) => (t, pair, 4),
     };
 
     /* Store address of pair in regs[0]. */
@@ -251,22 +251,11 @@ impl Generatable for PairElem {
     )));
     RequiredPredefs::CheckNullPointer.mark(code);
 
-    /* Increment regs[0] by offset. */
-    if offset {
-      code.text.push(Asm::always(Instr::Binary(
-        BinaryInstr::Add,
-        regs[0],
-        regs[0],
-        Op2::Imm(4),
-        false,
-      )));
-    }
-
     /* Dereference. */
     code.text.push(Asm::always(Instr::Load(
       DataSize::Word,
       regs[0],
-      LoadArg::MemAddress(regs[0], 0),
+      LoadArg::MemAddress(regs[0], offset),
     )));
 
     /* Return how much data needs to be read from regs[0]. */
