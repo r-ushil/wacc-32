@@ -12,7 +12,8 @@ pub struct Func {
   pub ident: Ident,
   pub signature: FuncSig,
   pub body: Stat,
-  pub symbol_table: SymbolTable,
+  pub params_st: SymbolTable,
+  pub body_st: SymbolTable,
 }
 
 #[derive(PartialEq, Debug, Clone)]
