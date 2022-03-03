@@ -377,6 +377,60 @@ impl Generatable for Stat {
           _ => unreachable!("Can't free this type!"),
         }
       }
+      Stat::Read(type_, expr) => {
+        expr.generate(scope, code, regs, type_.clone()); //generate expr, load into min_re
+                                                         /* MOV r0, {regs[0]} */
+        code.text.push(Asm::Instr(
+          CondCode::AL,
+          Instr::Unary(UnaryInstr::Mov, Reg::RegNum(0), Op2::Reg(regs[0], 0), false),
+        ));
+        //expr.get_type //todo!() get type of ident
+        let read_type = if *type_ == Type::Char {
+          RequiredPredefs::ReadChar.mark(code);
+          ReadFmt::Char
+        } else if *type_ == Type::Int {
+          RequiredPredefs::ReadInt.mark(code);
+          ReadFmt::Int
+        } else {
+          unreachable!("CAN'T GET THIS TYPE!");
+        };
+
+        /* BL p_read_{read_type} */
+        code.text.push(Asm::always(Instr::Branch(
+          true,
+          format!("p_read_{}", read_type),
+        )))
+      }
+      Stat::Free(t, expr) => {
+        expr.generate(scope, code, regs, ());
+
+        /* MOV r0, {min_reg}        //move heap address into r0 */
+        code.text.push(Asm::Instr(
+          CondCode::AL,
+          Instr::Unary(UnaryInstr::Mov, Reg::RegNum(0), Op2::Reg(regs[0], 0), false),
+        ));
+        match *t {
+          Type::Array(_) => {
+            RequiredPredefs::FreeArray.mark(code);
+
+            /* BL p_free_array */
+            code.text.push(Asm::always(Instr::Branch(
+              true,
+              String::from("p_free_array"),
+            )));
+          }
+          Type::Pair(_, _) => {
+            RequiredPredefs::FreePair.mark(code);
+
+            /* BL p_free_pair */
+            code.text.push(Asm::always(Instr::Branch(
+              true,
+              String::from("p_free_pair"),
+            )));
+          }
+          _ => unreachable!("Can't free this type!"),
+        }
+      }
       Stat::Return(expr) => {
         /* regs[0] = eval(expr) */
         expr.generate(scope, code, regs, ());
