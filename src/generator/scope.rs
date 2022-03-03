@@ -45,6 +45,14 @@ impl Scope<'_> {
     }
   }
 
+  /* Same as get_type, but only checks the bottom most table. */
+  pub fn get_bottom(&self, ident: &Ident) -> Option<&Type> {
+    match self.context {
+      Some((_, parent)) => parent.get_bottom(ident),
+      None => Some(&self.symbol_table.table.get(ident)?.0),
+    }
+  }
+
   pub fn get_total_offset(&self) -> Offset {
     if self.symbol_table.table.is_empty() && self.symbol_table.size == 4 {
       /* When there are no symbols but the scope is 4 bytes long, we're at the

@@ -192,7 +192,8 @@ impl Generatable for AssignRhs {
         )));
       }
       AssignRhs::Call(ident, exprs) => {
-        let args = if let Type::Func(function_sig) = scope.get_type(ident).expect("Unreachable!") {
+        let args = if let Type::Func(function_sig) = scope.get_bottom(ident).expect("Unreachable!")
+        {
           &function_sig.params
         } else {
           unreachable!();
@@ -241,10 +242,6 @@ impl Generatable for AssignRhs {
           false,
         )));
       }
-      _ => code.text.push(Asm::Directive(Directive::Label(format!(
-        "{:?}.generate(...)",
-        self
-      )))),
     }
   }
 }

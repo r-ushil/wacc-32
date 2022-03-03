@@ -84,7 +84,7 @@
 ../wacc_examples/valid/function/simple_functions/functionUpdateParameter.wacc,./wacc_examples_assembled_ours/valid/function/simple_functions/functionUpdateParameter.s,./wacc_examples_assembled/valid/function/simple_functions/functionUpdateParameter.s,pass
 ../wacc_examples/valid/function/simple_functions/incFunction.wacc,./wacc_examples_assembled_ours/valid/function/simple_functions/incFunction.s,./wacc_examples_assembled/valid/function/simple_functions/incFunction.s,pass
 ../wacc_examples/valid/function/simple_functions/negFunction.wacc,./wacc_examples_assembled_ours/valid/function/simple_functions/negFunction.s,./wacc_examples_assembled/valid/function/simple_functions/negFunction.s,pass
-../wacc_examples/valid/function/simple_functions/sameArgName2.wacc,./wacc_examples_assembled_ours/valid/function/simple_functions/sameArgName2.s,./wacc_examples_assembled/valid/function/simple_functions/sameArgName2.s,fail
+../wacc_examples/valid/function/simple_functions/sameArgName2.wacc,./wacc_examples_assembled_ours/valid/function/simple_functions/sameArgName2.s,./wacc_examples_assembled/valid/function/simple_functions/sameArgName2.s,pass
 ../wacc_examples/valid/function/simple_functions/sameArgName.wacc,./wacc_examples_assembled_ours/valid/function/simple_functions/sameArgName.s,./wacc_examples_assembled/valid/function/simple_functions/sameArgName.s,pass
 ../wacc_examples/valid/function/simple_functions/sameNameAsVar.wacc,./wacc_examples_assembled_ours/valid/function/simple_functions/sameNameAsVar.s,./wacc_examples_assembled/valid/function/simple_functions/sameNameAsVar.s,fail
 ../wacc_examples/valid/if/if1.wacc,./wacc_examples_assembled_ours/valid/if/if1.s,./wacc_examples_assembled/valid/if/if1.s,pass
