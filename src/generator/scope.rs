@@ -45,6 +45,17 @@ impl Scope<'_> {
     }
   }
 
+  pub fn get_total_offset(&self) -> Offset {
+    if self.symbol_table.table.is_empty() && self.symbol_table.size == 4 {
+      /* When there are no symbols but the scope is 4 bytes long, we're at the
+      scope used to reserve space for the lr register. */
+      0
+    } else {
+      /* Otherwise, add the size of this scope and all the above scopes. */
+      self.symbol_table.size + self.context.unwrap().1.get_total_offset()
+    }
+  }
+
   pub fn new_scope<'a>(&'a self, symbol_table: &'a SymbolTable) -> Scope<'a> {
     Scope {
       symbol_table,

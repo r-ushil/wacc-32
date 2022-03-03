@@ -147,9 +147,9 @@ impl Display for BinaryInstr {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     use BinaryInstr::*;
     let tag = match self {
-      Add => "ADDS",
+      Add => "ADD",
       Sub => "SUB",
-      RevSub => "RSBS",
+      RevSub => "RSB",
       And => "AND",
       Or => "ORR",
       Eor => "EOR",

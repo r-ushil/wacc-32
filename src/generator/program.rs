@@ -89,6 +89,17 @@ impl Generatable for Func {
 
     /* Main function implicitly ends in return 0. */
     if main {
+      /* Deallocate stack for main function. */
+      let total_offset = scope.get_total_offset();
+      if total_offset != 0 {
+        code.text.push(Asm::always(Instr::Binary(
+          BinaryInstr::Add,
+          Reg::StackPointer,
+          Reg::StackPointer,
+          Op2::Imm(total_offset),
+          false,
+        )));
+      }
       code.text.push(Asm::always(Instr::Load(
         DataSize::Word,
         Reg::RegNum(0),
