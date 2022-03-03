@@ -119,13 +119,13 @@
 ../wacc_examples/valid/IO/read/echoPuncChar.wacc,./wacc_examples_assembled_ours/valid/IO/read/echoPuncChar.s,./wacc_examples_assembled/valid/IO/read/echoPuncChar.s,fail
 ../wacc_examples/valid/IO/read/read.wacc,./wacc_examples_assembled_ours/valid/IO/read/read.s,./wacc_examples_assembled/valid/IO/read/read.s,fail
 ../wacc_examples/valid/pairs/checkRefPair.wacc,./wacc_examples_assembled_ours/valid/pairs/checkRefPair.s,./wacc_examples_assembled/valid/pairs/checkRefPair.s,fail
-../wacc_examples/valid/pairs/createPair02.wacc,./wacc_examples_assembled_ours/valid/pairs/createPair02.s,./wacc_examples_assembled/valid/pairs/createPair02.s,fail
-../wacc_examples/valid/pairs/createPair03.wacc,./wacc_examples_assembled_ours/valid/pairs/createPair03.s,./wacc_examples_assembled/valid/pairs/createPair03.s,fail
-../wacc_examples/valid/pairs/createPair.wacc,./wacc_examples_assembled_ours/valid/pairs/createPair.s,./wacc_examples_assembled/valid/pairs/createPair.s,fail
-../wacc_examples/valid/pairs/createRefPair.wacc,./wacc_examples_assembled_ours/valid/pairs/createRefPair.s,./wacc_examples_assembled/valid/pairs/createRefPair.s,fail
-../wacc_examples/valid/pairs/free.wacc,./wacc_examples_assembled_ours/valid/pairs/free.s,./wacc_examples_assembled/valid/pairs/free.s,fail
+../wacc_examples/valid/pairs/createPair02.wacc,./wacc_examples_assembled_ours/valid/pairs/createPair02.s,./wacc_examples_assembled/valid/pairs/createPair02.s,pass
+../wacc_examples/valid/pairs/createPair03.wacc,./wacc_examples_assembled_ours/valid/pairs/createPair03.s,./wacc_examples_assembled/valid/pairs/createPair03.s,pass
+../wacc_examples/valid/pairs/createPair.wacc,./wacc_examples_assembled_ours/valid/pairs/createPair.s,./wacc_examples_assembled/valid/pairs/createPair.s,pass
+../wacc_examples/valid/pairs/createRefPair.wacc,./wacc_examples_assembled_ours/valid/pairs/createRefPair.s,./wacc_examples_assembled/valid/pairs/createRefPair.s,pass
+../wacc_examples/valid/pairs/free.wacc,./wacc_examples_assembled_ours/valid/pairs/free.s,./wacc_examples_assembled/valid/pairs/free.s,pass
 ../wacc_examples/valid/pairs/linkedList.wacc,./wacc_examples_assembled_ours/valid/pairs/linkedList.s,./wacc_examples_assembled/valid/pairs/linkedList.s,fail
-../wacc_examples/valid/pairs/nestedPair.wacc,./wacc_examples_assembled_ours/valid/pairs/nestedPair.s,./wacc_examples_assembled/valid/pairs/nestedPair.s,fail
+../wacc_examples/valid/pairs/nestedPair.wacc,./wacc_examples_assembled_ours/valid/pairs/nestedPair.s,./wacc_examples_assembled/valid/pairs/nestedPair.s,pass
 ../wacc_examples/valid/pairs/null.wacc,./wacc_examples_assembled_ours/valid/pairs/null.s,./wacc_examples_assembled/valid/pairs/null.s,fail
 ../wacc_examples/valid/pairs/printNullPair.wacc,./wacc_examples_assembled_ours/valid/pairs/printNullPair.s,./wacc_examples_assembled/valid/pairs/printNullPair.s,fail
 ../wacc_examples/valid/pairs/printNull.wacc,./wacc_examples_assembled_ours/valid/pairs/printNull.s,./wacc_examples_assembled/valid/pairs/printNull.s,fail
@@ -157,7 +157,7 @@
 ../wacc_examples/valid/runtimeErr/nullDereference/useNull2.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/nullDereference/useNull2.s,./wacc_examples_assembled/valid/runtimeErr/nullDereference/useNull2.s,fail
 ../wacc_examples/valid/scope/ifNested1.wacc,./wacc_examples_assembled_ours/valid/scope/ifNested1.s,./wacc_examples_assembled/valid/scope/ifNested1.s,pass
 ../wacc_examples/valid/scope/ifNested2.wacc,./wacc_examples_assembled_ours/valid/scope/ifNested2.s,./wacc_examples_assembled/valid/scope/ifNested2.s,pass
-../wacc_examples/valid/scope/indentationNotImportant.wacc,./wacc_examples_assembled_ours/valid/scope/indentationNotImportant.s,./wacc_examples_assembled/valid/scope/indentationNotImportant.s,fail
+../wacc_examples/valid/scope/indentationNotImportant.wacc,./wacc_examples_assembled_ours/valid/scope/indentationNotImportant.s,./wacc_examples_assembled/valid/scope/indentationNotImportant.s,pass
 ../wacc_examples/valid/scope/intsAndKeywords.wacc,./wacc_examples_assembled_ours/valid/scope/intsAndKeywords.s,./wacc_examples_assembled/valid/scope/intsAndKeywords.s,pass
 ../wacc_examples/valid/scope/printAllTypes.wacc,./wacc_examples_assembled_ours/valid/scope/printAllTypes.s,./wacc_examples_assembled/valid/scope/printAllTypes.s,fail
 ../wacc_examples/valid/scope/scopeBasic.wacc,./wacc_examples_assembled_ours/valid/scope/scopeBasic.s,./wacc_examples_assembled/valid/scope/scopeBasic.s,pass
@@ -198,7 +198,7 @@
 ../wacc_examples/valid/while/min.wacc,./wacc_examples_assembled_ours/valid/while/min.s,./wacc_examples_assembled/valid/while/min.s,fail
 ../wacc_examples/valid/while/rmStyleAddIO.wacc,./wacc_examples_assembled_ours/valid/while/rmStyleAddIO.s,./wacc_examples_assembled/valid/while/rmStyleAddIO.s,fail
 ../wacc_examples/valid/while/rmStyleAdd.wacc,./wacc_examples_assembled_ours/valid/while/rmStyleAdd.s,./wacc_examples_assembled/valid/while/rmStyleAdd.s,fail
-../wacc_examples/valid/while/whileBasic.wacc,./wacc_examples_assembled_ours/valid/while/whileBasic.s,./wacc_examples_assembled/valid/while/whileBasic.s,fail
+../wacc_examples/valid/while/whileBasic.wacc,./wacc_examples_assembled_ours/valid/while/whileBasic.s,./wacc_examples_assembled/valid/while/whileBasic.s,pass
 ../wacc_examples/valid/while/whileBoolFlip.wacc,./wacc_examples_assembled_ours/valid/while/whileBoolFlip.s,./wacc_examples_assembled/valid/while/whileBoolFlip.s,fail
 ../wacc_examples/valid/while/whileCount.wacc,./wacc_examples_assembled_ours/valid/while/whileCount.s,./wacc_examples_assembled/valid/while/whileCount.s,fail
 ../wacc_examples/valid/while/whileFalse.wacc,./wacc_examples_assembled_ours/valid/while/whileFalse.s,./wacc_examples_assembled/valid/while/whileFalse.s,fail

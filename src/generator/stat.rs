@@ -21,6 +21,31 @@ fn generate_lhs(lhs: &AssignLhs, scope: &Scope, code: &mut GeneratedCode, regs: 
   }
 }
 
+/* Mallocs {bytes} bytes and leaves the address in {reg}. */
+fn generate_malloc(bytes: i32, code: &mut GeneratedCode, reg: Reg) {
+  /* LDR r0, ={bytes} */
+  code.text.push(Asm::always(Instr::Load(
+    DataSize::Word,
+    Reg::RegNum(0),
+    LoadArg::Imm(bytes),
+  )));
+
+  /* BL malloc */
+  code
+    .text
+    .push(Asm::always(Instr::Branch(true, String::from("malloc"))));
+
+  /* MOV {regs[0]}, r0 */
+  if reg != Reg::RegNum(0) {
+    code.text.push(Asm::always(Instr::Unary(
+      UnaryInstr::Mov,
+      reg,
+      Op2::Reg(Reg::RegNum(0), 0),
+      false,
+    )));
+  }
+}
+
 fn generate_rhs(rhs: &AssignRhs, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], t: &Type) {
   match rhs {
     AssignRhs::Expr(expr) => expr.generate(scope, code, regs),
@@ -32,24 +57,8 @@ fn generate_rhs(rhs: &AssignRhs, scope: &Scope, code: &mut GeneratedCode, regs: 
         _ => unreachable!(),
       };
 
-      /* Malloc enough space for it.
-      LDR r0, =16
-      BL malloc
-      MOV r4, r0 */
-      code.text.push(Asm::always(Instr::Load(
-        DataSize::Word,
-        Reg::RegNum(0),
-        LoadArg::Imm(4 + elem_size * exprs.len() as i32),
-      )));
-      code
-        .text
-        .push(Asm::always(Instr::Branch(true, String::from("malloc"))));
-      code.text.push(Asm::always(Instr::Unary(
-        UnaryInstr::Mov,
-        regs[0],
-        Op2::Reg(Reg::RegNum(0), 0),
-        false,
-      )));
+      /* Malloc space for array. */
+      generate_malloc(4 + elem_size * exprs.len() as i32, code, regs[0]);
 
       /* Write each expression to the array. */
       for (i, expr) in exprs.iter().enumerate() {
@@ -76,6 +85,61 @@ fn generate_rhs(rhs: &AssignRhs, scope: &Scope, code: &mut GeneratedCode, regs: 
         DataSize::Word,
         regs[1],
         (regs[0], 0),
+      )));
+    }
+    AssignRhs::Pair(e1, e2) => {
+      let (e1_size, e2_size) = match t {
+        Type::Pair(t1, t2) => (t1.size(), t2.size()),
+        /* Semantic analyser should ensure this is a pair. */
+        _ => unreachable!(),
+      };
+
+      /* Malloc for the pair.
+      regs[0] = malloc(8) */
+      generate_malloc(8, code, regs[0]);
+
+      /* Evaluate e1.
+      regs[1] = eval(e1) */
+      e1.generate(scope, code, &regs[1..]);
+
+      /* Malloc for e1.
+      r0 = malloc(e1_size) */
+      generate_malloc(e1_size, code, Reg::RegNum(0));
+
+      /* Write e1 to malloced space. */
+      code.text.push(Asm::always(Instr::Store(
+        e1_size.into(),
+        regs[1],
+        (Reg::RegNum(0), 0),
+      )));
+
+      /* Write pointer to e1 to pair. */
+      code.text.push(Asm::always(Instr::Store(
+        DataSize::Word,
+        Reg::RegNum(0),
+        (regs[0], 0),
+      )));
+
+      /* Evaluate e2.
+      regs[1] = eval(e2) */
+      e2.generate(scope, code, &regs[1..]);
+
+      /* Malloc for e2.
+      r0 = malloc(e2_size) */
+      generate_malloc(e2_size, code, Reg::RegNum(0));
+
+      /* Write e2 to malloced space. */
+      code.text.push(Asm::always(Instr::Store(
+        e2_size.into(),
+        regs[1],
+        (Reg::RegNum(0), 0),
+      )));
+
+      /* Write pointer to e2 to pair. */
+      code.text.push(Asm::always(Instr::Store(
+        DataSize::Word,
+        Reg::RegNum(0),
+        (regs[0], 4),
       )));
     }
     _ => code.text.push(Asm::Directive(Directive::Label(format!(
@@ -337,7 +401,40 @@ impl Generatable for Stat {
         /* Label to exit if statement. */
         code.text.push(Asm::Directive(Label(exit_label)));
       }
-      // Stat::While(_, _) => todo!(),
+      Stat::While(cond, body) => {
+        let cond_label = code.get_label();
+        let body_label = code.get_label();
+
+        /* Jump to condition evaluation. */
+        code
+          .text
+          .push(Asm::always(Instr::Branch(false, cond_label.clone())));
+
+        /* Loop body label. */
+        code.text.push(Asm::Directive(Label(body_label.clone())));
+
+        /* Loop body. */
+        body.generate(scope, code, regs);
+
+        /* Cond label */
+        code.text.push(Asm::Directive(Label(cond_label)));
+
+        /* regs[0] = eval(cond) */
+        cond.generate(scope, code, regs);
+
+        /* cmp(regs[0], 1) */
+        code.text.push(Asm::always(Unary(
+          UnaryInstr::Cmp,
+          regs[0],
+          Op2::Imm(1),
+          false,
+        )));
+
+        /* If regs[0] == 1, jump back to loop body. */
+        code
+          .text
+          .push(Asm::Instr(CondCode::EQ, Branch(false, body_label.clone())));
+      }
       Stat::Scope(stat) => stat.generate(scope, code, regs),
       Stat::Sequence(head, tail) => {
         head.generate(scope, code, regs);
