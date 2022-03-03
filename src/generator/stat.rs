@@ -203,7 +203,10 @@ fn generate_print(t: &Type, expr: &Expr, scope: &Scope, code: &mut GeneratedCode
     Type::Int => RequiredPredefs::PrintInt.mark(code),
     Type::Bool => RequiredPredefs::PrintBool.mark(code),
     Type::String => RequiredPredefs::PrintString.mark(code),
-    Type::Char => RequiredPredefs::PrintString.mark(code),
+    Type::Char => code
+      .text
+      .push(Asm::always(Instr::Branch(true, "putchar".to_string()))),
+    // TODO: Change PrintString to PrintRefs
     Type::Array(_) => RequiredPredefs::PrintString.mark(code),
     Type::Pair(_, _) => RequiredPredefs::PrintRefs.mark(code),
     _ => (),
@@ -219,6 +222,7 @@ fn generate_print(t: &Type, expr: &Expr, scope: &Scope, code: &mut GeneratedCode
     _ => unreachable!(),
   };
 
+  // TODO: Move this above the first match block
   code.text.push(Asm::always(Unary(
     UnaryInstr::Mov,
     Reg::RegNum(0),
@@ -226,6 +230,7 @@ fn generate_print(t: &Type, expr: &Expr, scope: &Scope, code: &mut GeneratedCode
     false,
   )));
 
+  // TODO: Don't push this if we are putchar
   code
     .text
     .push(Asm::always(Branch(true, print_label.to_string())));
