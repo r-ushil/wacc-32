@@ -12,6 +12,7 @@ pub const PREDEF_PRINTLN: &str = "p_print_ln";
 pub const PREDEF_FREE_PAIR: &str = "p_free_pair";
 
 pub const PREDEF_THROW_RUNTIME_ERR: &str = "p_throw_runtime_error";
+pub const PREDEF_THROW_OVERFLOW_ERR: &str = "p_throw_overflow_error";
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum RequiredPredefs {
@@ -234,7 +235,7 @@ fn throw_overflow_error(code: &mut GeneratedCode) {
   /* p_throw_overflow_error: */
   code
     .text
-    .push(Directive(Label(PREDEF_THROW_RUNTIME_ERR.to_string())));
+    .push(Directive(Label(PREDEF_THROW_OVERFLOW_ERR.to_string())));
 
   /* LDR r0, =msg_overflow_error     //load result of message overflow error into r0 */
   code.text.push(Instr(

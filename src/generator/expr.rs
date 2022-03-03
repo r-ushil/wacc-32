@@ -1,5 +1,5 @@
 use self::CondCode::*;
-use super::predef::RequiredPredefs;
+use super::predef::{RequiredPredefs, PREDEF_THROW_OVERFLOW_ERR};
 use super::*;
 use crate::generator::asm::*;
 
@@ -211,7 +211,7 @@ fn generate_binary_op(code: &mut GeneratedCode, reg1: Reg, reg2: Reg, bin_op: &B
       /* BLVS p_throw_overflow_error */
       code.text.push(Asm::Instr(
         VS,
-        Instr::Branch(true, String::from("p_throw_overflow_error")),
+        Instr::Branch(true, PREDEF_THROW_OVERFLOW_ERR.to_string()),
       ));
     }
     BinaryOper::Sub => {
@@ -228,7 +228,7 @@ fn generate_binary_op(code: &mut GeneratedCode, reg1: Reg, reg2: Reg, bin_op: &B
       /* BLVS p_throw_overflow_error */
       code.text.push(Asm::Instr(
         VS,
-        Instr::Branch(true, String::from("p_throw_overflow_error")),
+        Instr::Branch(true, PREDEF_THROW_OVERFLOW_ERR.to_string()),
       ));
     }
     BinaryOper::Gt => binary_comp_ops(GT, LE, code, reg1, reg2),
