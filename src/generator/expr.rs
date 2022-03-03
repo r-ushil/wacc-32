@@ -14,12 +14,20 @@ impl Generatable for Expr {
       Expr::StrLiter(val) => generate_string_liter(code, regs, val),
       Expr::UnaryApp(op, expr) => generate_unary_app(code, regs, scope, op, expr),
       Expr::BinaryApp(expr1, op, expr2) => generate_binary_app(code, regs, scope, expr1, op, expr2),
-      // Expr::PairLiter => todo!(),
+      Expr::PairLiter => generate_pair_liter(code, regs),
       Expr::Ident(id) => generate_ident(scope, code, regs, &id),
       Expr::ArrayElem(elem) => generate_array_elem(scope, code, regs, elem),
       _ => generate_temp_default(self, code, regs),
     }
   }
+}
+
+fn generate_pair_liter(code: &mut GeneratedCode, regs: &[Reg]) {
+  code.text.push(Asm::always(Instr::Load(
+    DataSize::Word,
+    regs[0],
+    LoadArg::Imm(0),
+  )));
 }
 
 fn generate_array_elem(scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], elem: &ArrayElem) {
