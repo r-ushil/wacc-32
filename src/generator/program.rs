@@ -64,11 +64,11 @@ impl Generatable for Func {
 
     /* Function label.
     foo: */
-    code.text.push(Asm::Directive(Directive::Label(format!(
-      "{}{}",
-      if main { "" } else { "f_" },
-      self.ident
-    ))));
+    code.text.push(Asm::Directive(Directive::Label(if main {
+      self.ident.to_string()
+    } else {
+      generate_function_name(self.ident.to_string())
+    })));
 
     /* Save link register.
     PUSH {lr} */

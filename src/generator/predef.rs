@@ -4,13 +4,16 @@ use std::fmt::Display;
 pub const PREDEF_PRINT_INT: &str = "p_print_int";
 pub const PREDEF_PRINT_STRING: &str = "p_print_string";
 pub const PREDEF_PRINT_BOOL: &str = "p_print_bool";
-pub const PREDEF_PRINT_REFS: &str = "p_print_ref";
+pub const PREDEF_PRINT_REFS: &str = "p_print_reference";
+
+pub const PREDEF_PRINT_CHAR: &str = "putchar";
 
 pub const PREDEF_PRINTLN: &str = "p_print_ln";
 pub const PREDEF_FREE_PAIR: &str = "p_free_pair";
 pub const PREDEF_FREE_ARRAY: &str = "p_free_array";
 
 pub const PREDEF_THROW_RUNTIME_ERR: &str = "p_throw_runtime_error";
+pub const PREDEF_THROW_OVERFLOW_ERR: &str = "p_throw_overflow_error";
 pub const PREDEF_CHECK_NULL_POINTER: &str = "p_check_null_pointer";
 
 pub const PREDEF_CHECK_ARRAY_BOUNDS: &str = "p_check_array_bounds";
@@ -349,7 +352,7 @@ fn throw_overflow_error(code: &mut GeneratedCode) {
   /* p_throw_overflow_error: */
   code
     .text
-    .push(Directive(Label(PREDEF_THROW_RUNTIME_ERR.to_string())));
+    .push(Directive(Label(PREDEF_THROW_OVERFLOW_ERR.to_string())));
 
   /* LDR r0, =msg_overflow_error     //load result of message overflow error into r0 */
   code.text.push(Instr(
@@ -523,7 +526,7 @@ fn print_bool(code: &mut GeneratedCode) {
   /*p_print_bool: */
   code
     .text
-    .push(Directive(Label(PREDEF_PRINT_STRING.to_string())));
+    .push(Directive(Label(PREDEF_PRINT_BOOL.to_string())));
   /*  PUSH {lr}             //push link reg */
   code.text.push(Instr(AL, Push(Reg::Link)));
   /*  CMP r0, #0            //compare the contents of r0 to 0 and set flags */
@@ -532,7 +535,7 @@ fn print_bool(code: &mut GeneratedCode) {
     Unary(UnaryInstr::Cmp, Reg::RegNum(0), Op2::Imm(0), false),
   ));
   /*  LDRNE r0, =msg_true   //load result of msg_true if not equal to r0  */
-  code.data.push(Instr(
+  code.text.push(Instr(
     NE,
     Load(
       DataSize::Word,

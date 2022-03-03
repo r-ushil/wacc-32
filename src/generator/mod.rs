@@ -39,3 +39,7 @@ pub fn generate(ast: &Program) -> GeneratedCode {
 
   asm
 }
+
+fn generate_function_name(function_name: String) -> String {
+  format!("f_{}", function_name)
+}

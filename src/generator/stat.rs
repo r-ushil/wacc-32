@@ -16,6 +16,7 @@ impl Generatable for AssignLhs {
           t.size().into(),
           regs[0],
           (Reg::StackPointer, offset),
+          AddressingMode::Default,
         )))
       }
       AssignLhs::ArrayElem(elem) => {
@@ -23,18 +24,24 @@ impl Generatable for AssignLhs {
         let elem_size = elem.generate(scope, code, &regs[1..], ());
 
         /* *regs[1] = regs[0] */
-        code
-          .text
-          .push(Asm::always(Instr::Store(elem_size, regs[0], (regs[1], 0))));
+        code.text.push(Asm::always(Instr::Store(
+          elem_size,
+          regs[0],
+          (regs[1], 0),
+          AddressingMode::Default,
+        )));
       }
       AssignLhs::PairElem(elem) => {
         /* Stores address of elem in regs[1]. */
         let elem_size = elem.generate(scope, code, &regs[1..], ());
 
         /* *regs[1] = regs[0] */
-        code
-          .text
-          .push(Asm::always(Instr::Store(elem_size, regs[0], (regs[1], 0))));
+        code.text.push(Asm::always(Instr::Store(
+          elem_size,
+          regs[0],
+          (regs[1], 0),
+          AddressingMode::Default,
+        )));
       }
       _ => code.text.push(Asm::Directive(Directive::Label(format!(
         "{:?}.generate(...)",
@@ -97,6 +104,7 @@ impl Generatable for AssignRhs {
             elem_size.into(),
             regs[1],
             (regs[0], 4 + (i as i32) * elem_size),
+            AddressingMode::Default,
           )));
         }
 
@@ -112,6 +120,7 @@ impl Generatable for AssignRhs {
           DataSize::Word,
           regs[1],
           (regs[0], 0),
+          AddressingMode::Default,
         )));
       }
       AssignRhs::Pair(e1, e2) => {
@@ -138,6 +147,7 @@ impl Generatable for AssignRhs {
           e1_size.into(),
           regs[1],
           (Reg::RegNum(0), 0),
+          AddressingMode::Default,
         )));
 
         /* Write pointer to e1 to pair. */
@@ -145,6 +155,7 @@ impl Generatable for AssignRhs {
           DataSize::Word,
           Reg::RegNum(0),
           (regs[0], 0),
+          AddressingMode::Default,
         )));
 
         /* Evaluate e2.
@@ -156,14 +167,14 @@ impl Generatable for AssignRhs {
         generate_malloc(e2_size, code, Reg::RegNum(0));
 
         /* Write e2 to malloced space. */
-        code.text.push(Asm::always(Instr::Store(
+        code.text.push(Asm::always(Instr::store(
           e2_size.into(),
           regs[1],
           (Reg::RegNum(0), 0),
         )));
 
         /* Write pointer to e2 to pair. */
-        code.text.push(Asm::always(Instr::Store(
+        code.text.push(Asm::always(Instr::store(
           DataSize::Word,
           Reg::RegNum(0),
           (regs[0], 4),
@@ -180,6 +191,56 @@ impl Generatable for AssignRhs {
           LoadArg::MemAddress(regs[0], 0),
         )));
       }
+      AssignRhs::Call(ident, exprs) => {
+        let args = if let Type::Func(function_sig) = scope.get_type(ident).expect("Unreachable!") {
+          &function_sig.params
+        } else {
+          unreachable!();
+        };
+
+        let mut offset = 0;
+
+        for (expr, (arg_type, _arg_ident)) in exprs.iter().zip(args).rev() {
+          let symbol_table = SymbolTable {
+            size: offset,
+            ..Default::default()
+          };
+
+          let arg_offset_scope = scope.new_scope(&symbol_table);
+
+          expr.generate(&arg_offset_scope, code, regs, ());
+
+          code.text.push(Asm::always(Instr::store_with_mode(
+            arg_type.size().into(),
+            regs[0],
+            (Reg::StackPointer, -arg_type.size()),
+            AddressingMode::PreIndexed,
+          )));
+
+          /* Make symbol table bigger. */
+          offset += arg_type.size();
+        }
+
+        code.text.push(Asm::always(Branch(
+          true,
+          generate_function_name(ident.to_string()),
+        )));
+
+        code.text.push(Asm::always(Binary(
+          BinaryInstr::Add,
+          Reg::StackPointer,
+          Reg::StackPointer,
+          Op2::Imm(offset),
+          false,
+        )));
+
+        code.text.push(Asm::always(Unary(
+          UnaryInstr::Mov,
+          regs[0],
+          Op2::Reg(Reg::RegNum(0), 0),
+          false,
+        )));
+      }
       _ => code.text.push(Asm::Directive(Directive::Label(format!(
         "{:?}.generate(...)",
         self
@@ -191,12 +252,21 @@ impl Generatable for AssignRhs {
 fn generate_print(t: &Type, expr: &Expr, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
   expr.generate(scope, code, regs, ());
 
+  code.text.push(Asm::always(Unary(
+    UnaryInstr::Mov,
+    Reg::RegNum(0),
+    Op2::Reg(regs[0], 0),
+    false,
+  )));
+
   match t {
     Type::Int => RequiredPredefs::PrintInt.mark(code),
     Type::Bool => RequiredPredefs::PrintBool.mark(code),
     Type::String => RequiredPredefs::PrintString.mark(code),
-    Type::Char => RequiredPredefs::PrintString.mark(code),
-    Type::Array(_) => RequiredPredefs::PrintString.mark(code),
+    Type::Array(elem_type) => match **elem_type {
+      Type::Char => RequiredPredefs::PrintString.mark(code),
+      _ => RequiredPredefs::PrintRefs.mark(code),
+    },
     Type::Pair(_, _) => RequiredPredefs::PrintRefs.mark(code),
     _ => (),
   };
@@ -205,18 +275,14 @@ fn generate_print(t: &Type, expr: &Expr, scope: &Scope, code: &mut GeneratedCode
     Type::Int => predef::PREDEF_PRINT_INT,
     Type::Bool => predef::PREDEF_PRINT_BOOL,
     Type::String => predef::PREDEF_PRINT_STRING,
-    Type::Char => predef::PREDEF_PRINT_STRING,
-    Type::Array(_) => predef::PREDEF_PRINT_STRING,
+    Type::Char => predef::PREDEF_PRINT_CHAR,
+    Type::Array(elem_type) => match **elem_type {
+      Type::Char => predef::PREDEF_PRINT_STRING,
+      _ => predef::PREDEF_PRINT_REFS,
+    },
     Type::Pair(_, _) => predef::PREDEF_PRINT_REFS,
     _ => unreachable!(),
   };
-
-  code.text.push(Asm::always(Unary(
-    UnaryInstr::Mov,
-    Reg::RegNum(0),
-    Op2::Reg(regs[0], 0),
-    false,
-  )));
 
   code
     .text

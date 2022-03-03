@@ -8,12 +8,14 @@ use crate::ast::*;
 
 fn func(scope: &ScopeMut, errors: &mut Vec<SemanticError>, func: &mut Func) -> Option<()> {
   let scope = &mut scope.new_scope(&mut func.params_st);
-  let scope = &mut scope.new_scope(&mut func.body_st);
 
-  /* Add parameters to inner scope. */
-  for (pt, pi) in func.signature.params.iter() {
+  /* Add parameters to parameter scope. */
+  for (pt, pi) in func.signature.params.iter().rev() {
     scope.insert(pi, pt.clone())?;
   }
+
+  /* Enter body scope. */
+  let scope = &mut scope.new_scope(&mut func.body_st);
 
   /* Type check function body and make sure it returns value of correct type. */
   match stat(scope, errors, &mut func.body)? {
