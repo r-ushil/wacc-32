@@ -199,6 +199,13 @@ fn generate_rhs(rhs: &AssignRhs, scope: &Scope, code: &mut GeneratedCode, regs: 
 fn generate_print(t: &Type, expr: &Expr, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
   expr.generate(scope, code, regs);
 
+  code.text.push(Asm::always(Unary(
+    UnaryInstr::Mov,
+    Reg::RegNum(0),
+    Op2::Reg(regs[0], 0),
+    false,
+  )));
+
   match t {
     Type::Int => RequiredPredefs::PrintInt.mark(code),
     Type::Bool => RequiredPredefs::PrintBool.mark(code),
@@ -223,14 +230,6 @@ fn generate_print(t: &Type, expr: &Expr, scope: &Scope, code: &mut GeneratedCode
     Type::Pair(_, _) => predef::PREDEF_PRINT_REFS,
     _ => unreachable!(),
   };
-
-  // TODO: Move this above the first match block
-  code.text.push(Asm::always(Unary(
-    UnaryInstr::Mov,
-    Reg::RegNum(0),
-    Op2::Reg(regs[0], 0),
-    false,
-  )));
 
   // TODO: Don't push this if we are putchar
   code
