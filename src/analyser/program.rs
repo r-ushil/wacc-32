@@ -7,18 +7,18 @@ use super::{
 use crate::ast::*;
 
 fn func(scope: &ScopeMut, errors: &mut Vec<SemanticError>, func: &mut Func) -> Option<()> {
-  let func_scope = &mut scope.new_scope(&mut func.symbol_table);
+  let scope = &mut scope.new_scope(&mut func.params_st);
+  let scope = &mut scope.new_scope(&mut func.body_st);
 
   /* Add parameters to inner scope. */
   for (pt, pi) in func.signature.params.iter() {
-    func_scope.insert(pi, pt.clone())?;
+    scope.insert(pi, pt.clone())?;
   }
 
   /* Type check function body and make sure it returns value of correct type. */
-
-  match stat(func_scope, errors, &mut func.body)? {
+  match stat(scope, errors, &mut func.body)? {
     AtEnd(t) if t.clone().unify(func.signature.return_type.clone()) == None => {
-      func_scope.add_error(
+      scope.add_error(
         errors,
         SemanticError::Normal(format!(
           "Function body returns {:?} but function signature expects {:?}",
@@ -29,7 +29,7 @@ fn func(scope: &ScopeMut, errors: &mut Vec<SemanticError>, func: &mut Func) -> O
     }
     AtEnd(_) => Some(()),
     _ => {
-      func_scope.add_error(
+      scope.add_error(
         errors,
         SemanticError::Syntax(format!("The last statement should be a return or exit.")),
       );
@@ -90,7 +90,8 @@ mod tests {
         BinaryOper::Mul,
         Box::new(Expr::IntLiter(2)),
       )),
-      symbol_table: SymbolTable::default(),
+      params_st: SymbolTable::default(),
+      body_st: SymbolTable::default(),
     };
 
     /* Works in it's default form. */
@@ -125,7 +126,8 @@ mod tests {
         BinaryOper::Mul,
         Box::new(Expr::IntLiter(2)),
       )),
-      symbol_table: SymbolTable::default(),
+      params_st: SymbolTable::default(),
+      body_st: SymbolTable::default(),
     };
 
     /* Both branches of if statements must return correct type. */
