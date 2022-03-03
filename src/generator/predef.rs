@@ -119,7 +119,12 @@ fn check_array_bounds(code: &mut GeneratedCode) {
   /* CMP r0, r1                     //compare r0 and r1 */
   code.text.push(Instr(
     AL,
-    Unary(UnaryInstr::Cmp, Reg::RegNum(0), Op2::Reg(Reg::RegNum(1), 0), false),
+    Unary(
+      UnaryInstr::Cmp,
+      Reg::RegNum(0),
+      Op2::Reg(Reg::RegNum(1), 0),
+      false,
+    ),
   ));
   /* LDRCS r0, =msg_1               //load msg_1 into r0 if carry flag is set */
   code.text.push(Instr(

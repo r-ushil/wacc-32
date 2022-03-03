@@ -433,8 +433,6 @@ impl Generatable for ArrayElem {
         String::from("p_check_array_bounds"),
       )));
 
-      //todo!() set predef flag for array out of bounds
-
       /* Move over size field.
       ADD {array_ptr_reg} {array_ptr_reg} #4 */
       code.text.push(Asm::always(Instr::Binary(
@@ -461,6 +459,8 @@ impl Generatable for ArrayElem {
       )))
     }
 
+    RequiredPredefs::ArrayBoundsError.mark(code);
+    
     current_type.size().into()
   }
 }
