@@ -210,9 +210,6 @@ fn generate_print(t: &Type, expr: &Expr, scope: &Scope, code: &mut GeneratedCode
     Type::Int => RequiredPredefs::PrintInt.mark(code),
     Type::Bool => RequiredPredefs::PrintBool.mark(code),
     Type::String => RequiredPredefs::PrintString.mark(code),
-    Type::Char => code
-      .text
-      .push(Asm::always(Instr::Branch(true, "putchar".to_string()))),
     Type::Array(elem_type) => match **elem_type {
       Type::Char => RequiredPredefs::PrintString.mark(code),
       _ => RequiredPredefs::PrintRefs.mark(code),
@@ -225,13 +222,12 @@ fn generate_print(t: &Type, expr: &Expr, scope: &Scope, code: &mut GeneratedCode
     Type::Int => predef::PREDEF_PRINT_INT,
     Type::Bool => predef::PREDEF_PRINT_BOOL,
     Type::String => predef::PREDEF_PRINT_STRING,
-    Type::Char => predef::PREDEF_PRINT_STRING,
+    Type::Char => predef::PREDEF_PRINT_CHAR,
     Type::Array(_) => predef::PREDEF_PRINT_STRING,
     Type::Pair(_, _) => predef::PREDEF_PRINT_REFS,
     _ => unreachable!(),
   };
 
-  // TODO: Don't push this if we are putchar
   code
     .text
     .push(Asm::always(Branch(true, print_label.to_string())));

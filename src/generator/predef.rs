@@ -6,6 +6,8 @@ pub const PREDEF_PRINT_STRING: &str = "p_print_string";
 pub const PREDEF_PRINT_BOOL: &str = "p_print_bool";
 pub const PREDEF_PRINT_REFS: &str = "p_print_ref";
 
+pub const PREDEF_PRINT_CHAR: &str = "putchar";
+
 pub const PREDEF_PRINTLN: &str = "p_print_ln";
 pub const PREDEF_FREE_PAIR: &str = "p_free_pair";
 
