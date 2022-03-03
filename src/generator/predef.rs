@@ -368,7 +368,7 @@ fn print_bool(code: &mut GeneratedCode) {
   /*p_print_bool: */
   code
     .text
-    .push(Directive(Label(PREDEF_PRINT_STRING.to_string())));
+    .push(Directive(Label(PREDEF_PRINT_BOOL.to_string())));
   /*  PUSH {lr}             //push link reg */
   code.text.push(Instr(AL, Push(Reg::Link)));
   /*  CMP r0, #0            //compare the contents of r0 to 0 and set flags */
