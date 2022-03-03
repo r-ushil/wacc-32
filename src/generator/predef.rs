@@ -276,7 +276,6 @@ fn check_divide_by_zero(code: &mut GeneratedCode) {
     Branch(true, String::from("p_throw_runtime_error")),
   ));
   //set runtime error generation to true
-  code.predefs.runtime_err = true; // TODO: Remove after switch
   RequiredPredefs::RuntimeError.mark(code);
 
   /*  POP {pc}            //pop pc register */
@@ -319,7 +318,6 @@ fn throw_overflow_error(code: &mut GeneratedCode) {
   ));
   /* BL p_throw_runtime_error        //branch to runtime error */
   RequiredPredefs::RuntimeError.mark(code);
-  code.predefs.runtime_err = true; // TODO: Remove after switch
   code.text.push(Instr(
     AL,
     Branch(true, String::from("p_throw_runtime_error")),
@@ -375,7 +373,6 @@ fn free_pair(code: &mut GeneratedCode) {
 
   //set runtime error generation to true
   /*  PUSH {r0}           //push r0 */
-  code.predefs.runtime_err = true; // TODO: Remove after switch
   RequiredPredefs::RuntimeError.mark(code);
 
   code.text.push(Instr(AL, Push(Reg::RegNum(0))));
@@ -428,7 +425,6 @@ fn throw_runtime_error(code: &mut GeneratedCode) {
     .push(Instr(AL, Branch(true, String::from("p_print_string"))));
   /* MOV r0, #-1              //move -1 into r0*/
   RequiredPredefs::PrintString.mark(code);
-  code.predefs.print_strings = true; // TODO: Remove after switch
   code.text.push(Instr(
     AL,
     Unary(UnaryInstr::Mov, Reg::RegNum(0), Op2::Imm(-1), false),
