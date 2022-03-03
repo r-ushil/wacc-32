@@ -10,6 +10,7 @@ pub const PREDEF_PRINTLN: &str = "p_print_ln";
 pub const PREDEF_FREE_PAIR: &str = "p_free_pair";
 
 pub const PREDEF_THROW_RUNTIME_ERR: &str = "p_throw_runtime_error";
+pub const PREDEF_CHECK_NULL_POINTER: &str = "p_check_null_pointer";
 
 pub const PREDEF_CHECK_ARRAY_BOUNDS: &str = "p_check_array_bounds";
 
@@ -50,22 +51,18 @@ impl Generatable for RequiredPredefs {
       RequiredPredefs::PrintInt => print_int_or_ref(code, PrintFmt::Int),
       RequiredPredefs::PrintString => print_string(code),
       RequiredPredefs::PrintBool => print_bool(code),
-      // RequiredPredefs::PrintChar => todo!(), // TODO: Implement
+      RequiredPredefs::PrintChar => todo!(), // TODO: Implement
       RequiredPredefs::PrintRefs => print_int_or_ref(code, PrintFmt::Ref),
       RequiredPredefs::PrintLn => println(code),
       RequiredPredefs::ReadChar => read(code, ReadFmt::Char),
       RequiredPredefs::ReadInt => read(code, ReadFmt::Int),
       RequiredPredefs::FreePair => free_pair(code),
-      // RequiredPredefs::FreeArray => todo!(), // TODO: Implement
+      RequiredPredefs::FreeArray => todo!(), // TODO: Implement
       RequiredPredefs::RuntimeError => throw_runtime_error(code),
       RequiredPredefs::OverflowError => throw_overflow_error(code),
       RequiredPredefs::DivideByZeroError => check_divide_by_zero(code),
       RequiredPredefs::ArrayBoundsError => check_array_bounds(code),
-      // RequiredPredefs::CheckNullPointer => todo!(), // TODO: Implement
-      _ => code.text.push(Asm::Directive(Directive::Label(format!(
-        "{:?}.generate(...)",
-        self
-      )))),
+      RequiredPredefs::CheckNullPointer => check_null_pointer(code),
     }
   }
 }
@@ -251,6 +248,46 @@ fn println(code: &mut GeneratedCode) {
     .text
     .push(Instr(AL, Branch(true, String::from("fflush"))));
   /*  POP {pc}              //pop the pc register */
+  code.text.push(Instr(AL, Pop(Reg::PC)));
+}
+
+fn check_null_pointer(code: &mut GeneratedCode) {
+  use self::CondCode::*;
+  use self::Directive::*;
+  use self::Instr::*;
+  use Asm::*;
+
+  /* Create a msg label to display when derefencing a null pointer. */
+  let msg_label = code.get_msg("NullReferenceError: dereference a null reference\n\0");
+
+  /* Generate label to throw a runtime error for whatever's in registers */
+  /* p_check_null_pointer: */
+  code
+    .text
+    .push(Directive(Label(String::from(PREDEF_CHECK_NULL_POINTER))));
+
+  /*  PUSH {lr}            //push link reg */
+  code.text.push(Instr(AL, Push(Reg::Link)));
+  /*  CMP r0, #0           //compare the contents of r0 to 0 and set flags */
+  code.text.push(Instr(
+    AL,
+    Unary(UnaryInstr::Cmp, Reg::RegNum(0), Op2::Imm(0), false),
+  ));
+  /*  LDREQ r0, =msg_label   //load error msg if r0 equals 0 */
+  code.text.push(Instr(
+    EQ,
+    Load(DataSize::Word, Reg::RegNum(0), LoadArg::Label(msg_label)),
+  ));
+
+  /*  BLEQ p_throw_runtime_error   //branch to runtime error if r0 equals 0 */
+  code.text.push(Instr(
+    EQ,
+    Branch(true, PREDEF_THROW_RUNTIME_ERR.to_string()),
+  ));
+  //set runtime error generation to true
+  RequiredPredefs::RuntimeError.mark(code);
+
+  /*  POP {pc}            //pop pc register */
   code.text.push(Instr(AL, Pop(Reg::PC)));
 }
 
