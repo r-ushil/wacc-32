@@ -11,6 +11,7 @@ pub const PREDEF_FREE_PAIR: &str = "p_free_pair";
 pub const PREDEF_FREE_ARRAY: &str = "p_free_array";
 
 pub const PREDEF_THROW_RUNTIME_ERR: &str = "p_throw_runtime_error";
+pub const PREDEF_CHECK_NULL_POINTER: &str = "p_check_null_pointer";
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum RequiredPredefs {
@@ -27,6 +28,7 @@ pub enum RequiredPredefs {
   RuntimeError,
   OverflowError,
   DivideByZeroError,
+  CheckNullPointer,
 }
 
 /* Pushes a pre-defined function to the vector on GeneratedCode if it doesn't
@@ -55,6 +57,7 @@ impl Generatable for RequiredPredefs {
       RequiredPredefs::RuntimeError => throw_runtime_error(code),
       RequiredPredefs::OverflowError => throw_overflow_error(code),
       RequiredPredefs::DivideByZeroError => check_divide_by_zero(code),
+      RequiredPredefs::CheckNullPointer => todo!(),
     }
   }
 }
