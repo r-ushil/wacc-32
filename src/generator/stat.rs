@@ -274,33 +274,36 @@ impl Generatable for Stat {
           format!("p_read_{}", read_type),
         )))
       }
-      // Stat::Free(expr) => {
-      // TODO: expr is not and Expr or an Ident, function needs re-writing.
-      // //expr must be of type ident, referring to a pair
+      Stat::Free(t, expr) => {
+        expr.generate(scope, code, regs);
 
-      // expr.generate(scope, code, regs); //load pair address into min_reg
-      //                                   /* MOV r0, {min_reg}        //move pair address into r0 */
-      // code.text.push(Asm::Instr(
-      //   CondCode::AL,
-      //   Instr::Unary(
-      //     UnaryInstr::Mov,
-      //     Reg::General(0),
-      //     Op2::Reg(Reg::General(*regs), 0),
-      //     false,
-      //   ),
-      // ));
-      //set free_pair flag to true
-      /* BL p_free_pair */
-      // code.predefs.free_pair = true; // TODO: Remove after switch
-      // FreePair.mark(code);
-      //
-      // code.text.push(Asm::Instr(
-      //   CondCode::AL,
-      //   Instr::Branch(true, String::from("p_free_pair")),
-      // ));
+        /* MOV r0, {min_reg}        //move heap address into r0 */
+        code.text.push(Asm::Instr(
+          CondCode::AL,
+          Instr::Unary(UnaryInstr::Mov, Reg::RegNum(0), Op2::Reg(regs[0], 0), false),
+        ));
+        match *t {
+          Type::Array(_) => {
+            RequiredPredefs::FreeArray.mark(code);
 
-      // *regs = *regs - 1; //decrement min_reg by 1, no longer needed
-      // }
+            /* BL p_free_array */
+            code.text.push(Asm::always(Instr::Branch(
+              true,
+              String::from("p_free_array"),
+            )));
+          }
+          Type::Pair(_, _) => {
+            RequiredPredefs::FreePair.mark(code);
+
+            /* BL p_free_pair */
+            code.text.push(Asm::always(Instr::Branch(
+              true,
+              String::from("p_free_pair"),
+            )));
+          }
+          _ => unreachable!("Can't free this type!"),
+        }
+      }
       Stat::Return(expr) => {
         /* regs[0] = eval(expr) */
         expr.generate(scope, code, regs);
