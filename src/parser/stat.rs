@@ -39,7 +39,9 @@ fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
     tuple((assign_lhs, tok("="), assign_rhs)),
     |(ass_lhs, _, ass_rhs)| Stat::Assignment(ass_lhs, Type::default(), ass_rhs),
   );
-  let read = map(preceded(tok("read"), assign_lhs), Stat::Read);
+  let read = map(preceded(tok("read"), assign_lhs), |e| {
+    Stat::Read(Type::default(), e)
+  });
 
   let free = map(preceded(tok("free"), expr), |e| {
     Stat::Free(Type::default(), e)
@@ -453,7 +455,7 @@ mod tests {
   fn test_stat_read() {
     assert!(matches!(
       stat("read test"),
-      Ok(("", ast)) if ast == Stat::Read(AssignLhs::Ident("test".to_string()))
+      Ok(("", ast)) if ast == Stat::Read(Type::default(), AssignLhs::Ident("test".to_string()))
     ));
   }
 

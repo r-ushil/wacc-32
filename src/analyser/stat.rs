@@ -211,11 +211,14 @@ pub fn stat(
       *t = equal_types(scope, errors, lhs, rhs)?;
       Some(Never) /* Assignments never return. */
     }
-    Stat::Read(dest) => {
+    Stat::Read(t, dest) => {
       /* Any type can be read. */
       match dest.get_type(scope, errors)? {
         /* Reads never return. */
-        Type::Int | Type::Char => Some(Never),
+        new_t @ (Type::Int | Type::Char) => {
+          *t = new_t;
+          Some(Never)
+        }
         _ => {
           scope.add_error(
             errors,
