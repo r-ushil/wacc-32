@@ -23,7 +23,7 @@ pub enum RequiredPredefs {
   PrintInt,
   PrintString,
   PrintBool,
-  PrintChar, // TODO: Implement
+  PrintChar,
   PrintRefs,
   PrintLn,
   ReadChar,
