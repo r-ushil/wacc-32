@@ -4,7 +4,9 @@ use super::*;
 use crate::generator::asm::*;
 
 impl Generatable for Expr {
-  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
+  type Input = ();
+  type Output = ();
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], aux: ()) {
     match self {
       Expr::IntLiter(val) => generate_int_liter(code, regs, val),
       Expr::BoolLiter(val) => generate_bool_liter(code, regs, val),
@@ -14,10 +16,22 @@ impl Generatable for Expr {
       Expr::BinaryApp(expr1, op, expr2) => generate_binary_app(code, regs, scope, expr1, op, expr2),
       // Expr::PairLiter => todo!(),
       Expr::Ident(id) => generate_ident(scope, code, regs, &id),
-      // Expr::ArrayElem(_) => todo!(),
+      Expr::ArrayElem(elem) => generate_array_elem(scope, code, regs, elem),
       _ => generate_temp_default(self, code, regs),
     }
   }
+}
+
+fn generate_array_elem(scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], elem: &ArrayElem) {
+  /* Get address of array elem and store in regs[0]. */
+  let array_elem_size = elem.generate(scope, code, regs, ());
+
+  /* Read from that address into regs[0]. */
+  code.text.push(Asm::always(Instr::Load(
+    array_elem_size.into(),
+    regs[0],
+    LoadArg::MemAddress(regs[0], 0),
+  )));
 }
 
 /* Stores value of local variable specified by ident to regs[0]. */
@@ -83,7 +97,7 @@ fn generate_unary_app(
   expr: &Box<Expr>,
 ) {
   /* Stores expression's value in regs[0]. */
-  expr.generate(scope, code, regs);
+  expr.generate(scope, code, regs, ());
 
   /* Applies unary operator to regs[0]. */
   generate_unary_op(code, regs[0], op);
@@ -98,10 +112,10 @@ fn generate_binary_app(
   expr2: &Box<Expr>,
 ) {
   /* regs[0] = eval(expr1) */
-  expr1.generate(scope, code, regs);
+  expr1.generate(scope, code, regs, ());
 
   /* regs[1] = eval(expr2) */
-  expr2.generate(scope, code, &regs[1..]);
+  expr2.generate(scope, code, &regs[1..], ());
 
   /* regs[0] = regs[0] <op> regs[1] */
   generate_binary_op(code, regs[0], regs[1], op);
@@ -345,7 +359,107 @@ fn binary_comp_ops(
 }
 
 impl Generatable for ArrayElem {
-  // fn generate(&self, _code: &mut Vec<Instr>, _registers: &[Reg]) {}
+  type Input = ();
+  type Output = DataSize;
+
+  /* Stores the address of the element in regs[0],
+  returns size of element. */
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], aux: ()) -> DataSize {
+    let ArrayElem(id, indexes) = self;
+    let mut current_type = scope.get_type(id).unwrap();
+    let array_ptr_reg = regs[0];
+    let index_regs = &regs[1..];
+
+    /* Get reference to {id}.
+    Put address of array in regs[0].
+    ADD {regs[0]}, sp, #{offset} */
+    let offset = scope.get_offset(id).unwrap();
+    code.text.push(Asm::always(Instr::Binary(
+      BinaryInstr::Add,
+      regs[0],
+      Reg::StackPointer,
+      Op2::Imm(offset),
+      false,
+    )));
+
+    /* For each index. */
+    for index in indexes {
+      /* Each index unwraps the type by one.
+      Type::Array(t) => t */
+      current_type = match current_type {
+        Type::Array(t) => t,
+        /* Semantic analysis ensures array lookups
+        only happen on arrays. */
+        _ => unreachable!(),
+      };
+
+      /* index_regs[0] = eval(index)
+      LDR {index_regs[0]} {index}     //load index into first index reg */
+      index.generate(scope, code, index_regs, ());
+
+      /* Dereference. */
+      /* LDR {array_ptr_reg} [{array_ptr_reg}] */
+      code.text.push(Asm::always(Instr::Load(
+        DataSize::Word,
+        array_ptr_reg,
+        LoadArg::MemAddress(array_ptr_reg, 0),
+      )));
+
+      /* Move index_reg into r0 */
+      /* MOV r0, {index_reg[0]} */
+      code.text.push(Asm::always(Instr::Unary(
+        UnaryInstr::Mov,
+        Reg::RegNum(0),
+        Op2::Reg(index_regs[0], 0),
+        false,
+      )));
+
+      /* Move array_ptr_reg into r1 */
+      /* MOV r1, {array_ptr_reg} */
+      code.text.push(Asm::always(Instr::Unary(
+        UnaryInstr::Mov,
+        Reg::RegNum(1),
+        Op2::Reg(array_ptr_reg, 0),
+        false,
+      )));
+
+      /* Branch to check array bounds */
+      /* BL p_check_array_bounds */
+      code.text.push(Asm::always(Instr::Branch(
+        true,
+        String::from("p_check_array_bounds"),
+      )));
+
+      /* Move over size field.
+      ADD {array_ptr_reg} {array_ptr_reg} #4 */
+      code.text.push(Asm::always(Instr::Binary(
+        BinaryInstr::Add,
+        array_ptr_reg,
+        array_ptr_reg,
+        Op2::Imm(4),
+        false,
+      )));
+
+      /* Move to correct element. */
+      let shift = match current_type.size() {
+        4 => 2, /* Hardcoded log_2(current_type.size()) :) */
+        1 => 0,
+        /* Elements of sizes not equal to 4 or 1 not implemented. */
+        _ => unimplemented!(),
+      };
+      code.text.push(Asm::always(Instr::Binary(
+        BinaryInstr::Add,
+        array_ptr_reg,
+        array_ptr_reg,
+        Op2::Reg(index_regs[0], -shift),
+        false,
+      )))
+    }
+
+    RequiredPredefs::ArrayBoundsError.mark(code);
+
+    current_type.size().into()
+  }
 }
 
 #[cfg(test)]

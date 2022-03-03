@@ -94,8 +94,10 @@ where
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum PairElem {
-  Fst(Expr),
-  Snd(Expr),
+  /* Type of fst and snd elem respectively.
+  (fst and snd are concidered generic functions) */
+  Fst(Type, Expr),
+  Snd(Type, Expr),
 }
 
 #[derive(PartialEq, Debug, Clone)]
