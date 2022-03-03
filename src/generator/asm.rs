@@ -133,6 +133,13 @@ pub enum Directive {
   Ascii(String), /* .ascii "Hello World" */
 }
 
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub enum AddressingMode {
+  Default,
+  PreIndexed,
+  PostIndexed,
+}
+
 /* ======== Instructions! ======== */
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -157,13 +164,28 @@ pub enum Instr {
   Binary(BinaryInstr, Reg, Reg, Op2, Flags),
 
   /* STR{DataSize}{CondCode}, {Reg}, [{Reg}, #{Offset}] */
-  Store(DataSize, Reg, (Reg, Offset)), // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289906890.htm
+  Store(DataSize, Reg, (Reg, Offset), AddressingMode), // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289906890.htm
 
   /* LDR{DataSize}{CondCode}, {Reg}, [{Reg}, #{Offset}] */
   Load(DataSize, Reg, LoadArg), // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289873425.htm
 
   /* SMULL{CondCode} {Reg}, {Reg}, {Reg}, {Reg}  */
   Multiply(Reg, Reg, Reg, Reg), // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289902800.htm
+}
+
+impl Instr {
+  pub fn store(data_size: DataSize, reg: Reg, (reg2, offset): (Reg, Offset)) -> Instr {
+    Instr::Store(data_size, reg, (reg2, offset), AddressingMode::Default)
+  }
+
+  pub fn store_with_mode(
+    data_size: DataSize,
+    reg: Reg,
+    (reg2, offset): (Reg, Offset),
+    addr_mode: AddressingMode,
+  ) -> Instr {
+    Instr::Store(data_size, reg, (reg2, offset), addr_mode)
+  }
 }
 
 impl<Op, D, S, O> From<(Op, D, S, O)> for Instr

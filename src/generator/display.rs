@@ -49,12 +49,19 @@ impl Display for Asm {
             write!(f, "B{}{} {}", cond, if *link { "L" } else { "" }, label)
           }
 
-          Store(size, dst, (src, off)) => {
+          Store(size, dst, (src, off), addr_mode) => {
             write!(f, "STR{}{} {}, ", cond, size, dst)?;
-            if *off == 0 {
-              write!(f, "[{}]", src)
-            } else {
-              write!(f, "[{}, #{}]", src, off)
+
+            match addr_mode {
+              AddressingMode::Default => {
+                if *off == 0 {
+                  write!(f, "[{}]", src)
+                } else {
+                  write!(f, "[{}, #{}]", src, off)
+                }
+              }
+              AddressingMode::PreIndexed => write!(f, "[{}, #{}]!", src, off),
+              AddressingMode::PostIndexed => write!(f, "[{}], #{}", src, off),
             }
           }
 
