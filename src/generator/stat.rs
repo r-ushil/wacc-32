@@ -185,10 +185,17 @@ fn generate_print(t: &Type, expr: &Expr, scope: &Scope, code: &mut GeneratedCode
 }
 
 impl Generatable for PairElem {
-  // fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {}
+  type Output = ();
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
+    code.text.push(Asm::Directive(Directive::Label(format!(
+      "{:?}.generate(...)",
+      self
+    ))));
+  }
 }
 
 impl Generatable for ScopedStat {
+  type Output = ();
   fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
     let ScopedStat(st, statement) = self;
 
@@ -226,6 +233,7 @@ impl Generatable for ScopedStat {
 }
 
 impl Generatable for Stat {
+  type Output = ();
   fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
     match self {
       Stat::Skip => (),

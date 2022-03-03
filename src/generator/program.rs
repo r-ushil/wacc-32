@@ -4,6 +4,8 @@ use super::*;
 
 // #[derive(PartialEq, Debug, Clone)]
 impl Generatable for Program {
+  type Output = ();
+
   fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
     /* No registers should be in use by this point. */
     assert!(regs == GENERAL_REGS);
@@ -42,6 +44,8 @@ impl Generatable for Program {
 }
 
 impl Generatable for Func {
+  type Output = ();
+
   fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
     /* No registers should be in use by this point. */
     assert!(regs == GENERAL_REGS);

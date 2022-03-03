@@ -4,6 +4,7 @@ use super::*;
 use crate::generator::asm::*;
 
 impl Generatable for Expr {
+  type Output = ();
   fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
     match self {
       Expr::IntLiter(val) => generate_int_liter(code, regs, val),
@@ -350,7 +351,13 @@ fn binary_comp_ops(
 }
 
 impl Generatable for ArrayElem {
-  // fn generate(&self, _code: &mut Vec<Instr>, _registers: &[Reg]) {}
+  type Output = ();
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, registers: &[Reg]) {
+    code.text.push(Asm::Directive(Directive::Label(format!(
+      "{:?}.generate(...)",
+      self
+    ))));
+  }
 }
 
 #[cfg(test)]
