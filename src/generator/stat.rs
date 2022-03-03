@@ -85,6 +85,41 @@ fn generate_rhs(rhs: &AssignRhs, scope: &Scope, code: &mut GeneratedCode, regs: 
   }
 }
 
+fn generate_print(t: &Type, expr: &Expr, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
+  expr.generate(scope, code, regs);
+
+  match t {
+    Type::Int => RequiredPredefs::PrintInt.mark(code),
+    Type::Bool => RequiredPredefs::PrintBool.mark(code),
+    Type::String => RequiredPredefs::PrintString.mark(code),
+    Type::Char => RequiredPredefs::PrintString.mark(code),
+    Type::Array(_) => RequiredPredefs::PrintString.mark(code),
+    Type::Pair(_, _) => RequiredPredefs::PrintRefs.mark(code),
+    _ => (),
+  };
+
+  let print_label = match t {
+    Type::Int => predef::PREDEF_PRINT_INT,
+    Type::Bool => predef::PREDEF_PRINT_BOOL,
+    Type::String => predef::PREDEF_PRINT_STRING,
+    Type::Char => predef::PREDEF_PRINT_STRING,
+    Type::Array(_) => predef::PREDEF_PRINT_STRING,
+    Type::Pair(_, _) => predef::PREDEF_PRINT_REFS,
+    _ => unreachable!(),
+  };
+
+  code.text.push(Asm::always(Unary(
+    UnaryInstr::Mov,
+    Reg::RegNum(0),
+    Op2::Reg(regs[0], 0),
+    false,
+  )));
+
+  code
+    .text
+    .push(Asm::always(Branch(true, print_label.to_string())));
+}
+
 impl Generatable for PairElem {
   // fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {}
 }
@@ -252,78 +287,14 @@ impl Generatable for Stat {
       }
 
       Stat::Print(t, expr) => {
-        expr.generate(scope, code, regs);
-
-        match t {
-          Type::Int => RequiredPredefs::PrintInt.mark(code),
-          Type::Bool => RequiredPredefs::PrintBool.mark(code),
-          Type::String => RequiredPredefs::PrintString.mark(code),
-          Type::Char => RequiredPredefs::PrintString.mark(code),
-          Type::Array(_) => RequiredPredefs::PrintRefs.mark(code),
-          Type::Pair(_, _) => RequiredPredefs::PrintRefs.mark(code),
-          _ => (),
-        }
-
-        let print_label = match t {
-          Type::Int => predef::PREDEF_PRINT_INT,
-          Type::Bool => predef::PREDEF_PRINT_BOOL,
-          Type::String => predef::PREDEF_PRINT_STRING,
-          Type::Char => predef::PREDEF_PRINT_STRING,
-          Type::Array(_) => predef::PREDEF_PRINT_REFS,
-          Type::Pair(_, _) => predef::PREDEF_PRINT_REFS,
-          _ => unreachable!(),
-        };
-
-        code.text.push(Asm::always(Unary(
-          UnaryInstr::Mov,
-          Reg::RegNum(0),
-          Op2::Reg(regs[0], 0),
-          false,
-        )));
-
-        code.text.push(Asm::Instr(
-          CondCode::AL,
-          Branch(true, print_label.to_string()),
-        ))
+        generate_print(t, expr, scope, code, regs);
       }
 
       Stat::Println(t, expr) => {
-        expr.generate(scope, code, regs);
-
-        match t {
-          Type::Int => RequiredPredefs::PrintInt.mark(code),
-          Type::Bool => RequiredPredefs::PrintBool.mark(code),
-          Type::String => RequiredPredefs::PrintString.mark(code),
-          Type::Char => RequiredPredefs::PrintString.mark(code),
-          Type::Array(_) => RequiredPredefs::PrintString.mark(code),
-          Type::Pair(_, _) => RequiredPredefs::PrintRefs.mark(code),
-          _ => (),
-        };
-
-        RequiredPredefs::PrintLn.mark(code);
-
-        let print_label = match t {
-          Type::Int => predef::PREDEF_PRINT_INT,
-          Type::Bool => predef::PREDEF_PRINT_BOOL,
-          Type::String => predef::PREDEF_PRINT_STRING,
-          Type::Char => predef::PREDEF_PRINT_STRING,
-          Type::Array(_) => predef::PREDEF_PRINT_STRING,
-          Type::Pair(_, _) => predef::PREDEF_PRINT_REFS,
-          _ => unreachable!(),
-        };
-
-        code.text.push(Asm::always(Unary(
-          UnaryInstr::Mov,
-          Reg::RegNum(0),
-          Op2::Reg(regs[0], 0),
-          false,
-        )));
-
-        code
-          .text
-          .push(Asm::always(Branch(true, print_label.to_string())));
+        generate_print(t, expr, scope, code, regs);
 
         /* BL println */
+        RequiredPredefs::PrintLn.mark(code);
         code.text.push(Asm::always(Instr::Branch(
           true,
           predef::PREDEF_PRINTLN.to_string(),
