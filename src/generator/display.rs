@@ -65,7 +65,18 @@ impl Display for Asm {
             }
           }
 
-          Load(size, dst, load_arg) => write!(f, "LDR{}{} {}, {}", size, cond, dst, load_arg),
+          Load(size, dst, load_arg) => {
+            let ldr_sign_extend = match size {
+              DataSize::Byte => "S",
+              _ => "",
+            };
+
+            write!(
+              f,
+              "LDR{}{}{} {}, {}",
+              ldr_sign_extend, size, cond, dst, load_arg
+            )
+          }
 
           Binary(instr, dst, src, op2, flags) => {
             write!(
