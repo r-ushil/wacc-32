@@ -57,7 +57,7 @@ impl Generatable for RequiredPredefs {
       RequiredPredefs::RuntimeError => throw_runtime_error(code),
       RequiredPredefs::OverflowError => throw_overflow_error(code),
       RequiredPredefs::DivideByZeroError => check_divide_by_zero(code),
-      RequiredPredefs::CheckNullPointer => todo!(),
+      RequiredPredefs::CheckNullPointer => check_null_pointer(code),
     }
   }
 }
