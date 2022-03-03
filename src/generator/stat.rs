@@ -1,4 +1,4 @@
-use super::{predef::ReadFmt, *};
+use super::{predef::ReadFmt, predef::RequiredPredefs, *};
 use Directive::*;
 use Instr::*;
 
@@ -251,12 +251,16 @@ impl Generatable for Stat {
         ));
       }
 
-      // Stat::Print(expr) => {
-      //   expr.generate(scope, code, min_reg);
-      //   todo!(); //get type of expr, and switch to the appropriate print branch
-
-      //   // print_stat_gen(code, expr.get_type);
-      // }
+      Stat::Print(t, expr) => {
+        expr.generate(scope, code, regs);
+        match *t {
+          Type::Int => RequiredPredefs::PrintInt.mark(code),
+          Type::Bool => RequiredPredefs::PrintBool.mark(code),
+          Type::String => RequiredPredefs::PrintString.mark(code),
+          Type::Char => (), // TODO: Implement
+          _ => (),
+        }
+      }
 
       // Stat::Println(expr) => {
       //   expr.generate(scope, code, min_reg);
