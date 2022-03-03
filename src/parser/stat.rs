@@ -39,7 +39,9 @@ fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
     tuple((assign_lhs, tok("="), assign_rhs)),
     |(ass_lhs, _, ass_rhs)| Stat::Assignment(ass_lhs, Type::default(), ass_rhs),
   );
-  let read = map(preceded(tok("read"), assign_lhs), Stat::Read);
+  let read = map(preceded(tok("read"), assign_lhs), |e| {
+    Stat::Read(Type::default(), e)
+  });
 
   let free = map(preceded(tok("free"), expr), |e| {
     Stat::Free(Type::default(), e)
@@ -111,8 +113,12 @@ fn assign_lhs(input: &str) -> IResult<&str, AssignLhs, ErrorTree<&str>> {
 /* pair-elem ::= 'fst' <expr> | 'snd' <expr> */
 fn pair_elem(input: &str) -> IResult<&str, PairElem, ErrorTree<&str>> {
   ws(alt((
-    map(preceded(tok("fst"), expr), PairElem::Fst),
-    map(preceded(tok("snd"), expr), PairElem::Snd),
+    map(preceded(tok("fst"), expr), |e| {
+      PairElem::Fst(Type::default(), e)
+    }),
+    map(preceded(tok("snd"), expr), |e| {
+      PairElem::Snd(Type::default(), e)
+    }),
   )))(input)
 }
 
@@ -453,7 +459,7 @@ mod tests {
   fn test_stat_read() {
     assert!(matches!(
       stat("read test"),
-      Ok(("", ast)) if ast == Stat::Read(AssignLhs::Ident("test".to_string()))
+      Ok(("", ast)) if ast == Stat::Read(Type::default(), AssignLhs::Ident("test".to_string()))
     ));
   }
 
@@ -624,11 +630,11 @@ mod tests {
   fn test_pair_elem() {
     assert!(matches!(
       pair_elem("fst 5"),
-      Ok(("", PairElem::Fst(Expr::IntLiter(5))))
+      Ok(("", PairElem::Fst(Type::Any, Expr::IntLiter(5))))
     ));
     assert!(matches!(
       pair_elem("snd null"),
-      Ok(("", PairElem::Snd(Expr::PairLiter)))
+      Ok(("", PairElem::Snd(Type::Any, Expr::PairLiter)))
     ));
   }
 
@@ -647,11 +653,17 @@ mod tests {
     ));
     assert!(matches!(
       assign_lhs("fst 5"),
-      Ok(("", AssignLhs::PairElem(PairElem::Fst(Expr::IntLiter(5))))),
+      Ok((
+        "",
+        AssignLhs::PairElem(PairElem::Fst(Type::Any, Expr::IntLiter(5)))
+      )),
     ));
     assert!(matches!(
       assign_lhs("snd null"),
-      Ok(("", AssignLhs::PairElem(PairElem::Snd(Expr::PairLiter)))),
+      Ok((
+        "",
+        AssignLhs::PairElem(PairElem::Snd(Type::Any, Expr::PairLiter))
+      )),
     ));
   }
 
@@ -702,7 +714,10 @@ mod tests {
   fn test_assign_rhs6() {
     assert!(matches!(
       assign_rhs("fst 5"),
-      Ok(("", AssignRhs::PairElem(PairElem::Fst(Expr::IntLiter(5)))))
+      Ok((
+        "",
+        AssignRhs::PairElem(PairElem::Fst(Type::Any, Expr::IntLiter(5)))
+      ))
     ));
   }
 
@@ -710,7 +725,10 @@ mod tests {
   fn test_assign_rhs7() {
     assert!(matches!(
       assign_rhs("snd null"),
-      Ok(("", AssignRhs::PairElem(PairElem::Snd(Expr::PairLiter))))
+      Ok((
+        "",
+        AssignRhs::PairElem(PairElem::Snd(Type::Any, Expr::PairLiter))
+      ))
     ));
   }
 
@@ -720,7 +738,7 @@ mod tests {
       assign_rhs("fst 1 ; snd 2"),
       Ok((
         "; snd 2",
-        AssignRhs::PairElem(PairElem::Fst(Expr::IntLiter(1)))
+        AssignRhs::PairElem(PairElem::Fst(Type::Any, Expr::IntLiter(1)))
       ))
     ));
   }

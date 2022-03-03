@@ -12,15 +12,16 @@ use asm::*;
 use scope::*;
 
 trait Generatable: std::fmt::Debug {
-  fn generate(&self, _scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
-    /* THIS DEFAULT IMPLEMENTATION IS JUST FOR TESTING PURPOSES */
-    /* Because it's a default implementation, functionality not yet
-    implemented will just return its inputs. */
-    code.text.push(Asm::Directive(Directive::Label(format!(
-      "{:?}.generate(...)",
-      self
-    ))))
-  }
+  type Input;
+  type Output;
+
+  fn generate(
+    &self,
+    _scope: &Scope,
+    code: &mut GeneratedCode,
+    regs: &[Reg],
+    aux: Self::Input,
+  ) -> Self::Output;
 }
 
 pub fn generate(ast: &Program) -> GeneratedCode {
@@ -34,7 +35,7 @@ pub fn generate(ast: &Program) -> GeneratedCode {
   /* Initally, all general purpose registers are free. */
   let regs = &GENERAL_REGS;
 
-  ast.generate(&base_scope, &mut asm, regs);
+  ast.generate(&base_scope, &mut asm, regs, ());
 
   asm
 }

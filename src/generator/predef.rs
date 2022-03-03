@@ -10,9 +10,13 @@ pub const PREDEF_PRINT_CHAR: &str = "putchar";
 
 pub const PREDEF_PRINTLN: &str = "p_print_ln";
 pub const PREDEF_FREE_PAIR: &str = "p_free_pair";
+pub const PREDEF_FREE_ARRAY: &str = "p_free_array";
 
 pub const PREDEF_THROW_RUNTIME_ERR: &str = "p_throw_runtime_error";
 pub const PREDEF_THROW_OVERFLOW_ERR: &str = "p_throw_overflow_error";
+pub const PREDEF_CHECK_NULL_POINTER: &str = "p_check_null_pointer";
+
+pub const PREDEF_CHECK_ARRAY_BOUNDS: &str = "p_check_array_bounds";
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum RequiredPredefs {
@@ -25,10 +29,12 @@ pub enum RequiredPredefs {
   ReadChar,
   ReadInt,
   FreePair,
-  FreeArray, // TODO: Implement
+  FreeArray,
   RuntimeError,
   OverflowError,
   DivideByZeroError,
+  ArrayBoundsError,
+  CheckNullPointer,
 }
 
 /* Pushes a pre-defined function to the vector on GeneratedCode if it doesn't
@@ -42,7 +48,9 @@ impl RequiredPredefs {
 }
 
 impl Generatable for RequiredPredefs {
-  fn generate(&self, _scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
+  type Input = ();
+  type Output = ();
+  fn generate(&self, _scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], aux: ()) {
     match *self {
       RequiredPredefs::PrintInt => print_int_or_ref(code, PrintFmt::Int),
       RequiredPredefs::PrintString => print_string(code),
@@ -53,10 +61,12 @@ impl Generatable for RequiredPredefs {
       RequiredPredefs::ReadChar => read(code, ReadFmt::Char),
       RequiredPredefs::ReadInt => read(code, ReadFmt::Int),
       RequiredPredefs::FreePair => free_pair(code),
-      RequiredPredefs::FreeArray => todo!(), // TODO: Implement
+      RequiredPredefs::FreeArray => free_array(code),
       RequiredPredefs::RuntimeError => throw_runtime_error(code),
       RequiredPredefs::OverflowError => throw_overflow_error(code),
       RequiredPredefs::DivideByZeroError => check_divide_by_zero(code),
+      RequiredPredefs::ArrayBoundsError => check_array_bounds(code),
+      RequiredPredefs::CheckNullPointer => check_null_pointer(code),
     }
   }
 }
@@ -74,6 +84,73 @@ impl Display for ReadFmt {
       ReadFmt::Int => write!(f, "int"),
     }
   }
+}
+
+fn check_array_bounds(code: &mut GeneratedCode) {
+  use self::CondCode::*;
+  use self::Directive::*;
+  use self::Instr::*;
+  use Asm::*;
+
+  /* msg_0:                         //generate new msg label */
+  let msg_0 = code.get_msg("ArrayIndexOutOfBoundsError: negative index\n\0");
+  /* msg_1:                         //generate new msg label */
+  let msg_1 = code.get_msg("ArrayIndexOutOfBoundsError: index too large\n\0");
+
+  /* p_check_array_bounds: */
+  code
+    .text
+    .push(Directive(Label(PREDEF_CHECK_ARRAY_BOUNDS.to_string())));
+
+  /* PUSH {lr}                      //push link register */
+  code.text.push(Instr(AL, Push(Reg::Link)));
+  /* CMP r0, #0                     //compare r0 to 0 */
+  code.text.push(Instr(
+    AL,
+    Unary(UnaryInstr::Cmp, Reg::RegNum(0), Op2::Imm(0), false),
+  ));
+  /* LDRLT r0, =msg_0               //load msg_0 if less than flag set into r0 */
+  code.text.push(Instr(
+    LT,
+    Load(DataSize::Word, Reg::RegNum(0), LoadArg::Label(msg_0)),
+  ));
+  /* BLLT p_throw_runtime_error     //branch to runtime error as a result */
+  RequiredPredefs::RuntimeError.mark(code);
+  code.text.push(Instr(
+    LT,
+    Branch(true, PREDEF_THROW_RUNTIME_ERR.to_string()),
+  ));
+  /* LDR r1, [r1]                   //dereference r1 */
+  code.text.push(Instr(
+    AL,
+    Load(
+      DataSize::Word,
+      Reg::RegNum(1),
+      LoadArg::MemAddress(Reg::RegNum(1), 0),
+    ),
+  ));
+  /* CMP r0, r1                     //compare r0 and r1 */
+  code.text.push(Instr(
+    AL,
+    Unary(
+      UnaryInstr::Cmp,
+      Reg::RegNum(0),
+      Op2::Reg(Reg::RegNum(1), 0),
+      false,
+    ),
+  ));
+  /* LDRCS r0, =msg_1               //load msg_1 into r0 if carry flag is set */
+  code.text.push(Instr(
+    CS,
+    Load(DataSize::Word, Reg::RegNum(0), LoadArg::Label(msg_1)),
+  ));
+  /* BLCS p_throw_runtime_error     //branch to runtime error as a result */
+  code.text.push(Instr(
+    CS,
+    Branch(true, PREDEF_THROW_RUNTIME_ERR.to_string()),
+  ));
+  /* POP {pc}                       //pop PC register */
+  code.text.push(Instr(AL, Pop(Reg::PC)));
 }
 
 fn read(code: &mut GeneratedCode, fmt: ReadFmt) {
@@ -178,6 +255,46 @@ fn println(code: &mut GeneratedCode) {
   code.text.push(Instr(AL, Pop(Reg::PC)));
 }
 
+fn check_null_pointer(code: &mut GeneratedCode) {
+  use self::CondCode::*;
+  use self::Directive::*;
+  use self::Instr::*;
+  use Asm::*;
+
+  /* Create a msg label to display when derefencing a null pointer. */
+  let msg_label = code.get_msg("NullReferenceError: dereference a null reference\n\0");
+
+  /* Generate label to throw a runtime error for whatever's in registers */
+  /* p_check_null_pointer: */
+  code
+    .text
+    .push(Directive(Label(String::from(PREDEF_CHECK_NULL_POINTER))));
+
+  /*  PUSH {lr}            //push link reg */
+  code.text.push(Instr(AL, Push(Reg::Link)));
+  /*  CMP r0, #0           //compare the contents of r0 to 0 and set flags */
+  code.text.push(Instr(
+    AL,
+    Unary(UnaryInstr::Cmp, Reg::RegNum(0), Op2::Imm(0), false),
+  ));
+  /*  LDREQ r0, =msg_label   //load error msg if r0 equals 0 */
+  code.text.push(Instr(
+    EQ,
+    Load(DataSize::Word, Reg::RegNum(0), LoadArg::Label(msg_label)),
+  ));
+
+  /*  BLEQ p_throw_runtime_error   //branch to runtime error if r0 equals 0 */
+  code.text.push(Instr(
+    EQ,
+    Branch(true, PREDEF_THROW_RUNTIME_ERR.to_string()),
+  ));
+  //set runtime error generation to true
+  RequiredPredefs::RuntimeError.mark(code);
+
+  /*  POP {pc}            //pop pc register */
+  code.text.push(Instr(AL, Pop(Reg::PC)));
+}
+
 fn check_divide_by_zero(code: &mut GeneratedCode) {
   use self::CondCode::*;
   use self::Directive::*;
@@ -248,6 +365,46 @@ fn throw_overflow_error(code: &mut GeneratedCode) {
     AL,
     Branch(true, PREDEF_THROW_RUNTIME_ERR.to_string()),
   ));
+}
+
+fn free_array(code: &mut GeneratedCode) {
+  use self::CondCode::*;
+  use self::Directive::*;
+  use self::Instr::*;
+  use Asm::*;
+
+  let msg_label = code.get_msg("NullReferenceError: dereference a null reference\n\0");
+
+  /* p_free_pair: */
+  code
+    .text
+    .push(Directive(Label(PREDEF_FREE_ARRAY.to_string())));
+  /*  PUSH {lr}            //push link reg */
+  code.text.push(Instr(AL, Push(Reg::Link)));
+  /*  CMP r0, #0           //compare the contents of r0 to 0 and set flags */
+  code.text.push(Instr(
+    AL,
+    Unary(UnaryInstr::Cmp, Reg::RegNum(0), Op2::Imm(0), false),
+  ));
+  /*  LDREQ r0, =msg_null_deref   //load deref msg if r0 equals 0 */
+  code.text.push(Instr(
+    EQ,
+    Load(DataSize::Word, Reg::RegNum(0), LoadArg::Label(msg_label)),
+  ));
+  /*  BEQ p_throw_runtime_error   //branch to runtime error if r0 equals 0 */
+  code.text.push(Instr(
+    EQ,
+    Branch(false, PREDEF_THROW_RUNTIME_ERR.to_string()),
+  ));
+
+  //set runtime error generation to true
+  RequiredPredefs::RuntimeError.mark(code);
+
+  /* BL free                      //branch to free */
+  code.text.push(Instr(EQ, Branch(false, "free".to_string())));
+
+  /*  POP {pc}            //pop pc register */
+  code.text.push(Instr(AL, Pop(Reg::PC)));
 }
 
 fn free_pair(code: &mut GeneratedCode) {

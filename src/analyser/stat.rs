@@ -21,7 +21,7 @@ impl ReturnBehaviour {
 }
 
 impl HasType for AssignLhs {
-  fn get_type(&self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&mut self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
     match self {
       AssignLhs::Ident(id) => id.get_type(scope, errors),
       AssignLhs::ArrayElem(elem) => elem.get_type(scope, errors),
@@ -32,7 +32,7 @@ impl HasType for AssignLhs {
 
 #[allow(unused_variables)]
 impl HasType for AssignRhs {
-  fn get_type(&self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&mut self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
     match self {
       AssignRhs::Expr(exp) => exp.get_type(scope, errors),
       AssignRhs::ArrayLiter(lit) => lit.get_type(scope, errors),
@@ -104,9 +104,9 @@ impl HasType for AssignRhs {
 }
 
 impl HasType for PairElem {
-  fn get_type(&self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&mut self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
     match self {
-      PairElem::Fst(p) => match p.get_type(scope, errors)? {
+      PairElem::Fst(t, p) => match p.get_type(scope, errors)? {
         Type::Pair(left, _) => match *left {
           Type::Any => {
             scope.add_error(
@@ -115,7 +115,10 @@ impl HasType for PairElem {
             );
             None
           }
-          t => Some(t),
+          new_t => {
+            *t = new_t.clone();
+            Some(new_t)
+          }
         },
         t => {
           scope.add_error(
@@ -125,7 +128,7 @@ impl HasType for PairElem {
           None
         }
       },
-      PairElem::Snd(p) => match p.get_type(scope, errors)? {
+      PairElem::Snd(t, p) => match p.get_type(scope, errors)? {
         Type::Pair(_, right) => match *right {
           Type::Any => {
             scope.add_error(
@@ -134,7 +137,10 @@ impl HasType for PairElem {
             );
             None
           }
-          t => Some(t),
+          new_t => {
+            *t = new_t.clone();
+            Some(new_t)
+          }
         },
         t => {
           scope.add_error(
@@ -149,7 +155,7 @@ impl HasType for PairElem {
 }
 
 impl HasType for ArrayLiter {
-  fn get_type(&self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&mut self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
     let ArrayLiter(exprs) = self;
 
     /* Take first element as source of truth. */
@@ -211,11 +217,14 @@ pub fn stat(
       *t = equal_types(scope, errors, lhs, rhs)?;
       Some(Never) /* Assignments never return. */
     }
-    Stat::Read(dest) => {
+    Stat::Read(t, dest) => {
       /* Any type can be read. */
       match dest.get_type(scope, errors)? {
         /* Reads never return. */
-        Type::Int | Type::Char => Some(Never),
+        new_t @ (Type::Int | Type::Char) => {
+          *t = new_t;
+          Some(Never)
+        }
         _ => {
           scope.add_error(
             errors,
@@ -354,13 +363,17 @@ mod tests {
       Some(x_type.clone())
     );
 
-    assert!(AssignRhs::PairElem(PairElem::Fst(Expr::PairLiter))
-      .get_type(scope, &mut vec![])
-      .is_none());
+    assert!(
+      AssignRhs::PairElem(PairElem::Fst(Type::default(), Expr::PairLiter))
+        .get_type(scope, &mut vec![])
+        .is_none()
+    );
 
-    assert!(AssignRhs::PairElem(PairElem::Fst(Expr::PairLiter))
-      .get_type(scope, &mut vec![])
-      .is_none());
+    assert!(
+      AssignRhs::PairElem(PairElem::Fst(Type::default(), Expr::PairLiter))
+        .get_type(scope, &mut vec![])
+        .is_none()
+    );
 
     assert_eq!(
       AssignLhs::ArrayElem(ArrayElem(x_id.clone(), vec!(Expr::IntLiter(5))))

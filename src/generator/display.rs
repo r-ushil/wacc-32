@@ -46,7 +46,7 @@ impl Display for Asm {
           Pop(reg) => write!(f, "POP{} {{{}}}", cond, reg),
 
           Branch(link, label) => {
-            write!(f, "B{}{} {}", cond, if *link { "L" } else { "" }, label)
+            write!(f, "B{}{} {}", if *link { "L" } else { "" }, cond, label)
           }
 
           Store(size, dst, (src, off), addr_mode) => {

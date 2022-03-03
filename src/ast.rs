@@ -27,7 +27,7 @@ pub enum Stat {
   Skip,
   Declaration(Type, Ident, AssignRhs),
   Assignment(AssignLhs, Type, AssignRhs),
-  Read(AssignLhs),
+  Read(Type, AssignLhs),
   Free(Type, Expr),
   Return(Expr),
   Exit(Expr),
@@ -94,8 +94,10 @@ where
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum PairElem {
-  Fst(Expr),
-  Snd(Expr),
+  /* Type of fst and snd elem respectively.
+  (fst and snd are concidered generic functions) */
+  Fst(Type, Expr),
+  Snd(Type, Expr),
 }
 
 #[derive(PartialEq, Debug, Clone)]
