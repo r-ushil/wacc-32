@@ -27,6 +27,32 @@ pub struct GeneratedCode {
   next_msg: u32,
 }
 
+/**
+ * Return unescaped string to be output in the ASM code.
+ * eg. "hello\nworld" -> "hello\\nworld"
+ */
+fn unescaped_string(str: &str) -> String {
+  let mut s = String::with_capacity(str.len());
+
+  for c in str.chars() {
+    match c {
+      '\0' => s.push_str("\\0"),
+      '\u{8}' => s.push_str("\\b"),
+      '\t' => s.push_str("\\t"),
+      '\n' => s.push_str("\\n"),
+      '\u{c}' => s.push_str("\\f"),
+      '\r' => s.push_str("\\r"),
+      '\"' => s.push_str("\\\""),
+      '\'' => s.push_str("\\\'"),
+      '\\' => s.push_str("\\\\"),
+      '\n' => s.push_str("\\n"),
+      _ => s.push(c),
+    };
+  }
+
+  s
+}
+
 impl GeneratedCode {
   pub fn get_label(&mut self) -> Label {
     let s = format!("L{}", self.next_label);
@@ -37,17 +63,20 @@ impl GeneratedCode {
   pub fn get_msg(&mut self, content: &str) -> Label {
     use Directive::*;
     let label = format!("msg_{}", self.next_msg);
+    self.next_msg += 1;
+
+    let escaped_content = unescaped_string(content);
 
     /* msg_0: */
     self.data.push(Asm::Directive(Label(label.clone())));
 
     /* .word 4 */
-    self.data.push(Asm::Directive(Word(content.len() + 1)));
+    self.data.push(Asm::Directive(Word(content.len())));
 
     /* .ascii "%c\0" */
     self
       .data
-      .push(Asm::Directive(Ascii(format!("{}\\0", content))));
+      .push(Asm::Directive(Ascii(escaped_content.to_string())));
 
     label
   }

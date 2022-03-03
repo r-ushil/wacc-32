@@ -63,26 +63,15 @@ fn generate_char_liter(code: &mut GeneratedCode, regs: &[Reg], val: &char) {
 }
 
 fn generate_string_liter(code: &mut GeneratedCode, regs: &[Reg], val: &String) {
-  let count = val.chars().count();
-  let msg_no = code.data.len();
-
   /* Create a label msg_{msg_no} to display the text */
   /* msg_{msg_no}: */
-  code
-    .data
-    .push(Asm::Directive(Directive::Label(format!("msg_{}", msg_no))));
-  /* .word {count}         //allocate space for a word of size count */
-  code.data.push(Asm::Directive(Directive::Word(count)));
-  /* .ascii "{val}"         //convert into ascii */
-  code
-    .data
-    .push(Asm::Directive(Directive::Ascii(val.clone())));
+  let msg_label = code.get_msg(val);
 
   /* LDR r{min_reg}, ={msg_{msg_no}} */
   code.text.push(always_instruction(Instr::Load(
     DataSize::Word,
     regs[0],
-    LoadArg::Label(format!("msg_{}", msg_no)),
+    LoadArg::Label(msg_label),
   )))
 }
 

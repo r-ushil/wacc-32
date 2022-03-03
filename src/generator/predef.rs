@@ -123,14 +123,8 @@ fn println(code: &mut GeneratedCode) {
   use Asm::*;
 
   /* Create a msg label for the termination of a line */
-
   /* msg_println: */
-  code.data.push(Directive(Label("msg_println".to_string())));
-
-  /* .word 1                   //allocate space for a word of size 1 */
-  code.data.push(Directive(Word(1)));
-  /* .ascii "\0"         //convert into ascii */
-  code.data.push(Directive(Ascii(String::from("\\0"))));
+  let msg_label = code.get_msg("\0");
 
   /* Generate a p_print_ln label to branch to when printing a line */
 
@@ -141,11 +135,7 @@ fn println(code: &mut GeneratedCode) {
   /*  LDR r0, =msg_println   //load the result of msg_println */
   code.text.push(Instr(
     AL,
-    Load(
-      DataSize::Word,
-      Reg::RegNum(0),
-      LoadArg::Label(String::from("msg_println")),
-    ),
+    Load(DataSize::Word, Reg::RegNum(0), LoadArg::Label(msg_label)),
   ));
   /*  ADD r0, r0, #4        //add 4 to r0 and store in r0 */
   code.text.push(Instr(
@@ -182,17 +172,8 @@ fn check_divide_by_zero(code: &mut GeneratedCode) {
   use Asm::*;
 
   /* Create a msg label to display when divide by zero occurs. */
-
   /* msg_divide_by_zero: */
-  code
-    .data
-    .push(Directive(Label("msg_divide_by_zero".to_string())));
-  /* .word 45                   //allocate space for a word of size 45 */
-  code.data.push(Directive(Word(45)));
-  /* .ascii "DivideByZeroError: ...\n\0"         //convert into ascii */
-  code.data.push(Directive(Ascii(String::from(
-    "DivideByZeroError: divide or modulo by zero\\n\\0",
-  ))));
+  let msg_label = code.get_msg("DivideByZeroError: divide or modulo by zero\\n\\0");
 
   /* Generate label to throw a runtime error for whatever's in registers */
   /* p_check_divide_by_zero: */
@@ -210,11 +191,7 @@ fn check_divide_by_zero(code: &mut GeneratedCode) {
   /*  LDREQ r0, =msg_divide_by_zero   //load error msg if r0 equals 0 */
   code.text.push(Instr(
     EQ,
-    Load(
-      DataSize::Word,
-      Reg::RegNum(0),
-      LoadArg::Label(String::from("msg_divide_by_zero")),
-    ),
+    Load(DataSize::Word, Reg::RegNum(0), LoadArg::Label(msg_label)),
   ));
 
   /*  BLEQ p_throw_runtime_error   //branch to runtime error if r0 equals 0 */
@@ -236,17 +213,10 @@ fn throw_overflow_error(code: &mut GeneratedCode) {
   use Asm::*;
 
   /* Create a msg label to display when integer overflow occurs. */
-
   /* msg_overflow_error: */
-  code
-    .data
-    .push(Directive(Label("msg_overflow_error".to_string())));
-  /* .word 83                   //allocate space for a word of size 83 */
-  code.data.push(Directive(Word(83)));
-  /* .ascii "OverflowError: ...\n\0"         //convert into ascii */
-  code.data.push(Directive(Ascii(String::from(
-    "OverflowError: the result is too small/large to store in a 4-byte signed-integer.\\n\\0",
-  ))));
+  let msg_label = code.get_msg(
+    "OverflowError: the result is too small/large to store in a 4-byte signed-integer.\n\0",
+  );
 
   /* Generate label to throw a runtime error for whatever's in registers */
   /* p_throw_overflow_error: */
@@ -257,11 +227,7 @@ fn throw_overflow_error(code: &mut GeneratedCode) {
   /* LDR r0, =msg_overflow_error     //load result of message overflow error into r0 */
   code.text.push(Instr(
     AL,
-    Load(
-      DataSize::Word,
-      Reg::RegNum(0),
-      LoadArg::Label(String::from("msg_overflow_error")),
-    ),
+    Load(DataSize::Word, Reg::RegNum(0), LoadArg::Label(msg_label)),
   ));
   /* BL p_throw_runtime_error        //branch to runtime error */
   RequiredPredefs::RuntimeError.mark(code);
@@ -278,17 +244,8 @@ fn free_pair(code: &mut GeneratedCode) {
   use Asm::*;
 
   /* Create a msg label to display in an attempt to free a null pair */
-
   /* msg_null_deref: */
-  code
-    .data
-    .push(Directive(Label("msg_null_deref".to_string())));
-  /* .word 50                   //allocate space for a word of size 50 */
-  code.data.push(Directive(Word(50)));
-  /* .ascii "NullReferenceError: ...\n\0"         //convert into ascii */
-  code.data.push(Directive(Ascii(String::from(
-    "NullReferenceError: dereference a null reference\\n\\0",
-  ))));
+  let msg_label = code.get_msg("NullReferenceError: dereference a null reference\n\0");
 
   /* Generate the p_free_pair label to free the pair in r0, predefined */
 
@@ -306,11 +263,7 @@ fn free_pair(code: &mut GeneratedCode) {
   /*  LDREQ r0, =msg_null_deref   //load deref msg if r0 equals 0 */
   code.text.push(Instr(
     EQ,
-    Load(
-      DataSize::Word,
-      Reg::RegNum(0),
-      LoadArg::Label(String::from("msg_null_deref")),
-    ),
+    Load(DataSize::Word, Reg::RegNum(0), LoadArg::Label(msg_label)),
   ));
   /*  BEQ p_throw_runtime_error   //branch to runtime error if r0 equals 0 */
   code.text.push(Instr(
@@ -388,25 +341,14 @@ fn print_bool(code: &mut GeneratedCode) {
   use self::Instr::*;
   use Asm::*;
 
-  /* Create the msg label to display string data for TRUE and add to the
+  /* Create the msg labels to display string data for TRUE and FALSE, and add to the
   GeneratedCode data member: */
 
   /* msg_true: */
-  code.data.push(Directive(Label(String::from("msg_true"))));
-  /* .word 5                   //allocate space for a word of size 5 */
-  code.data.push(Directive(Word(5)));
-  /* .ascii "true\0"           //convert into ascii */
-  code.data.push(Directive(Ascii(String::from("true\\0"))));
-
-  /* Create the msg label to display string data for FALSE and add to the
-  GeneratedCode data member: */
+  let msg_label_true = code.get_msg("true\0");
 
   /* msg_false: */
-  code.data.push(Directive(Label(String::from("msg_false"))));
-  /* .word 6                   //allocate space for a word of size 6 */
-  code.data.push(Directive(Word(6)));
-  /* .ascii "false\0"           //convert into ascii */
-  code.data.push(Directive(Ascii(String::from("false\\0"))));
+  let msg_label_false = code.get_msg("false\0");
 
   /* Generate the p_print_bool label to print bool, predefined and the same
   for every program. */
@@ -428,7 +370,7 @@ fn print_bool(code: &mut GeneratedCode) {
     Load(
       DataSize::Word,
       Reg::RegNum(0),
-      LoadArg::Label(String::from("msg_true")),
+      LoadArg::Label(msg_label_true),
     ),
   ));
   /*  LDREQ r0, =msg_false   //load result of msg_false if equal to r0  */
@@ -437,7 +379,7 @@ fn print_bool(code: &mut GeneratedCode) {
     Load(
       DataSize::Word,
       Reg::RegNum(0),
-      LoadArg::Label(String::from("msg_false")),
+      LoadArg::Label(msg_label_false),
     ),
   ));
   /*  ADD r0, r0, #4        //add 4 to r0 and store in r0 */
@@ -476,13 +418,8 @@ fn print_string(code: &mut GeneratedCode) {
 
   /* Create the msg label to display string data and add to the GeneratedCode
   data member: */
-
   /* msg_string: */
-  code.data.push(Directive(Label(String::from("msg_string"))));
-  /* .word 5                   //allocate space for a word of size 5 */
-  code.data.push(Directive(Word(5)));
-  /* .ascii "%.*s\0"           //convert into ascii */
-  code.data.push(Directive(Ascii(String::from("%.*s\\0"))));
+  let msg_label = code.get_msg("%.*s\0");
 
   /* Generate the p_print_string label to print strings, predefined and the same
   for every program. */
@@ -516,11 +453,7 @@ fn print_string(code: &mut GeneratedCode) {
   /*  LDR r0, =msg_string   //load the result of msg_string */
   code.text.push(Instr(
     AL,
-    Load(
-      DataSize::Word,
-      Reg::RegNum(0),
-      LoadArg::Label(String::from("msg_string")),
-    ),
+    Load(DataSize::Word, Reg::RegNum(0), LoadArg::Label(msg_label)),
   ));
   /*  ADD r0, r0, #4        //add 4 to r0 and store in r0 */
   code.text.push(Instr(
@@ -577,13 +510,9 @@ fn print_int_or_ref(code: &mut GeneratedCode, opt: PrintFmt) {
 
   /* Create the msg label to display string data and add to the GeneratedCode
   data member: */
-
-  /* msg_opt: */
-  code.data.push(Directive(Label(format!("msg_{}", opt))));
-  /* .word 3                   //allocate space for a word of size 3 */
-  code.data.push(Directive(Word(3)));
-  /* .ascii "%symbol\0"           //convert into ascii */
-  code.data.push(Directive(Ascii(format!("%{}\\0", symbol))));
+  // /* msg_opt: */
+  let msg_content = format!("%{}\0", symbol);
+  let msg_label = code.get_msg(msg_content.as_str());
 
   /* Generate the p_print_opt label to print strings, predefined and the same
   for every program. */
@@ -606,11 +535,7 @@ fn print_int_or_ref(code: &mut GeneratedCode, opt: PrintFmt) {
   /*  LDR r0, =msg_int      //load result of msg_int into r0 */
   code.text.push(Instr(
     AL,
-    Load(
-      DataSize::Word,
-      Reg::RegNum(0),
-      LoadArg::Label(format!("msg_{}", opt)),
-    ),
+    Load(DataSize::Word, Reg::RegNum(0), LoadArg::Label(msg_label)),
   ));
   /*  ADD r0, r0, #4        //add the 4 to r0, and store the result in r0 */
   code.text.push(Instr(
