@@ -157,7 +157,7 @@
 ../wacc_examples/valid/runtimeErr/nullDereference/useNull2.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/nullDereference/useNull2.s,./wacc_examples_assembled/valid/runtimeErr/nullDereference/useNull2.s,fail
 ../wacc_examples/valid/scope/ifNested1.wacc,./wacc_examples_assembled_ours/valid/scope/ifNested1.s,./wacc_examples_assembled/valid/scope/ifNested1.s,fail
 ../wacc_examples/valid/scope/ifNested2.wacc,./wacc_examples_assembled_ours/valid/scope/ifNested2.s,./wacc_examples_assembled/valid/scope/ifNested2.s,fail
-../wacc_examples/valid/scope/indentationNotImportant.wacc,./wacc_examples_assembled_ours/valid/scope/indentationNotImportant.s,./wacc_examples_assembled/valid/scope/indentationNotImportant.s,fail
+../wacc_examples/valid/scope/indentationNotImportant.wacc,./wacc_examples_assembled_ours/valid/scope/indentationNotImportant.s,./wacc_examples_assembled/valid/scope/indentationNotImportant.s,pass
 ../wacc_examples/valid/scope/intsAndKeywords.wacc,./wacc_examples_assembled_ours/valid/scope/intsAndKeywords.s,./wacc_examples_assembled/valid/scope/intsAndKeywords.s,pass
 ../wacc_examples/valid/scope/printAllTypes.wacc,./wacc_examples_assembled_ours/valid/scope/printAllTypes.s,./wacc_examples_assembled/valid/scope/printAllTypes.s,fail
 ../wacc_examples/valid/scope/scopeBasic.wacc,./wacc_examples_assembled_ours/valid/scope/scopeBasic.s,./wacc_examples_assembled/valid/scope/scopeBasic.s,pass
@@ -198,7 +198,7 @@
 ../wacc_examples/valid/while/min.wacc,./wacc_examples_assembled_ours/valid/while/min.s,./wacc_examples_assembled/valid/while/min.s,fail
 ../wacc_examples/valid/while/rmStyleAddIO.wacc,./wacc_examples_assembled_ours/valid/while/rmStyleAddIO.s,./wacc_examples_assembled/valid/while/rmStyleAddIO.s,fail
 ../wacc_examples/valid/while/rmStyleAdd.wacc,./wacc_examples_assembled_ours/valid/while/rmStyleAdd.s,./wacc_examples_assembled/valid/while/rmStyleAdd.s,fail
-../wacc_examples/valid/while/whileBasic.wacc,./wacc_examples_assembled_ours/valid/while/whileBasic.s,./wacc_examples_assembled/valid/while/whileBasic.s,fail
+../wacc_examples/valid/while/whileBasic.wacc,./wacc_examples_assembled_ours/valid/while/whileBasic.s,./wacc_examples_assembled/valid/while/whileBasic.s,pass
 ../wacc_examples/valid/while/whileBoolFlip.wacc,./wacc_examples_assembled_ours/valid/while/whileBoolFlip.s,./wacc_examples_assembled/valid/while/whileBoolFlip.s,fail
 ../wacc_examples/valid/while/whileCount.wacc,./wacc_examples_assembled_ours/valid/while/whileCount.s,./wacc_examples_assembled/valid/while/whileCount.s,fail
 ../wacc_examples/valid/while/whileFalse.wacc,./wacc_examples_assembled_ours/valid/while/whileFalse.s,./wacc_examples_assembled/valid/while/whileFalse.s,fail

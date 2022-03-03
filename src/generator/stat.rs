@@ -300,7 +300,40 @@ impl Generatable for Stat {
         /* Label to exit if statement. */
         code.text.push(Asm::Directive(Label(exit_label)));
       }
-      // Stat::While(_, _) => todo!(),
+      Stat::While(cond, body) => {
+        let cond_label = code.get_label();
+        let body_label = code.get_label();
+
+        /* Jump to condition evaluation. */
+        code
+          .text
+          .push(Asm::always(Instr::Branch(false, cond_label.clone())));
+
+        /* Loop body label. */
+        code.text.push(Asm::Directive(Label(body_label.clone())));
+
+        /* Loop body. */
+        body.generate(scope, code, regs);
+
+        /* Cond label */
+        code.text.push(Asm::Directive(Label(cond_label)));
+
+        /* regs[0] = eval(cond) */
+        cond.generate(scope, code, regs);
+
+        /* cmp(regs[0], 1) */
+        code.text.push(Asm::always(Unary(
+          UnaryInstr::Cmp,
+          regs[0],
+          Op2::Imm(1),
+          false,
+        )));
+
+        /* If regs[0] == 1, jump back to loop body. */
+        code
+          .text
+          .push(Asm::Instr(CondCode::EQ, Branch(false, body_label.clone())));
+      }
       Stat::Scope(stat) => stat.generate(scope, code, regs),
       Stat::Sequence(head, tail) => {
         head.generate(scope, code, regs);
