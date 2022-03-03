@@ -11,6 +11,8 @@ pub const PREDEF_FREE_PAIR: &str = "p_free_pair";
 
 pub const PREDEF_THROW_RUNTIME_ERR: &str = "p_throw_runtime_error";
 
+pub const PREDEF_CHECK_ARRAY_BOUNDS: &str = "p_check_array_bounds";
+
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum RequiredPredefs {
   PrintInt,
@@ -26,6 +28,7 @@ pub enum RequiredPredefs {
   RuntimeError,
   OverflowError,
   DivideByZeroError,
+  ArrayBoundsError,
 }
 
 /* Pushes a pre-defined function to the vector on GeneratedCode if it doesn't
@@ -55,6 +58,7 @@ impl Generatable for RequiredPredefs {
       RequiredPredefs::RuntimeError => throw_runtime_error(code),
       RequiredPredefs::OverflowError => throw_overflow_error(code),
       RequiredPredefs::DivideByZeroError => check_divide_by_zero(code),
+      RequiredPredefs::ArrayBoundsError => todo!(),
     }
   }
 }
