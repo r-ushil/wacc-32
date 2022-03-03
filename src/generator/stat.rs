@@ -21,7 +21,7 @@ fn generate_lhs(lhs: &AssignLhs, scope: &Scope, code: &mut GeneratedCode, regs: 
       /* Write regs[0] to *regs[1]. */
       code
         .text
-        .push(Asm::always(Instr::Store(elem_size, regs[1], (regs[0], 0))));
+        .push(Asm::always(Instr::Store(elem_size, regs[0], (regs[1], 0))));
     }
     _ => code.text.push(Asm::Directive(Directive::Label(format!(
       "{:?}.generate(...)",
