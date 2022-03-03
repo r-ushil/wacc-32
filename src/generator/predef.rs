@@ -375,7 +375,7 @@ fn print_bool(code: &mut GeneratedCode) {
     Unary(UnaryInstr::Cmp, Reg::RegNum(0), Op2::Imm(0), false),
   ));
   /*  LDRNE r0, =msg_true   //load result of msg_true if not equal to r0  */
-  code.data.push(Instr(
+  code.text.push(Instr(
     NE,
     Load(
       DataSize::Word,
