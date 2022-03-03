@@ -51,7 +51,7 @@ impl Generatable for RequiredPredefs {
       RequiredPredefs::ReadChar => read(code, ReadFmt::Char),
       RequiredPredefs::ReadInt => read(code, ReadFmt::Int),
       RequiredPredefs::FreePair => free_pair(code),
-      RequiredPredefs::FreeArray => todo!(), // TODO: Implement
+      RequiredPredefs::FreeArray => free_array(code),
       RequiredPredefs::RuntimeError => throw_runtime_error(code),
       RequiredPredefs::OverflowError => throw_overflow_error(code),
       RequiredPredefs::DivideByZeroError => check_divide_by_zero(code),

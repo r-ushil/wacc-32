@@ -314,8 +314,6 @@ impl Generatable for Stat {
           Instr::Unary(UnaryInstr::Mov, Reg::RegNum(0), Op2::Reg(regs[0], 0), false),
         ));
 
-        // todo!()
-        // total_offset = somehow get total stack offset for all local vars
         let total_offset = scope.get_total_offset();
 
         /* ADD sp, sp, #{total_offset} */
