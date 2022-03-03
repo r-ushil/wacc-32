@@ -3,7 +3,7 @@
 ../wacc_examples/valid/advanced/ticTacToe.wacc,./wacc_examples_assembled_ours/valid/advanced/ticTacToe.s,./wacc_examples_assembled/valid/advanced/ticTacToe.s,fail
 ../wacc_examples/valid/array/arrayBasic.wacc,./wacc_examples_assembled_ours/valid/array/arrayBasic.s,./wacc_examples_assembled/valid/array/arrayBasic.s,pass
 ../wacc_examples/valid/array/arrayEmpty.wacc,./wacc_examples_assembled_ours/valid/array/arrayEmpty.s,./wacc_examples_assembled/valid/array/arrayEmpty.s,pass
-../wacc_examples/valid/array/arrayLength.wacc,./wacc_examples_assembled_ours/valid/array/arrayLength.s,./wacc_examples_assembled/valid/array/arrayLength.s,fail
+../wacc_examples/valid/array/arrayLength.wacc,./wacc_examples_assembled_ours/valid/array/arrayLength.s,./wacc_examples_assembled/valid/array/arrayLength.s,pass
 ../wacc_examples/valid/array/arrayLookup.wacc,./wacc_examples_assembled_ours/valid/array/arrayLookup.s,./wacc_examples_assembled/valid/array/arrayLookup.s,pass
 ../wacc_examples/valid/array/arrayNested.wacc,./wacc_examples_assembled_ours/valid/array/arrayNested.s,./wacc_examples_assembled/valid/array/arrayNested.s,pass
 ../wacc_examples/valid/array/arrayPrint.wacc,./wacc_examples_assembled_ours/valid/array/arrayPrint.s,./wacc_examples_assembled/valid/array/arrayPrint.s,fail

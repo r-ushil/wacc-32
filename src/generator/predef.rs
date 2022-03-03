@@ -8,6 +8,7 @@ pub const PREDEF_PRINT_REFS: &str = "p_print_ref";
 
 pub const PREDEF_PRINTLN: &str = "p_print_ln";
 pub const PREDEF_FREE_PAIR: &str = "p_free_pair";
+pub const PREDEF_FREE_ARRAY: &str = "p_free_array";
 
 pub const PREDEF_THROW_RUNTIME_ERR: &str = "p_throw_runtime_error";
 pub const PREDEF_CHECK_NULL_POINTER: &str = "p_check_null_pointer";
@@ -25,7 +26,7 @@ pub enum RequiredPredefs {
   ReadChar,
   ReadInt,
   FreePair,
-  FreeArray, // TODO: Implement
+  FreeArray,
   RuntimeError,
   OverflowError,
   DivideByZeroError,
@@ -57,7 +58,7 @@ impl Generatable for RequiredPredefs {
       RequiredPredefs::ReadChar => read(code, ReadFmt::Char),
       RequiredPredefs::ReadInt => read(code, ReadFmt::Int),
       RequiredPredefs::FreePair => free_pair(code),
-      RequiredPredefs::FreeArray => todo!(), // TODO: Implement
+      RequiredPredefs::FreeArray => free_array(code),
       RequiredPredefs::RuntimeError => throw_runtime_error(code),
       RequiredPredefs::OverflowError => throw_overflow_error(code),
       RequiredPredefs::DivideByZeroError => check_divide_by_zero(code),
@@ -361,6 +362,46 @@ fn throw_overflow_error(code: &mut GeneratedCode) {
     AL,
     Branch(true, PREDEF_THROW_RUNTIME_ERR.to_string()),
   ));
+}
+
+fn free_array(code: &mut GeneratedCode) {
+  use self::CondCode::*;
+  use self::Directive::*;
+  use self::Instr::*;
+  use Asm::*;
+
+  let msg_label = code.get_msg("NullReferenceError: dereference a null reference\n\0");
+
+  /* p_free_pair: */
+  code
+    .text
+    .push(Directive(Label(PREDEF_FREE_ARRAY.to_string())));
+  /*  PUSH {lr}            //push link reg */
+  code.text.push(Instr(AL, Push(Reg::Link)));
+  /*  CMP r0, #0           //compare the contents of r0 to 0 and set flags */
+  code.text.push(Instr(
+    AL,
+    Unary(UnaryInstr::Cmp, Reg::RegNum(0), Op2::Imm(0), false),
+  ));
+  /*  LDREQ r0, =msg_null_deref   //load deref msg if r0 equals 0 */
+  code.text.push(Instr(
+    EQ,
+    Load(DataSize::Word, Reg::RegNum(0), LoadArg::Label(msg_label)),
+  ));
+  /*  BEQ p_throw_runtime_error   //branch to runtime error if r0 equals 0 */
+  code.text.push(Instr(
+    EQ,
+    Branch(false, PREDEF_THROW_RUNTIME_ERR.to_string()),
+  ));
+
+  //set runtime error generation to true
+  RequiredPredefs::RuntimeError.mark(code);
+
+  /* BL free                      //branch to free */
+  code.text.push(Instr(EQ, Branch(false, "free".to_string())));
+
+  /*  POP {pc}            //pop pc register */
+  code.text.push(Instr(AL, Pop(Reg::PC)));
 }
 
 fn free_pair(code: &mut GeneratedCode) {
