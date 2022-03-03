@@ -262,15 +262,15 @@ impl Generatable for Stat {
         }
       }
 
-      // Stat::Println(expr) => {
-      //   expr.generate(scope, code, min_reg);
-      //   todo!();
-      //   // print_stat_gen(code, expr.get_type);
-      //   // PrintLn.mark(code);
-      //   // code.predefs.println = true; // TODO: Remove after switch
-      //   // /* BL println */
-      //   // code.text.push(Asm::Instr(CondCode::AL, Instr::Branch(true, String::from("println"))));
-      // }
+      Stat::Println(t, expr) => {
+        expr.generate(scope, code, regs);
+        RequiredPredefs::PrintLn.mark(code);
+        /* BL println */
+        code.text.push(Asm::Instr(
+          CondCode::AL,
+          Instr::Branch(true, String::from("println")),
+        ));
+      }
       Stat::If(cond, true_body, false_body) => {
         let false_label = code.get_label();
         let exit_label = code.get_label();
