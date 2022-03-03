@@ -14,14 +14,16 @@ impl Display for GeneratedCode {
       self
         .data
         .iter()
-        .try_for_each(|asm| write!(f, "{}\n", asm))?;
+        .try_for_each(|asm| writeln!(f, "{}", asm))?;
+
+      writeln!(f)?;
     }
 
     /* Always output .text segment. */
     self
       .text
       .iter()
-      .try_for_each(|asm| write!(f, "{}\n", asm))?;
+      .try_for_each(|asm| writeln!(f, "{}", asm))?;
 
     /* Display print statements. */
 
@@ -95,11 +97,11 @@ impl Display for Directive {
     use Directive::*;
     match self {
       Text => write!(f, ".text\n\n.global main"),
-      Data => write!(f, ".data"),
+      Data => writeln!(f, ".data"),
       Assemble => write!(f, "\t.ltorg"),
       Label(l) => write!(f, "{}:", l),
-      Word(n) => write!(f, ".word {}", n),
-      Ascii(s) => write!(f, ".ascii \"{}\"", s),
+      Word(n) => write!(f, "\t.word {}", n),
+      Ascii(s) => write!(f, "\t.ascii\t\"{}\"", s),
     }
   }
 }

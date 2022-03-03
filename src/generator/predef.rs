@@ -1,6 +1,63 @@
 use super::*;
 use std::fmt::Display;
 
+pub const PREDEF_PRINT_INT: &str = "p_print_int";
+pub const PREDEF_PRINT_STRING: &str = "p_print_string";
+pub const PREDEF_PRINT_BOOL: &str = "p_print_bool";
+pub const PREDEF_PRINT_REFS: &str = "p_print_ref";
+
+pub const PREDEF_PRINTLN: &str = "p_print_ln";
+pub const PREDEF_FREE_PAIR: &str = "p_free_pair";
+
+pub const PREDEF_THROW_RUNTIME_ERR: &str = "p_throw_runtime_error";
+
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub enum RequiredPredefs {
+  PrintInt,
+  PrintString,
+  PrintBool,
+  PrintChar, // TODO: Implement
+  PrintRefs,
+  PrintLn,
+  ReadChar,
+  ReadInt,
+  FreePair,
+  FreeArray, // TODO: Implement
+  RuntimeError,
+  OverflowError,
+  DivideByZeroError,
+}
+
+/* Pushes a pre-defined function to the vector on GeneratedCode if it doesn't
+already require this predef. */
+impl RequiredPredefs {
+  pub fn mark(self, code: &mut GeneratedCode) {
+    if !code.required_predefs.contains(&self) {
+      code.required_predefs.push(self);
+    }
+  }
+}
+
+impl Generatable for RequiredPredefs {
+  fn generate(&self, _scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
+    match *self {
+      RequiredPredefs::PrintInt => print_int_or_ref(code, PrintFmt::Int),
+      RequiredPredefs::PrintString => print_string(code),
+      RequiredPredefs::PrintBool => print_bool(code),
+      RequiredPredefs::PrintChar => todo!(), // TODO: Implement
+      RequiredPredefs::PrintRefs => print_int_or_ref(code, PrintFmt::Ref),
+      RequiredPredefs::PrintLn => println(code),
+      RequiredPredefs::ReadChar => read(code, ReadFmt::Char),
+      RequiredPredefs::ReadInt => read(code, ReadFmt::Int),
+      RequiredPredefs::FreePair => free_pair(code),
+      RequiredPredefs::FreeArray => todo!(), // TODO: Implement
+      RequiredPredefs::RuntimeError => throw_runtime_error(code),
+      RequiredPredefs::OverflowError => throw_overflow_error(code),
+      RequiredPredefs::DivideByZeroError => check_divide_by_zero(code),
+    }
+  }
+}
+
 #[derive(PartialEq)]
 pub enum ReadFmt {
   Char,
@@ -24,28 +81,12 @@ fn read(code: &mut GeneratedCode, fmt: ReadFmt) {
 
   /* Create a msg label for reading an integer or character */
 
-  if fmt == ReadFmt::Int {
-    /* msg_read_int: */
-    code.data.push(Directive(Label("msg_read_int".to_string())));
-    /* .word 3                   //allocate space for a word of size 3 FOR INT */
-    code.data.push(Directive(Word(3)));
-    /* .ascii "%d\0"         //convert into ascii */
-    code.data.push(Directive(Ascii(String::from("%d\\0"))));
-  } else if fmt == ReadFmt::Char {
-    /* msg_read_char: */
-    code
-      .data
-      .push(Directive(Label("msg_read_char".to_string())));
-    /* .word 4                   //allocate space for a word of size 4 FOR CHAR */
-    code.data.push(Directive(Word(4)));
-    /* .ascii "%c\0"         //convert into ascii */
-    code.data.push(Directive(Ascii(String::from("%c\\0"))));
-  }
+  let msg = code.get_msg(if fmt == ReadFmt::Int { "&d" } else { "&c" });
 
   /* Generate a p_read_{fmt} label to branch to when reading an int or a char */
 
   /* p_read_{fmt}: */
-  code.data.push(Directive(Label(format!("p_read_{}", fmt))));
+  code.text.push(Directive(Label(format!("p_read_{}", fmt))));
   /*  PUSH {lr}            //push link reg */
   code.text.push(Instr(AL, Push(Reg::Link)));
   /*  MOV r1, r0            //move r0 to r1 */
@@ -62,11 +103,7 @@ fn read(code: &mut GeneratedCode, fmt: ReadFmt) {
   /*  LDR r0, =msg_read_{fmt}   //load the result of msg_read_{fmt} */
   code.text.push(Instr(
     AL,
-    Load(
-      DataSize::Word,
-      Reg::RegNum(0),
-      LoadArg::Label(format!("msg_read_{}", fmt)),
-    ),
+    Load(DataSize::Word, Reg::RegNum(0), LoadArg::Label(msg)),
   ));
 
   /*  ADD r0, r0, #4        //add 4 to r0 and store in r0 */
@@ -96,29 +133,19 @@ fn println(code: &mut GeneratedCode) {
   use Asm::*;
 
   /* Create a msg label for the termination of a line */
-
   /* msg_println: */
-  code.data.push(Directive(Label("msg_println".to_string())));
-
-  /* .word 1                   //allocate space for a word of size 1 */
-  code.data.push(Directive(Word(1)));
-  /* .ascii "\0"         //convert into ascii */
-  code.data.push(Directive(Ascii(String::from("\\0"))));
+  let msg_label = code.get_msg("\0");
 
   /* Generate a p_print_ln label to branch to when printing a line */
 
   /* p_print_ln: */
-  code.data.push(Directive(Label("p_print_ln".to_string())));
+  code.text.push(Directive(Label(PREDEF_PRINTLN.to_string())));
   /*  PUSH {lr}            //push link reg */
   code.text.push(Instr(AL, Push(Reg::Link)));
   /*  LDR r0, =msg_println   //load the result of msg_println */
   code.text.push(Instr(
     AL,
-    Load(
-      DataSize::Word,
-      Reg::RegNum(0),
-      LoadArg::Label(String::from("msg_println")),
-    ),
+    Load(DataSize::Word, Reg::RegNum(0), LoadArg::Label(msg_label)),
   ));
   /*  ADD r0, r0, #4        //add 4 to r0 and store in r0 */
   code.text.push(Instr(
@@ -155,17 +182,8 @@ fn check_divide_by_zero(code: &mut GeneratedCode) {
   use Asm::*;
 
   /* Create a msg label to display when divide by zero occurs. */
-
   /* msg_divide_by_zero: */
-  code
-    .data
-    .push(Directive(Label("msg_divide_by_zero".to_string())));
-  /* .word 45                   //allocate space for a word of size 45 */
-  code.data.push(Directive(Word(45)));
-  /* .ascii "DivideByZeroError: ...\n\0"         //convert into ascii */
-  code.data.push(Directive(Ascii(String::from(
-    "DivideByZeroError: divide or modulo by zero\\n\\0",
-  ))));
+  let msg_label = code.get_msg("DivideByZeroError: divide or modulo by zero\\n\\0");
 
   /* Generate label to throw a runtime error for whatever's in registers */
   /* p_check_divide_by_zero: */
@@ -183,19 +201,16 @@ fn check_divide_by_zero(code: &mut GeneratedCode) {
   /*  LDREQ r0, =msg_divide_by_zero   //load error msg if r0 equals 0 */
   code.text.push(Instr(
     EQ,
-    Load(
-      DataSize::Word,
-      Reg::RegNum(0),
-      LoadArg::Label(String::from("msg_divide_by_zero")),
-    ),
+    Load(DataSize::Word, Reg::RegNum(0), LoadArg::Label(msg_label)),
   ));
 
   /*  BLEQ p_throw_runtime_error   //branch to runtime error if r0 equals 0 */
   code.text.push(Instr(
     EQ,
-    Branch(true, String::from("p_throw_runtime_error")),
+    Branch(true, PREDEF_THROW_RUNTIME_ERR.to_string()),
   ));
-  code.predefs.runtime_err = true; //set runtime error generation to true
+  //set runtime error generation to true
+  RequiredPredefs::RuntimeError.mark(code);
 
   /*  POP {pc}            //pop pc register */
   code.text.push(Instr(AL, Pop(Reg::PC)));
@@ -208,38 +223,27 @@ fn throw_overflow_error(code: &mut GeneratedCode) {
   use Asm::*;
 
   /* Create a msg label to display when integer overflow occurs. */
-
   /* msg_overflow_error: */
-  code
-    .data
-    .push(Directive(Label("msg_overflow_error".to_string())));
-  /* .word 83                   //allocate space for a word of size 83 */
-  code.data.push(Directive(Word(83)));
-  /* .ascii "OverflowError: ...\n\0"         //convert into ascii */
-  code.data.push(Directive(Ascii(String::from(
-    "OverflowError: the result is too small/large to store in a 4-byte signed-integer.\\n\\0",
-  ))));
+  let msg_label = code.get_msg(
+    "OverflowError: the result is too small/large to store in a 4-byte signed-integer.\n\0",
+  );
 
   /* Generate label to throw a runtime error for whatever's in registers */
   /* p_throw_overflow_error: */
   code
     .text
-    .push(Directive(Label(String::from("p_throw_overflow_error"))));
+    .push(Directive(Label(PREDEF_THROW_RUNTIME_ERR.to_string())));
 
   /* LDR r0, =msg_overflow_error     //load result of message overflow error into r0 */
   code.text.push(Instr(
     AL,
-    Load(
-      DataSize::Word,
-      Reg::RegNum(0),
-      LoadArg::Label(String::from("msg_overflow_error")),
-    ),
+    Load(DataSize::Word, Reg::RegNum(0), LoadArg::Label(msg_label)),
   ));
   /* BL p_throw_runtime_error        //branch to runtime error */
-  code.predefs.runtime_err = true;
+  RequiredPredefs::RuntimeError.mark(code);
   code.text.push(Instr(
     AL,
-    Branch(true, String::from("p_throw_runtime_error")),
+    Branch(true, PREDEF_THROW_RUNTIME_ERR.to_string()),
   ));
 }
 
@@ -250,24 +254,15 @@ fn free_pair(code: &mut GeneratedCode) {
   use Asm::*;
 
   /* Create a msg label to display in an attempt to free a null pair */
-
   /* msg_null_deref: */
-  code
-    .data
-    .push(Directive(Label("msg_null_deref".to_string())));
-  /* .word 50                   //allocate space for a word of size 50 */
-  code.data.push(Directive(Word(50)));
-  /* .ascii "NullReferenceError: ...\n\0"         //convert into ascii */
-  code.data.push(Directive(Ascii(String::from(
-    "NullReferenceError: dereference a null reference\\n\\0",
-  ))));
+  let msg_label = code.get_msg("NullReferenceError: dereference a null reference\n\0");
 
   /* Generate the p_free_pair label to free the pair in r0, predefined */
 
   /* p_free_pair: */
   code
     .text
-    .push(Directive(Label(String::from("p_free_pair"))));
+    .push(Directive(Label(PREDEF_FREE_PAIR.to_string())));
   /*  PUSH {lr}            //push link reg */
   code.text.push(Instr(AL, Push(Reg::Link)));
   /*  CMP r0, #0           //compare the contents of r0 to 0 and set flags */
@@ -278,19 +273,18 @@ fn free_pair(code: &mut GeneratedCode) {
   /*  LDREQ r0, =msg_null_deref   //load deref msg if r0 equals 0 */
   code.text.push(Instr(
     EQ,
-    Load(
-      DataSize::Word,
-      Reg::RegNum(0),
-      LoadArg::Label(String::from("msg_null_deref")),
-    ),
+    Load(DataSize::Word, Reg::RegNum(0), LoadArg::Label(msg_label)),
   ));
   /*  BEQ p_throw_runtime_error   //branch to runtime error if r0 equals 0 */
   code.text.push(Instr(
     EQ,
-    Branch(false, String::from("p_throw_runtime_error")),
+    Branch(false, PREDEF_THROW_RUNTIME_ERR.to_string()),
   ));
-  code.predefs.runtime_err = true; //set runtime error generation to true
-                                   /*  PUSH {r0}           //push r0 */
+
+  //set runtime error generation to true
+  /*  PUSH {r0}           //push r0 */
+  RequiredPredefs::RuntimeError.mark(code);
+
   code.text.push(Instr(AL, Push(Reg::RegNum(0))));
   /*  LDR r0, [sp]        //load stack pointer address into r0 */
   code.text.push(Instr(
@@ -334,13 +328,13 @@ fn throw_runtime_error(code: &mut GeneratedCode) {
   /* p_throw_runtime_error: */
   code
     .text
-    .push(Directive(Label(String::from("p_throw_runtime_error"))));
+    .push(Directive(Label(PREDEF_THROW_RUNTIME_ERR.to_string())));
   /* BL p_print_string        //branch to print a string */
   code
     .text
-    .push(Instr(AL, Branch(true, String::from("p_print_string"))));
+    .push(Instr(AL, Branch(true, PREDEF_PRINT_STRING.to_string())));
   /* MOV r0, #-1              //move -1 into r0*/
-  code.predefs.print_strings = true;
+  RequiredPredefs::PrintString.mark(code);
   code.text.push(Instr(
     AL,
     Unary(UnaryInstr::Mov, Reg::RegNum(0), Op2::Imm(-1), false),
@@ -357,25 +351,14 @@ fn print_bool(code: &mut GeneratedCode) {
   use self::Instr::*;
   use Asm::*;
 
-  /* Create the msg label to display string data for TRUE and add to the
+  /* Create the msg labels to display string data for TRUE and FALSE, and add to the
   GeneratedCode data member: */
 
   /* msg_true: */
-  code.data.push(Directive(Label(String::from("msg_true"))));
-  /* .word 5                   //allocate space for a word of size 5 */
-  code.data.push(Directive(Word(5)));
-  /* .ascii "true\0"           //convert into ascii */
-  code.data.push(Directive(Ascii(String::from("true\\0"))));
-
-  /* Create the msg label to display string data for FALSE and add to the
-  GeneratedCode data member: */
+  let msg_label_true = code.get_msg("true\0");
 
   /* msg_false: */
-  code.data.push(Directive(Label(String::from("msg_false"))));
-  /* .word 6                   //allocate space for a word of size 6 */
-  code.data.push(Directive(Word(6)));
-  /* .ascii "false\0"           //convert into ascii */
-  code.data.push(Directive(Ascii(String::from("false\\0"))));
+  let msg_label_false = code.get_msg("false\0");
 
   /* Generate the p_print_bool label to print bool, predefined and the same
   for every program. */
@@ -383,7 +366,7 @@ fn print_bool(code: &mut GeneratedCode) {
   /*p_print_bool: */
   code
     .text
-    .push(Directive(Label(String::from("p_print_bool"))));
+    .push(Directive(Label(PREDEF_PRINT_STRING.to_string())));
   /*  PUSH {lr}             //push link reg */
   code.text.push(Instr(AL, Push(Reg::Link)));
   /*  CMP r0, #0            //compare the contents of r0 to 0 and set flags */
@@ -397,7 +380,7 @@ fn print_bool(code: &mut GeneratedCode) {
     Load(
       DataSize::Word,
       Reg::RegNum(0),
-      LoadArg::Label(String::from("msg_true")),
+      LoadArg::Label(msg_label_true),
     ),
   ));
   /*  LDREQ r0, =msg_false   //load result of msg_false if equal to r0  */
@@ -406,7 +389,7 @@ fn print_bool(code: &mut GeneratedCode) {
     Load(
       DataSize::Word,
       Reg::RegNum(0),
-      LoadArg::Label(String::from("msg_false")),
+      LoadArg::Label(msg_label_false),
     ),
   ));
   /*  ADD r0, r0, #4        //add 4 to r0 and store in r0 */
@@ -445,13 +428,8 @@ fn print_string(code: &mut GeneratedCode) {
 
   /* Create the msg label to display string data and add to the GeneratedCode
   data member: */
-
   /* msg_string: */
-  code.data.push(Directive(Label(String::from("msg_string"))));
-  /* .word 5                   //allocate space for a word of size 5 */
-  code.data.push(Directive(Word(5)));
-  /* .ascii "%.*s\0"           //convert into ascii */
-  code.data.push(Directive(Ascii(String::from("%.*s\\0"))));
+  let msg_label = code.get_msg("%.*s\0");
 
   /* Generate the p_print_string label to print strings, predefined and the same
   for every program. */
@@ -459,7 +437,7 @@ fn print_string(code: &mut GeneratedCode) {
   /*p_print_string: */
   code
     .text
-    .push(Directive(Label(String::from("p_print_string"))));
+    .push(Directive(Label(PREDEF_PRINT_STRING.to_string())));
   /*  PUSH {lr}             //push link reg */
   code.text.push(Instr(AL, Push(Reg::Link)));
   /*  LDR r1, [r0]          //load address at r0 into r1 */
@@ -485,11 +463,7 @@ fn print_string(code: &mut GeneratedCode) {
   /*  LDR r0, =msg_string   //load the result of msg_string */
   code.text.push(Instr(
     AL,
-    Load(
-      DataSize::Word,
-      Reg::RegNum(0),
-      LoadArg::Label(String::from("msg_string")),
-    ),
+    Load(DataSize::Word, Reg::RegNum(0), LoadArg::Label(msg_label)),
   ));
   /*  ADD r0, r0, #4        //add 4 to r0 and store in r0 */
   code.text.push(Instr(
@@ -546,19 +520,20 @@ fn print_int_or_ref(code: &mut GeneratedCode, opt: PrintFmt) {
 
   /* Create the msg label to display string data and add to the GeneratedCode
   data member: */
-
-  /* msg_opt: */
-  code.data.push(Directive(Label(format!("msg_{}", opt))));
-  /* .word 3                   //allocate space for a word of size 3 */
-  code.data.push(Directive(Word(3)));
-  /* .ascii "%symbol\0"           //convert into ascii */
-  code.data.push(Directive(Ascii(format!("%{}\\0", symbol))));
+  // /* msg_opt: */
+  let msg_content = format!("%{}\0", symbol);
+  let msg_label = code.get_msg(msg_content.as_str());
 
   /* Generate the p_print_opt label to print strings, predefined and the same
   for every program. */
 
   /*p_print_opt: */
-  code.text.push(Directive(Label(format!("p_print_{}", opt))));
+  let print_label = match opt {
+    PrintFmt::Int => PREDEF_PRINT_INT,
+    PrintFmt::Ref => PREDEF_PRINT_REFS,
+  };
+
+  code.text.push(Directive(Label(print_label.to_string())));
   /*  PUSH {lr}             //push link reg */
   code.text.push(Instr(AL, Push(Reg::Link)));
   /*  MOV r1, r0            //move r0 to r1 */
@@ -575,11 +550,7 @@ fn print_int_or_ref(code: &mut GeneratedCode, opt: PrintFmt) {
   /*  LDR r0, =msg_int      //load result of msg_int into r0 */
   code.text.push(Instr(
     AL,
-    Load(
-      DataSize::Word,
-      Reg::RegNum(0),
-      LoadArg::Label(format!("msg_{}", opt)),
-    ),
+    Load(DataSize::Word, Reg::RegNum(0), LoadArg::Label(msg_label)),
   ));
   /*  ADD r0, r0, #4        //add the 4 to r0, and store the result in r0 */
   code.text.push(Instr(

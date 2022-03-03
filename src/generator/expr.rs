@@ -1,4 +1,5 @@
 use self::CondCode::*;
+use super::predef::RequiredPredefs;
 use super::*;
 use crate::generator::asm::*;
 
@@ -62,26 +63,15 @@ fn generate_char_liter(code: &mut GeneratedCode, regs: &[Reg], val: &char) {
 }
 
 fn generate_string_liter(code: &mut GeneratedCode, regs: &[Reg], val: &String) {
-  let count = val.chars().count();
-  let msg_no = code.data.len();
-
   /* Create a label msg_{msg_no} to display the text */
   /* msg_{msg_no}: */
-  code
-    .data
-    .push(Asm::Directive(Directive::Label(format!("msg_{}", msg_no))));
-  /* .word {count}         //allocate space for a word of size count */
-  code.data.push(Asm::Directive(Directive::Word(count)));
-  /* .ascii "{val}"         //convert into ascii */
-  code
-    .data
-    .push(Asm::Directive(Directive::Ascii(val.clone())));
+  let msg_label = code.get_msg(val);
 
   /* LDR r{min_reg}, ={msg_{msg_no}} */
   code.text.push(always_instruction(Instr::Load(
     DataSize::Word,
     regs[0],
-    LoadArg::Label(format!("msg_{}", msg_no)),
+    LoadArg::Label(msg_label),
   )))
 }
 
@@ -217,7 +207,7 @@ fn generate_binary_op(code: &mut GeneratedCode, reg1: Reg, reg2: Reg, bin_op: &B
         true,
       )));
       //set overflow error branch to true
-      code.predefs.overflow_err = true;
+      RequiredPredefs::OverflowError.mark(code);
       /* BLVS p_throw_overflow_error */
       code.text.push(Asm::Instr(
         VS,
@@ -234,7 +224,7 @@ fn generate_binary_op(code: &mut GeneratedCode, reg1: Reg, reg2: Reg, bin_op: &B
         true,
       )));
       //set overflow error branch to true
-      code.predefs.overflow_err = true;
+      RequiredPredefs::OverflowError.mark(code);
       /* BLVS p_throw_overflow_error */
       code.text.push(Asm::Instr(
         VS,
@@ -288,7 +278,7 @@ fn binary_div_mod(op: BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2: Reg
     )));
 
     /* BL p_check_divide_by_zero */
-    code.predefs.div_by_zero = true;
+    RequiredPredefs::DivideByZeroError.mark(code);
     code.text.push(always_instruction(Instr::Branch(
       true,
       String::from("p_check_divide_by_zero"),
@@ -316,7 +306,7 @@ fn binary_div_mod(op: BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2: Reg
     )));
 
     /* BL p_check_divide_by_zero */
-    code.predefs.div_by_zero = true;
+    RequiredPredefs::DivideByZeroError.mark(code);
     code.text.push(always_instruction(Instr::Branch(
       true,
       String::from("p_check_divide_by_zero"),

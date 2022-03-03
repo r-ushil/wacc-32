@@ -1,3 +1,4 @@
+use super::predef::RequiredPredefs;
 use std::fs::File;
 
 /* ======== Type aliases. ======== */
@@ -21,8 +22,35 @@ pub type Shift = i32;
 pub struct GeneratedCode {
   pub data: Vec<Asm>,
   pub text: Vec<Asm>,
-  pub predefs: GeneratePredefs,
+  pub required_predefs: Vec<RequiredPredefs>,
   next_label: u32,
+  next_msg: u32,
+}
+
+/**
+ * Return unescaped string to be output in the ASM code.
+ * eg. "hello\nworld" -> "hello\\nworld"
+ */
+fn unescaped_string(str: &str) -> String {
+  let mut s = String::with_capacity(str.len());
+
+  for c in str.chars() {
+    match c {
+      '\0' => s.push_str("\\0"),
+      '\u{8}' => s.push_str("\\b"),
+      '\t' => s.push_str("\\t"),
+      '\n' => s.push_str("\\n"),
+      '\u{c}' => s.push_str("\\f"),
+      '\r' => s.push_str("\\r"),
+      '\"' => s.push_str("\\\""),
+      '\'' => s.push_str("\\\'"),
+      '\\' => s.push_str("\\\\"),
+      '\n' => s.push_str("\\n"),
+      _ => s.push(c),
+    };
+  }
+
+  s
 }
 
 impl GeneratedCode {
@@ -31,6 +59,28 @@ impl GeneratedCode {
     self.next_label += 1;
     s
   }
+
+  pub fn get_msg(&mut self, content: &str) -> Label {
+    use Directive::*;
+    let label = format!("msg_{}", self.next_msg);
+    self.next_msg += 1;
+
+    let escaped_content = unescaped_string(content);
+
+    /* msg_0: */
+    self.data.push(Asm::Directive(Label(label.clone())));
+
+    /* .word 4 */
+    self.data.push(Asm::Directive(Word(content.len())));
+
+    /* .ascii "%c\0" */
+    self
+      .data
+      .push(Asm::Directive(Ascii(escaped_content.to_string())));
+
+    label
+  }
+
   pub fn asm<I: Into<Asm>>(&mut self, i: I) {
     self.text.push(i.into())
   }
@@ -41,41 +91,9 @@ impl Default for GeneratedCode {
     Self {
       data: vec![Asm::Directive(Directive::Data)],
       text: vec![Asm::Directive(Directive::Text)],
-      predefs: GeneratePredefs::default(),
+      required_predefs: Vec::new(),
       next_label: 0,
-    }
-  }
-}
-
-#[derive(PartialEq, Debug)]
-pub struct GeneratePredefs {
-  pub print_ints: bool,
-  pub print_strings: bool,
-  pub print_bools: bool,
-  pub print_refs: bool,
-  pub println: bool,
-  pub read_char: bool,
-  pub read_int: bool,
-  pub free_pair: bool,
-  pub runtime_err: bool,
-  pub overflow_err: bool,
-  pub div_by_zero: bool,
-}
-
-impl Default for GeneratePredefs {
-  fn default() -> Self {
-    Self {
-      print_ints: false,
-      print_strings: false,
-      print_bools: false,
-      print_refs: false,
-      println: false,
-      read_char: false,
-      read_int: false,
-      free_pair: false,
-      runtime_err: false,
-      overflow_err: false,
-      div_by_zero: false,
+      next_msg: 0,
     }
   }
 }
