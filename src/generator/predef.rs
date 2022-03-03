@@ -89,6 +89,9 @@ fn check_array_bounds(code: &mut GeneratedCode) {
   /* msg_1:                         //generate new msg label */
   let msg_1 = code.get_msg("ArrayIndexOutOfBoundsError: index too large\n\0");
 
+  /* p_check_array_bounds: */
+  code.text.push(Directive(Label(PREDEF_CHECK_ARRAY_BOUNDS.to_string())));
+  
   /* PUSH {lr}                      //push link register */
   code.text.push(Instr(AL, Push(Reg::Link)));
   /* CMP r0, #0                     //compare r0 to 0 */
