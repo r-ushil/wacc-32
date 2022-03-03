@@ -37,15 +37,21 @@ fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
   );
   let assignment = map(
     tuple((assign_lhs, tok("="), assign_rhs)),
-    |(ass_lhs, _, ass_rhs)| Stat::Assignment(ass_lhs, ass_rhs),
+    |(ass_lhs, _, ass_rhs)| Stat::Assignment(ass_lhs, Type::default(), ass_rhs),
   );
   let read = map(preceded(tok("read"), assign_lhs), Stat::Read);
 
-  let free = map(preceded(tok("free"), expr), Stat::Free);
+  let free = map(preceded(tok("free"), expr), |e| {
+    Stat::Free(Type::default(), e)
+  });
   let return_ = map(preceded(tok("return"), expr), Stat::Return);
   let exit = map(preceded(tok("exit"), expr), Stat::Exit);
-  let print = map(preceded(tok("print"), expr), Stat::Print);
-  let println = map(preceded(tok("println"), expr), Stat::Println);
+  let print = map(preceded(tok("print"), expr), |e| {
+    Stat::Print(Type::default(), e)
+  });
+  let println = map(preceded(tok("println"), expr), |e| {
+    Stat::Println(Type::default(), e)
+  });
 
   let if_ = map(
     tuple((
@@ -395,6 +401,7 @@ mod tests {
         "",
         ast)) if ast == Stat::Assignment(
           AssignLhs::Ident("intx".to_string()),
+          Type::default(),
           AssignRhs::Expr(Expr::IntLiter(5))
         )
     ));
@@ -422,6 +429,7 @@ mod tests {
         "",
         ast)) if ast == Stat::Assignment(
           AssignLhs::Ident("aaa".to_string()),
+          Type::default(),
           AssignRhs::Expr(Expr::IntLiter(123))
         )
     ));
@@ -435,6 +443,7 @@ mod tests {
         "restOfString",
         ast)) if ast == Stat::Assignment(
           AssignLhs::ArrayElem(ArrayElem("array".to_string(), vec!(Expr::IntLiter(2)))),
+          Type::default(),
           AssignRhs::Pair(Expr::IntLiter(1), Expr::CharLiter('a'))
         )
     ));
@@ -452,7 +461,7 @@ mod tests {
   fn test_stat_free() {
     assert!(matches!(
       stat("free 5"),
-      Ok(("", Stat::Free(Expr::IntLiter(5))))
+      Ok(("", Stat::Free(Type::Any, Expr::IntLiter(5))))
     ));
   }
 
@@ -476,11 +485,11 @@ mod tests {
   fn test_stat_print() {
     assert!(matches!(
       stat("print 5"),
-      Ok(("", Stat::Print(Expr::IntLiter(5))))
+      Ok(("", Stat::Print(Type::Any, Expr::IntLiter(5))))
     ));
     assert!(matches!(
       stat("print \"hello\""),
-      Ok(("", ast)) if ast == Stat::Print(Expr::StrLiter("hello".to_string()))
+      Ok(("", ast)) if ast == Stat::Print(Type::Any, Expr::StrLiter("hello".to_string()))
     ));
   }
 
@@ -488,11 +497,11 @@ mod tests {
   fn test_stat_println() {
     assert!(matches!(
       stat("println 5"),
-      Ok(("", Stat::Println(Expr::IntLiter(5))))
+      Ok(("", Stat::Println(Type::Any, Expr::IntLiter(5))))
     ));
     assert!(matches!(
       stat("println \"hello\""),
-      Ok(("", ast)) if ast == Stat::Println(Expr::StrLiter("hello".to_string()))
+      Ok(("", ast)) if ast == Stat::Println(Type::Any, Expr::StrLiter("hello".to_string()))
     ));
   }
 
@@ -510,10 +519,12 @@ mod tests {
           ),
           ScopedStat::new(Stat::Assignment(
             AssignLhs::Ident("x".to_string()),
+            Type::default(),
             AssignRhs::Expr(Expr::IntLiter(5)),
           )),
           ScopedStat::new(Stat::Assignment(
             AssignLhs::Ident("x".to_string()),
+            Type::default(),
             AssignRhs::Expr(Expr::IntLiter(6)),
           )),
         )
@@ -535,6 +546,7 @@ mod tests {
           ScopedStat::new(Stat::Sequence(
             Box::new(Stat::Assignment(
               AssignLhs::Ident("acc".to_string()),
+              Type::default(),
               AssignRhs::Expr(Expr::BinaryApp(
                 Box::new(Expr::Ident("acc".to_string())),
                 BinaryOper::Mul,
@@ -543,6 +555,7 @@ mod tests {
             )),
             Box::new(Stat::Assignment(
               AssignLhs::Ident("n".to_string()),
+              Type::default(),
               AssignRhs::Expr(Expr::BinaryApp(
                 Box::new(Expr::Ident("n".to_string())),
                 BinaryOper::Sub,
@@ -589,6 +602,7 @@ mod tests {
         "",
         ast)) if ast == Stat::Assignment(
           AssignLhs::Ident("a".to_string()),
+          Type::default(),
           AssignRhs::Expr(Expr::BinaryApp(
             Box::new(Expr::Ident("w".to_string())),
             BinaryOper::Add,

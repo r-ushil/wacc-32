@@ -28,7 +28,7 @@ impl Scope<'_> {
 
   /* Returns type of given ident */
   pub fn get_type(&self, ident: &Ident) -> Option<&Type> {
-    match self.symbol_table.0.get(ident) {
+    match self.symbol_table.table.get(ident) {
       /* Identifier declared in this scope, return. */
       Some((t, _)) => Some(t),
       /* Look for identifier in parent scope, recurse. */
@@ -36,12 +36,23 @@ impl Scope<'_> {
     }
   }
 
-  pub fn get_offset(&self, ident: &Ident) -> Option<u32> {
-    match self.symbol_table.0.get(ident) {
+  pub fn get_offset(&self, ident: &Ident) -> Option<Offset> {
+    match self.symbol_table.table.get(ident) {
       /* Identifier declared in this scope, return. */
-      Some((_, base_offset)) => Some(self.symbol_table.1 - base_offset),
+      Some((_, base_offset)) => Some(self.symbol_table.size - base_offset),
       /* Look for identifier in parent scope, recurse. */
-      None => Some(self.context?.1.get_offset(ident)? + self.symbol_table.1),
+      None => Some(self.context?.1.get_offset(ident)? + self.symbol_table.size),
+    }
+  }
+
+  pub fn get_total_offset(&self) -> Offset {
+    if self.symbol_table.table.is_empty() && self.symbol_table.size == 4 {
+      /* When there are no symbols but the scope is 4 bytes long, we're at the
+      scope used to reserve space for the lr register. */
+      0
+    } else {
+      /* Otherwise, add the size of this scope and all the above scopes. */
+      self.symbol_table.size + self.context.unwrap().1.get_total_offset()
     }
   }
 

@@ -298,10 +298,7 @@ fn free_pair(code: &mut GeneratedCode) {
     Load(
       DataSize::Word,
       Reg::RegNum(0),
-      LoadArg::MemAddress(MemAddress {
-        reg: Reg::StackPointer,
-        offset: None,
-      }),
+      LoadArg::MemAddress(Reg::StackPointer, 0),
     ),
   ));
   /*  LDR r0, [r0, #4]    //load address of r0+4 into r0 */
@@ -310,10 +307,7 @@ fn free_pair(code: &mut GeneratedCode) {
     Load(
       DataSize::Word,
       Reg::RegNum(0),
-      LoadArg::MemAddress(MemAddress {
-        reg: Reg::RegNum(0),
-        offset: Some(4),
-      }),
+      LoadArg::MemAddress(Reg::RegNum(0), 4),
     ),
   ));
   /*  BL free             //branch to free */
@@ -474,10 +468,7 @@ fn print_string(code: &mut GeneratedCode) {
     Load(
       DataSize::Word,
       Reg::RegNum(1),
-      LoadArg::MemAddress(MemAddress {
-        reg: Reg::RegNum(0),
-        offset: None,
-      }),
+      LoadArg::MemAddress(Reg::RegNum(0), 0),
     ),
   ));
   /*  ADD r2, r0, #4        //add 4 to r0 and store in r2 */

@@ -17,8 +17,8 @@ trait Generatable: std::fmt::Debug {
     /* Because it's a default implementation, functionality not yet
     implemented will just return its inputs. */
     code.text.push(Asm::Directive(Directive::Label(format!(
-      "{:?}.generate(_, {:?})",
-      self, regs
+      "{:?}.generate(...)",
+      self
     ))))
   }
 }

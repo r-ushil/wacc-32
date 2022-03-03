@@ -22,9 +22,15 @@ pub struct GeneratedCode {
   pub data: Vec<Asm>,
   pub text: Vec<Asm>,
   pub predefs: GeneratePredefs,
+  next_label: u32,
 }
 
 impl GeneratedCode {
+  pub fn get_label(&mut self) -> Label {
+    let s = format!("L{}", self.next_label);
+    self.next_label += 1;
+    s
+  }
   pub fn asm<I: Into<Asm>>(&mut self, i: I) {
     self.text.push(i.into())
   }
@@ -36,6 +42,7 @@ impl Default for GeneratedCode {
       data: vec![Asm::Directive(Directive::Data)],
       text: vec![Asm::Directive(Directive::Text)],
       predefs: GeneratePredefs::default(),
+      next_label: 0,
     }
   }
 }
@@ -156,14 +163,8 @@ where
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum LoadArg {
   Imm(Imm),
-  MemAddress(MemAddress),
+  MemAddress(Reg, Offset),
   Label(Label),
-}
-
-#[derive(PartialEq, Eq, Debug, Clone)]
-pub struct MemAddress {
-  pub reg: Reg,
-  pub offset: Option<Imm>,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -171,6 +172,16 @@ pub enum DataSize {
   Byte,
   // Halfword, // Not used yet
   Word,
+}
+
+impl From<i32> for DataSize {
+  fn from(i: i32) -> Self {
+    match i {
+      1 => DataSize::Byte,
+      4 => DataSize::Word,
+      _ => unimplemented!(),
+    }
+  }
 }
 
 /*  */
@@ -253,15 +264,4 @@ pub enum CondCode {
 pub enum Load {
   Imm(Imm),
   Label(Label),
-}
-
-fn output_assembly(instrs: Vec<Instr>) {
-  use std::io::Write;
-
-  let path = "output.s";
-  let mut file = File::create(path).unwrap();
-
-  for instr in instrs {
-    write!(file, "{}\n", instr).unwrap()
-  }
 }

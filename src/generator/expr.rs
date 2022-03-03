@@ -12,11 +12,22 @@ impl Generatable for Expr {
       Expr::UnaryApp(op, expr) => generate_unary_app(code, regs, scope, op, expr),
       Expr::BinaryApp(expr1, op, expr2) => generate_binary_app(code, regs, scope, expr1, op, expr2),
       // Expr::PairLiter => todo!(),
-      // Expr::Ident(_) => todo!(),
+      Expr::Ident(id) => generate_ident(scope, code, regs, &id),
       // Expr::ArrayElem(_) => todo!(),
       _ => generate_temp_default(self, code, regs),
     }
   }
+}
+
+/* Stores value of local variable specified by ident to regs[0]. */
+fn generate_ident(scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], id: &Ident) {
+  let offset = scope.get_offset(id).unwrap();
+
+  code.text.push(Asm::always(Instr::Load(
+    scope.get_type(id).unwrap().size().into(),
+    regs[0],
+    LoadArg::MemAddress(Reg::StackPointer, offset),
+  )))
 }
 
 fn generate_int_liter(code: &mut GeneratedCode, regs: &[Reg], val: &i32) {
@@ -112,8 +123,8 @@ fn always_instruction(instruction: Instr) -> Asm {
 
 fn generate_temp_default(expr: &Expr, code: &mut GeneratedCode, regs: &[Reg]) {
   code.text.push(Asm::Directive(Directive::Label(format!(
-    "{:?}.generate(_, {:?})",
-    expr, regs
+    "{:?}.generate(...)",
+    expr
   ))))
 }
 
@@ -168,8 +179,8 @@ fn generate_unary_length(code: &mut GeneratedCode, reg: Reg, unary_op: &UnaryOpe
 
 fn generate_unary_temp_default(code: &mut GeneratedCode, reg: Reg, unary_op: &UnaryOper) {
   code.text.push(Asm::Directive(Directive::Label(format!(
-    "{:?}.generate(_, {:?})",
-    unary_op, reg
+    "{:?}.generate(...)",
+    unary_op
   ))))
 }
 
@@ -339,12 +350,12 @@ fn binary_comp_ops(
   /* MOV{cond1} reg1, #1 */
   code.text.push(Asm::Instr(
     cond1,
-    Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(1), true),
+    Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(1), false),
   ));
   /* MOV{cond2} reg1, #0 */
   code.text.push(Asm::Instr(
     cond2,
-    Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(0), true),
+    Instr::Unary(UnaryInstr::Mov, reg1.clone(), Op2::Imm(0), false),
   ));
 }
 

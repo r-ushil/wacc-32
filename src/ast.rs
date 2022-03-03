@@ -25,13 +25,13 @@ pub struct FuncSig {
 pub enum Stat {
   Skip,
   Declaration(Type, Ident, AssignRhs),
-  Assignment(AssignLhs, AssignRhs),
+  Assignment(AssignLhs, Type, AssignRhs),
   Read(AssignLhs),
-  Free(Expr),
+  Free(Type, Expr),
   Return(Expr),
   Exit(Expr),
-  Print(Expr),
-  Println(Expr),
+  Print(Type, Expr),
+  Println(Type, Expr),
   Sequence(Box<Stat>, Box<Stat>),
 
   /* SCOPING STATEMENTS */
@@ -109,9 +109,15 @@ pub enum Type {
   Func(Box<FuncSig>),
 }
 
+impl Default for Type {
+  fn default() -> Self {
+    Type::Any
+  }
+}
+
 impl Type {
   /* Returns how many bytes are required to store a value of this type. */
-  pub fn size(&self) -> u32 {
+  pub fn size(&self) -> i32 {
     use Type::*;
     match self {
       Bool | Char => 1,

@@ -207,8 +207,8 @@ pub fn stat(
         None
       }
     }
-    Stat::Assignment(lhs, rhs) => {
-      equal_types(scope, errors, lhs, rhs)?;
+    Stat::Assignment(lhs, t, rhs) => {
+      *t = equal_types(scope, errors, lhs, rhs)?;
       Some(Never) /* Assignments never return. */
     }
     Stat::Read(dest) => {
@@ -225,8 +225,11 @@ pub fn stat(
         } /*  */
       }
     }
-    Stat::Free(expr) => match expr.get_type(scope, errors)? {
-      Type::Pair(_, _) | Type::Array(_) => Some(Never), /* Frees never return. */
+    Stat::Free(t, expr) => match expr.get_type(scope, errors)? {
+      new_t @ (Type::Pair(_, _) | Type::Array(_)) => {
+        *t = new_t;
+        Some(Never)
+      } /* Frees never return. */
       actual_type => {
         scope.add_error(
           errors,
@@ -246,9 +249,10 @@ pub fn stat(
       wrong type, by using any it won't collide with another type. */
       Some(AtEnd(Type::Any))
     }
-    Stat::Print(expr) | Stat::Println(expr) => {
+    Stat::Print(t, expr) | Stat::Println(t, expr) => {
       /* Any type can be printed. */
-      expr.get_type(scope, errors)?;
+      /* Store type on print so codegen knows which print to use. */
+      *t = expr.get_type(scope, errors)?;
 
       /* Prints never return. */
       Some(Never)
