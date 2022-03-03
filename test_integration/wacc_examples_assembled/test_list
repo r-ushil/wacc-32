@@ -10,7 +10,7 @@
 ../wacc_examples/valid/array/arraySimple.wacc,./wacc_examples_assembled_ours/valid/array/arraySimple.s,./wacc_examples_assembled/valid/array/arraySimple.s,fail
 ../wacc_examples/valid/array/array.wacc,./wacc_examples_assembled_ours/valid/array/array.s,./wacc_examples_assembled/valid/array/array.s,fail
 ../wacc_examples/valid/array/modifyString.wacc,./wacc_examples_assembled_ours/valid/array/modifyString.s,./wacc_examples_assembled/valid/array/modifyString.s,fail
-../wacc_examples/valid/array/printRef.wacc,./wacc_examples_assembled_ours/valid/array/printRef.s,./wacc_examples_assembled/valid/array/printRef.s,fail
+../wacc_examples/valid/array/printRef.wacc,./wacc_examples_assembled_ours/valid/array/printRef.s,./wacc_examples_assembled/valid/array/printRef.s,pass
 ../wacc_examples/valid/basic/exit/exit-1.wacc,./wacc_examples_assembled_ours/valid/basic/exit/exit-1.s,./wacc_examples_assembled/valid/basic/exit/exit-1.s,pass
 ../wacc_examples/valid/basic/exit/exitBasic2.wacc,./wacc_examples_assembled_ours/valid/basic/exit/exitBasic2.s,./wacc_examples_assembled/valid/basic/exit/exitBasic2.s,pass
 ../wacc_examples/valid/basic/exit/exitBasic.wacc,./wacc_examples_assembled_ours/valid/basic/exit/exitBasic.s,./wacc_examples_assembled/valid/basic/exit/exitBasic.s,pass
@@ -110,7 +110,7 @@
 ../wacc_examples/valid/IO/print/printEscChar.wacc,./wacc_examples_assembled_ours/valid/IO/print/printEscChar.s,./wacc_examples_assembled/valid/IO/print/printEscChar.s,pass
 ../wacc_examples/valid/IO/print/printInt.wacc,./wacc_examples_assembled_ours/valid/IO/print/printInt.s,./wacc_examples_assembled/valid/IO/print/printInt.s,pass
 ../wacc_examples/valid/IO/print/println.wacc,./wacc_examples_assembled_ours/valid/IO/print/println.s,./wacc_examples_assembled/valid/IO/print/println.s,pass
-../wacc_examples/valid/IO/print/print.wacc,./wacc_examples_assembled_ours/valid/IO/print/print.s,./wacc_examples_assembled/valid/IO/print/print.s,fail
+../wacc_examples/valid/IO/print/print.wacc,./wacc_examples_assembled_ours/valid/IO/print/print.s,./wacc_examples_assembled/valid/IO/print/print.s,pass
 ../wacc_examples/valid/IO/read/echoBigInt.wacc,./wacc_examples_assembled_ours/valid/IO/read/echoBigInt.s,./wacc_examples_assembled/valid/IO/read/echoBigInt.s,fail
 ../wacc_examples/valid/IO/read/echoBigNegInt.wacc,./wacc_examples_assembled_ours/valid/IO/read/echoBigNegInt.s,./wacc_examples_assembled/valid/IO/read/echoBigNegInt.s,fail
 ../wacc_examples/valid/IO/read/echoChar.wacc,./wacc_examples_assembled_ours/valid/IO/read/echoChar.s,./wacc_examples_assembled/valid/IO/read/echoChar.s,fail

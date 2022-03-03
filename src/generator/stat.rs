@@ -223,7 +223,10 @@ fn generate_print(t: &Type, expr: &Expr, scope: &Scope, code: &mut GeneratedCode
     Type::Bool => predef::PREDEF_PRINT_BOOL,
     Type::String => predef::PREDEF_PRINT_STRING,
     Type::Char => predef::PREDEF_PRINT_CHAR,
-    Type::Array(_) => predef::PREDEF_PRINT_STRING,
+    Type::Array(elem_type) => match **elem_type {
+      Type::Char => predef::PREDEF_PRINT_STRING,
+      _ => predef::PREDEF_PRINT_REFS,
+    },
     Type::Pair(_, _) => predef::PREDEF_PRINT_REFS,
     _ => unreachable!(),
   };

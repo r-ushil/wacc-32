@@ -4,7 +4,7 @@ use std::fmt::Display;
 pub const PREDEF_PRINT_INT: &str = "p_print_int";
 pub const PREDEF_PRINT_STRING: &str = "p_print_string";
 pub const PREDEF_PRINT_BOOL: &str = "p_print_bool";
-pub const PREDEF_PRINT_REFS: &str = "p_print_ref";
+pub const PREDEF_PRINT_REFS: &str = "p_print_reference";
 
 pub const PREDEF_PRINT_CHAR: &str = "putchar";
 
