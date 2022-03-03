@@ -4,8 +4,8 @@
 ../wacc_examples/valid/array/arrayBasic.wacc,./wacc_examples_assembled_ours/valid/array/arrayBasic.s,./wacc_examples_assembled/valid/array/arrayBasic.s,pass
 ../wacc_examples/valid/array/arrayEmpty.wacc,./wacc_examples_assembled_ours/valid/array/arrayEmpty.s,./wacc_examples_assembled/valid/array/arrayEmpty.s,pass
 ../wacc_examples/valid/array/arrayLength.wacc,./wacc_examples_assembled_ours/valid/array/arrayLength.s,./wacc_examples_assembled/valid/array/arrayLength.s,fail
-../wacc_examples/valid/array/arrayLookup.wacc,./wacc_examples_assembled_ours/valid/array/arrayLookup.s,./wacc_examples_assembled/valid/array/arrayLookup.s,fail
-../wacc_examples/valid/array/arrayNested.wacc,./wacc_examples_assembled_ours/valid/array/arrayNested.s,./wacc_examples_assembled/valid/array/arrayNested.s,fail
+../wacc_examples/valid/array/arrayLookup.wacc,./wacc_examples_assembled_ours/valid/array/arrayLookup.s,./wacc_examples_assembled/valid/array/arrayLookup.s,pass
+../wacc_examples/valid/array/arrayNested.wacc,./wacc_examples_assembled_ours/valid/array/arrayNested.s,./wacc_examples_assembled/valid/array/arrayNested.s,pass
 ../wacc_examples/valid/array/arrayPrint.wacc,./wacc_examples_assembled_ours/valid/array/arrayPrint.s,./wacc_examples_assembled/valid/array/arrayPrint.s,fail
 ../wacc_examples/valid/array/arraySimple.wacc,./wacc_examples_assembled_ours/valid/array/arraySimple.s,./wacc_examples_assembled/valid/array/arraySimple.s,fail
 ../wacc_examples/valid/array/array.wacc,./wacc_examples_assembled_ours/valid/array/array.s,./wacc_examples_assembled/valid/array/array.s,fail
@@ -134,8 +134,8 @@
 ../wacc_examples/valid/pairs/readPair.wacc,./wacc_examples_assembled_ours/valid/pairs/readPair.s,./wacc_examples_assembled/valid/pairs/readPair.s,fail
 ../wacc_examples/valid/pairs/writeFst.wacc,./wacc_examples_assembled_ours/valid/pairs/writeFst.s,./wacc_examples_assembled/valid/pairs/writeFst.s,fail
 ../wacc_examples/valid/pairs/writeSnd.wacc,./wacc_examples_assembled_ours/valid/pairs/writeSnd.s,./wacc_examples_assembled/valid/pairs/writeSnd.s,fail
-../wacc_examples/valid/runtimeErr/arrayOutOfBounds/arrayNegBounds.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/arrayOutOfBounds/arrayNegBounds.s,./wacc_examples_assembled/valid/runtimeErr/arrayOutOfBounds/arrayNegBounds.s,fail
-../wacc_examples/valid/runtimeErr/arrayOutOfBounds/arrayOutOfBounds.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/arrayOutOfBounds/arrayOutOfBounds.s,./wacc_examples_assembled/valid/runtimeErr/arrayOutOfBounds/arrayOutOfBounds.s,fail
+../wacc_examples/valid/runtimeErr/arrayOutOfBounds/arrayNegBounds.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/arrayOutOfBounds/arrayNegBounds.s,./wacc_examples_assembled/valid/runtimeErr/arrayOutOfBounds/arrayNegBounds.s,pass
+../wacc_examples/valid/runtimeErr/arrayOutOfBounds/arrayOutOfBounds.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/arrayOutOfBounds/arrayOutOfBounds.s,./wacc_examples_assembled/valid/runtimeErr/arrayOutOfBounds/arrayOutOfBounds.s,pass
 ../wacc_examples/valid/runtimeErr/arrayOutOfBounds/arrayOutOfBoundsWrite.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/arrayOutOfBounds/arrayOutOfBoundsWrite.s,./wacc_examples_assembled/valid/runtimeErr/arrayOutOfBounds/arrayOutOfBoundsWrite.s,fail
 ../wacc_examples/valid/runtimeErr/divideByZero/divideByZero.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/divideByZero/divideByZero.s,./wacc_examples_assembled/valid/runtimeErr/divideByZero/divideByZero.s,fail
 ../wacc_examples/valid/runtimeErr/divideByZero/divZero.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/divideByZero/divZero.s,./wacc_examples_assembled/valid/runtimeErr/divideByZero/divZero.s,fail

@@ -29,6 +29,7 @@ pub enum RequiredPredefs {
   OverflowError,
   DivideByZeroError,
   ArrayBoundsError,
+  CheckNullPointer,
 }
 
 /* Pushes a pre-defined function to the vector on GeneratedCode if it doesn't
@@ -49,17 +50,22 @@ impl Generatable for RequiredPredefs {
       RequiredPredefs::PrintInt => print_int_or_ref(code, PrintFmt::Int),
       RequiredPredefs::PrintString => print_string(code),
       RequiredPredefs::PrintBool => print_bool(code),
-      RequiredPredefs::PrintChar => todo!(), // TODO: Implement
+      // RequiredPredefs::PrintChar => todo!(), // TODO: Implement
       RequiredPredefs::PrintRefs => print_int_or_ref(code, PrintFmt::Ref),
       RequiredPredefs::PrintLn => println(code),
       RequiredPredefs::ReadChar => read(code, ReadFmt::Char),
       RequiredPredefs::ReadInt => read(code, ReadFmt::Int),
       RequiredPredefs::FreePair => free_pair(code),
-      RequiredPredefs::FreeArray => todo!(), // TODO: Implement
+      // RequiredPredefs::FreeArray => todo!(), // TODO: Implement
       RequiredPredefs::RuntimeError => throw_runtime_error(code),
       RequiredPredefs::OverflowError => throw_overflow_error(code),
       RequiredPredefs::DivideByZeroError => check_divide_by_zero(code),
       RequiredPredefs::ArrayBoundsError => check_array_bounds(code),
+      // RequiredPredefs::CheckNullPointer => todo!(), // TODO: Implement
+      _ => code.text.push(Asm::Directive(Directive::Label(format!(
+        "{:?}.generate(...)",
+        self
+      )))),
     }
   }
 }
