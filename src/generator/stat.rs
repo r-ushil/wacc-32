@@ -225,6 +225,16 @@ impl Generatable for ScopedStat {
   }
 }
 
+impl Generatable for AssignLhs {
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
+    match self {
+      AssignLhs::Ident(id) => Expr::Ident(id.to_string()).generate(scope, code, regs),
+      AssignLhs::ArrayElem(elem) => elem.generate(scope, code, regs),
+      AssignLhs::PairElem(elem) => elem.generate(scope, code, regs),
+    }
+  }
+}
+
 impl Generatable for Stat {
   fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
     match self {
@@ -240,39 +250,30 @@ impl Generatable for Stat {
         /* stores value of regs[0] into lhs */
         generate_lhs(lhs, scope, code, regs, t);
       }
-      // Stat::Read(expr) => {
-      // TODO: expr is not and Expr or an Ident, function needs re-writing.
-      // // expr is expected to be an identifier, needs to read into a variable
-      // expr.generate(scope, code, regs); //generate expr, load into min_reg
+      Stat::Read(type_, expr) => {
+        expr.generate(scope, code, regs); //generate expr, load into min_re
+                                          /* MOV r0, {regs[0]} */
+        code.text.push(Asm::Instr(
+          CondCode::AL,
+          Instr::Unary(UnaryInstr::Mov, Reg::RegNum(0), Op2::Reg(regs[0], 0), false),
+        ));
+        //expr.get_type //todo!() get type of ident
+        let read_type = if *type_ == Type::Char {
+          RequiredPredefs::ReadChar.mark(code);
+          ReadFmt::Char
+        } else if *type_ == Type::Int {
+          RequiredPredefs::ReadInt.mark(code);
+          ReadFmt::Int
+        } else {
+          unreachable!("CAN'T GET THIS TYPE!");
+        };
 
-      // /* MOV r0, {min_reg} */
-      // code.text.push(Asm::Instr(
-      //   CondCode::AL,
-      //   Instr::Unary(
-      //     UnaryInstr::Mov,
-      //     Reg::General(0),
-      //     Op2::Reg(Reg::General(*regs), 0),
-      //     false,
-      //   ),
-      // ));
-      // //expr.get_type //todo!() get type of ident
-      // let read_type = if true {
-      //   ReadChar.mark(code);
-      //   code.predefs.read_char = true; // TODO: Remove after switch.
-      //   ReadFmt::Char
-      // } else {
-      //   code.predefs.read_int = true; // TODO: Remove after switch
-      //   ReadFmt::Int
-      // }; //replace true with expr type check
-
-      // /* BL p_read_{read_type} */
-      // code.text.push(Asm::Instr(
-      //   CondCode::AL,
-      //   Instr::Branch(true, format!("p_read_{}", read_type)),
-      // ));
-
-      // *regs = *regs - 1; //decrement min_reg by 1, no longer needed
-      // }
+        /* BL p_read_{read_type} */
+        code.text.push(Asm::always(Instr::Branch(
+          true,
+          format!("p_read_{}", read_type),
+        )))
+      }
       // Stat::Free(expr) => {
       // TODO: expr is not and Expr or an Ident, function needs re-writing.
       // //expr must be of type ident, referring to a pair
