@@ -2,21 +2,6 @@ use super::*;
 use std::fmt::Display;
 
 #[derive(PartialEq, Debug)]
-pub struct GeneratePredefs {
-  pub print_ints: bool,
-  pub print_strings: bool,
-  pub print_bools: bool,
-  pub print_refs: bool,
-  pub println: bool,
-  pub read_char: bool,
-  pub read_int: bool,
-  pub free_pair: bool,
-  pub runtime_err: bool,
-  pub overflow_err: bool,
-  pub div_by_zero: bool,
-}
-
-#[derive(PartialEq, Debug)]
 pub enum RequiredPredefs {
   PrintInt,
   PrintString,
@@ -59,24 +44,6 @@ impl Generatable for RequiredPredefs {
       RequiredPredefs::RuntimeError => throw_runtime_error(code),
       RequiredPredefs::OverflowError => throw_overflow_error(code),
       RequiredPredefs::DivideByZeroError => check_divide_by_zero(code),
-    }
-  }
-}
-
-impl Default for GeneratePredefs {
-  fn default() -> Self {
-    Self {
-      print_ints: false,
-      print_strings: false,
-      print_bools: false,
-      print_refs: false,
-      println: false,
-      read_char: false,
-      read_int: false,
-      free_pair: false,
-      runtime_err: false,
-      overflow_err: false,
-      div_by_zero: false,
     }
   }
 }
