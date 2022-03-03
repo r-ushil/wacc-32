@@ -26,7 +26,8 @@ impl Generatable for Program {
         return_type: Type::Int,
       },
       body: *self.statement.1.clone(),
-      symbol_table: self.statement.0.clone(),
+      params_st: SymbolTable::default(),
+      body_st: self.statement.0.clone(),
     }
     .generate(scope, code, regs);
 
@@ -67,25 +68,28 @@ impl Generatable for Func {
     PUSH {lr} */
     code.text.push(Asm::always(Instr::Push(Reg::Link)));
 
-    /* Make new 4 byte scope to reserve space for link register. */
-    let mut lr_table = SymbolTable::default();
-    lr_table.size = 4;
-    let scope = &scope.new_scope(&lr_table);
-
     /* Allocate space on stack for local vars. */
-    if self.symbol_table.size != 0 {
+    if self.body_st.size != 0 {
       /* Don't modify sp if we're only doing to decrement by 0. */
       code.text.push(Asm::always(Instr::Binary(
         BinaryInstr::Sub,
         Reg::StackPointer,
         Reg::StackPointer,
-        Op2::Imm(self.symbol_table.size),
+        Op2::Imm(self.body_st.size),
         false,
       )));
     }
 
-    /* Move into function scope. */
-    let scope = &scope.new_scope(&self.symbol_table);
+    /* Move into parameter scope. */
+    let scope = &scope.new_scope(&self.params_st);
+
+    /* Make new 4 byte scope to reserve space for link register. */
+    let mut lr_table = SymbolTable::default();
+    lr_table.size = 4;
+    let scope = &scope.new_scope(&lr_table);
+
+    /* Move into function body scope. */
+    let scope = &scope.new_scope(&self.body_st);
 
     /* Generate body.
     SUB sp, sp, #4
