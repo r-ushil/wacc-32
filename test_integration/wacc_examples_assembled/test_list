@@ -68,10 +68,10 @@
 ../wacc_examples/valid/function/nested_functions/fibonacciRecursive.wacc,./wacc_examples_assembled_ours/valid/function/nested_functions/fibonacciRecursive.s,./wacc_examples_assembled/valid/function/nested_functions/fibonacciRecursive.s,pass
 ../wacc_examples/valid/function/nested_functions/fixedPointRealArithmetic.wacc,./wacc_examples_assembled_ours/valid/function/nested_functions/fixedPointRealArithmetic.s,./wacc_examples_assembled/valid/function/nested_functions/fixedPointRealArithmetic.s,fail
 ../wacc_examples/valid/function/nested_functions/functionConditionalReturn.wacc,./wacc_examples_assembled_ours/valid/function/nested_functions/functionConditionalReturn.s,./wacc_examples_assembled/valid/function/nested_functions/functionConditionalReturn.s,fail
-../wacc_examples/valid/function/nested_functions/mutualRecursion.wacc,./wacc_examples_assembled_ours/valid/function/nested_functions/mutualRecursion.s,./wacc_examples_assembled/valid/function/nested_functions/mutualRecursion.s,fail
+../wacc_examples/valid/function/nested_functions/mutualRecursion.wacc,./wacc_examples_assembled_ours/valid/function/nested_functions/mutualRecursion.s,./wacc_examples_assembled/valid/function/nested_functions/mutualRecursion.s,pass
 ../wacc_examples/valid/function/nested_functions/printInputTriangle.wacc,./wacc_examples_assembled_ours/valid/function/nested_functions/printInputTriangle.s,./wacc_examples_assembled/valid/function/nested_functions/printInputTriangle.s,fail
-../wacc_examples/valid/function/nested_functions/printTriangle.wacc,./wacc_examples_assembled_ours/valid/function/nested_functions/printTriangle.s,./wacc_examples_assembled/valid/function/nested_functions/printTriangle.s,fail
-../wacc_examples/valid/function/nested_functions/simpleRecursion.wacc,./wacc_examples_assembled_ours/valid/function/nested_functions/simpleRecursion.s,./wacc_examples_assembled/valid/function/nested_functions/simpleRecursion.s,fail
+../wacc_examples/valid/function/nested_functions/printTriangle.wacc,./wacc_examples_assembled_ours/valid/function/nested_functions/printTriangle.s,./wacc_examples_assembled/valid/function/nested_functions/printTriangle.s,pass
+../wacc_examples/valid/function/nested_functions/simpleRecursion.wacc,./wacc_examples_assembled_ours/valid/function/nested_functions/simpleRecursion.s,./wacc_examples_assembled/valid/function/nested_functions/simpleRecursion.s,pass
 ../wacc_examples/valid/function/simple_functions/asciiTable.wacc,./wacc_examples_assembled_ours/valid/function/simple_functions/asciiTable.s,./wacc_examples_assembled/valid/function/simple_functions/asciiTable.s,pass
 ../wacc_examples/valid/function/simple_functions/functionDeclaration.wacc,./wacc_examples_assembled_ours/valid/function/simple_functions/functionDeclaration.s,./wacc_examples_assembled/valid/function/simple_functions/functionDeclaration.s,pass
 ../wacc_examples/valid/function/simple_functions/functionDoubleReturn.wacc,./wacc_examples_assembled_ours/valid/function/simple_functions/functionDoubleReturn.s,./wacc_examples_assembled/valid/function/simple_functions/functionDoubleReturn.s,fail
@@ -159,7 +159,7 @@
 ../wacc_examples/valid/scope/ifNested2.wacc,./wacc_examples_assembled_ours/valid/scope/ifNested2.s,./wacc_examples_assembled/valid/scope/ifNested2.s,pass
 ../wacc_examples/valid/scope/indentationNotImportant.wacc,./wacc_examples_assembled_ours/valid/scope/indentationNotImportant.s,./wacc_examples_assembled/valid/scope/indentationNotImportant.s,pass
 ../wacc_examples/valid/scope/intsAndKeywords.wacc,./wacc_examples_assembled_ours/valid/scope/intsAndKeywords.s,./wacc_examples_assembled/valid/scope/intsAndKeywords.s,pass
-../wacc_examples/valid/scope/printAllTypes.wacc,./wacc_examples_assembled_ours/valid/scope/printAllTypes.s,./wacc_examples_assembled/valid/scope/printAllTypes.s,fail
+../wacc_examples/valid/scope/printAllTypes.wacc,./wacc_examples_assembled_ours/valid/scope/printAllTypes.s,./wacc_examples_assembled/valid/scope/printAllTypes.s,pass
 ../wacc_examples/valid/scope/scopeBasic.wacc,./wacc_examples_assembled_ours/valid/scope/scopeBasic.s,./wacc_examples_assembled/valid/scope/scopeBasic.s,pass
 ../wacc_examples/valid/scope/scopeIfRedefine.wacc,./wacc_examples_assembled_ours/valid/scope/scopeIfRedefine.s,./wacc_examples_assembled/valid/scope/scopeIfRedefine.s,pass
 ../wacc_examples/valid/scope/scopeRedefine.wacc,./wacc_examples_assembled_ours/valid/scope/scopeRedefine.s,./wacc_examples_assembled/valid/scope/scopeRedefine.s,fail
@@ -167,7 +167,7 @@
 ../wacc_examples/valid/scope/scopeVars.wacc,./wacc_examples_assembled_ours/valid/scope/scopeVars.s,./wacc_examples_assembled/valid/scope/scopeVars.s,pass
 ../wacc_examples/valid/scope/scope.wacc,./wacc_examples_assembled_ours/valid/scope/scope.s,./wacc_examples_assembled/valid/scope/scope.s,pass
 ../wacc_examples/valid/scope/scopeWhileNested.wacc,./wacc_examples_assembled_ours/valid/scope/scopeWhileNested.s,./wacc_examples_assembled/valid/scope/scopeWhileNested.s,pass
-../wacc_examples/valid/scope/scopeWhileRedefine.wacc,./wacc_examples_assembled_ours/valid/scope/scopeWhileRedefine.s,./wacc_examples_assembled/valid/scope/scopeWhileRedefine.s,fail
+../wacc_examples/valid/scope/scopeWhileRedefine.wacc,./wacc_examples_assembled_ours/valid/scope/scopeWhileRedefine.s,./wacc_examples_assembled/valid/scope/scopeWhileRedefine.s,pass
 ../wacc_examples/valid/sequence/basicSeq2.wacc,./wacc_examples_assembled_ours/valid/sequence/basicSeq2.s,./wacc_examples_assembled/valid/sequence/basicSeq2.s,pass
 ../wacc_examples/valid/sequence/basicSeq.wacc,./wacc_examples_assembled_ours/valid/sequence/basicSeq.s,./wacc_examples_assembled/valid/sequence/basicSeq.s,pass
 ../wacc_examples/valid/sequence/boolAssignment.wacc,./wacc_examples_assembled_ours/valid/sequence/boolAssignment.s,./wacc_examples_assembled/valid/sequence/boolAssignment.s,pass

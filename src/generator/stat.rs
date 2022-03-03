@@ -353,7 +353,7 @@ impl Generatable for ScopedStat {
     let scope = scope.new_scope(st);
 
     /* Generated statement. */
-    statement.generate(&scope.new_scope(st), code, regs, ());
+    statement.generate(&scope, code, regs, ());
 
     /* Increment stack pointer to old position. */
     if !skip_decrement {
