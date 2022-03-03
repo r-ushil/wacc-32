@@ -39,6 +39,7 @@ impl RequiredPredefs {
 }
 
 impl Generatable for RequiredPredefs {
+  type Output = ();
   fn generate(&self, _scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
     match *self {
       RequiredPredefs::PrintInt => print_int_or_ref(code, PrintFmt::Int),
