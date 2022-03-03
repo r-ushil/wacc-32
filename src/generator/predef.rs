@@ -1,6 +1,16 @@
 use super::*;
 use std::fmt::Display;
 
+pub const PREDEF_PRINT_INT: &str = "p_print_int";
+pub const PREDEF_PRINT_STRING: &str = "p_print_string";
+pub const PREDEF_PRINT_BOOL: &str = "p_print_bool";
+pub const PREDEF_PRINT_REFS: &str = "p_print_ref";
+
+pub const PREDEF_PRINTLN: &str = "p_print_ln";
+pub const PREDEF_FREE_PAIR: &str = "p_free_pair";
+
+pub const PREDEF_THROW_RUNTIME_ERR: &str = "p_throw_runtime_error";
+
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum RequiredPredefs {
   PrintInt,
@@ -76,7 +86,7 @@ fn read(code: &mut GeneratedCode, fmt: ReadFmt) {
   /* Generate a p_read_{fmt} label to branch to when reading an int or a char */
 
   /* p_read_{fmt}: */
-  code.data.push(Directive(Label(format!("p_read_{}", fmt))));
+  code.text.push(Directive(Label(format!("p_read_{}", fmt))));
   /*  PUSH {lr}            //push link reg */
   code.text.push(Instr(AL, Push(Reg::Link)));
   /*  MOV r1, r0            //move r0 to r1 */
@@ -129,7 +139,7 @@ fn println(code: &mut GeneratedCode) {
   /* Generate a p_print_ln label to branch to when printing a line */
 
   /* p_print_ln: */
-  code.data.push(Directive(Label("p_print_ln".to_string())));
+  code.text.push(Directive(Label(PREDEF_PRINTLN.to_string())));
   /*  PUSH {lr}            //push link reg */
   code.text.push(Instr(AL, Push(Reg::Link)));
   /*  LDR r0, =msg_println   //load the result of msg_println */
@@ -197,7 +207,7 @@ fn check_divide_by_zero(code: &mut GeneratedCode) {
   /*  BLEQ p_throw_runtime_error   //branch to runtime error if r0 equals 0 */
   code.text.push(Instr(
     EQ,
-    Branch(true, String::from("p_throw_runtime_error")),
+    Branch(true, PREDEF_THROW_RUNTIME_ERR.to_string()),
   ));
   //set runtime error generation to true
   RequiredPredefs::RuntimeError.mark(code);
@@ -222,7 +232,7 @@ fn throw_overflow_error(code: &mut GeneratedCode) {
   /* p_throw_overflow_error: */
   code
     .text
-    .push(Directive(Label(String::from("p_throw_overflow_error"))));
+    .push(Directive(Label(PREDEF_THROW_RUNTIME_ERR.to_string())));
 
   /* LDR r0, =msg_overflow_error     //load result of message overflow error into r0 */
   code.text.push(Instr(
@@ -233,7 +243,7 @@ fn throw_overflow_error(code: &mut GeneratedCode) {
   RequiredPredefs::RuntimeError.mark(code);
   code.text.push(Instr(
     AL,
-    Branch(true, String::from("p_throw_runtime_error")),
+    Branch(true, PREDEF_THROW_RUNTIME_ERR.to_string()),
   ));
 }
 
@@ -252,7 +262,7 @@ fn free_pair(code: &mut GeneratedCode) {
   /* p_free_pair: */
   code
     .text
-    .push(Directive(Label(String::from("p_free_pair"))));
+    .push(Directive(Label(PREDEF_FREE_PAIR.to_string())));
   /*  PUSH {lr}            //push link reg */
   code.text.push(Instr(AL, Push(Reg::Link)));
   /*  CMP r0, #0           //compare the contents of r0 to 0 and set flags */
@@ -268,7 +278,7 @@ fn free_pair(code: &mut GeneratedCode) {
   /*  BEQ p_throw_runtime_error   //branch to runtime error if r0 equals 0 */
   code.text.push(Instr(
     EQ,
-    Branch(false, String::from("p_throw_runtime_error")),
+    Branch(false, PREDEF_THROW_RUNTIME_ERR.to_string()),
   ));
 
   //set runtime error generation to true
@@ -318,11 +328,11 @@ fn throw_runtime_error(code: &mut GeneratedCode) {
   /* p_throw_runtime_error: */
   code
     .text
-    .push(Directive(Label(String::from("p_throw_runtime_error"))));
+    .push(Directive(Label(PREDEF_THROW_RUNTIME_ERR.to_string())));
   /* BL p_print_string        //branch to print a string */
   code
     .text
-    .push(Instr(AL, Branch(true, String::from("p_print_string"))));
+    .push(Instr(AL, Branch(true, PREDEF_PRINT_STRING.to_string())));
   /* MOV r0, #-1              //move -1 into r0*/
   RequiredPredefs::PrintString.mark(code);
   code.text.push(Instr(
@@ -356,7 +366,7 @@ fn print_bool(code: &mut GeneratedCode) {
   /*p_print_bool: */
   code
     .text
-    .push(Directive(Label(String::from("p_print_bool"))));
+    .push(Directive(Label(PREDEF_PRINT_STRING.to_string())));
   /*  PUSH {lr}             //push link reg */
   code.text.push(Instr(AL, Push(Reg::Link)));
   /*  CMP r0, #0            //compare the contents of r0 to 0 and set flags */
@@ -427,7 +437,7 @@ fn print_string(code: &mut GeneratedCode) {
   /*p_print_string: */
   code
     .text
-    .push(Directive(Label(String::from("p_print_string"))));
+    .push(Directive(Label(PREDEF_PRINT_STRING.to_string())));
   /*  PUSH {lr}             //push link reg */
   code.text.push(Instr(AL, Push(Reg::Link)));
   /*  LDR r1, [r0]          //load address at r0 into r1 */
@@ -518,7 +528,12 @@ fn print_int_or_ref(code: &mut GeneratedCode, opt: PrintFmt) {
   for every program. */
 
   /*p_print_opt: */
-  code.text.push(Directive(Label(format!("p_print_{}", opt))));
+  let print_label = match opt {
+    PrintFmt::Int => PREDEF_PRINT_INT,
+    PrintFmt::Ref => PREDEF_PRINT_REFS,
+  };
+
+  code.text.push(Directive(Label(print_label.to_string())));
   /*  PUSH {lr}             //push link reg */
   code.text.push(Instr(AL, Push(Reg::Link)));
   /*  MOV r1, r0            //move r0 to r1 */

@@ -100,8 +100,8 @@ impl Display for Directive {
       Data => writeln!(f, ".data"),
       Assemble => write!(f, "\t.ltorg"),
       Label(l) => write!(f, "{}:", l),
-      Word(n) => write!(f, ".word {}", n),
-      Ascii(s) => write!(f, ".ascii\t\"{}\"", s),
+      Word(n) => write!(f, "\t.word {}", n),
+      Ascii(s) => write!(f, "\t.ascii\t\"{}\"", s),
     }
   }
 }
