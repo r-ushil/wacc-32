@@ -119,11 +119,11 @@
 ../wacc_examples/valid/IO/read/echoPuncChar.wacc,./wacc_examples_assembled_ours/valid/IO/read/echoPuncChar.s,./wacc_examples_assembled/valid/IO/read/echoPuncChar.s,fail
 ../wacc_examples/valid/IO/read/read.wacc,./wacc_examples_assembled_ours/valid/IO/read/read.s,./wacc_examples_assembled/valid/IO/read/read.s,fail
 ../wacc_examples/valid/pairs/checkRefPair.wacc,./wacc_examples_assembled_ours/valid/pairs/checkRefPair.s,./wacc_examples_assembled/valid/pairs/checkRefPair.s,fail
-../wacc_examples/valid/pairs/createPair02.wacc,./wacc_examples_assembled_ours/valid/pairs/createPair02.s,./wacc_examples_assembled/valid/pairs/createPair02.s,fail
-../wacc_examples/valid/pairs/createPair03.wacc,./wacc_examples_assembled_ours/valid/pairs/createPair03.s,./wacc_examples_assembled/valid/pairs/createPair03.s,fail
+../wacc_examples/valid/pairs/createPair02.wacc,./wacc_examples_assembled_ours/valid/pairs/createPair02.s,./wacc_examples_assembled/valid/pairs/createPair02.s,pass
+../wacc_examples/valid/pairs/createPair03.wacc,./wacc_examples_assembled_ours/valid/pairs/createPair03.s,./wacc_examples_assembled/valid/pairs/createPair03.s,pass
 ../wacc_examples/valid/pairs/createPair.wacc,./wacc_examples_assembled_ours/valid/pairs/createPair.s,./wacc_examples_assembled/valid/pairs/createPair.s,pass
-../wacc_examples/valid/pairs/createRefPair.wacc,./wacc_examples_assembled_ours/valid/pairs/createRefPair.s,./wacc_examples_assembled/valid/pairs/createRefPair.s,fail
-../wacc_examples/valid/pairs/free.wacc,./wacc_examples_assembled_ours/valid/pairs/free.s,./wacc_examples_assembled/valid/pairs/free.s,fail
+../wacc_examples/valid/pairs/createRefPair.wacc,./wacc_examples_assembled_ours/valid/pairs/createRefPair.s,./wacc_examples_assembled/valid/pairs/createRefPair.s,pass
+../wacc_examples/valid/pairs/free.wacc,./wacc_examples_assembled_ours/valid/pairs/free.s,./wacc_examples_assembled/valid/pairs/free.s,pass
 ../wacc_examples/valid/pairs/linkedList.wacc,./wacc_examples_assembled_ours/valid/pairs/linkedList.s,./wacc_examples_assembled/valid/pairs/linkedList.s,fail
 ../wacc_examples/valid/pairs/nestedPair.wacc,./wacc_examples_assembled_ours/valid/pairs/nestedPair.s,./wacc_examples_assembled/valid/pairs/nestedPair.s,pass
 ../wacc_examples/valid/pairs/null.wacc,./wacc_examples_assembled_ours/valid/pairs/null.s,./wacc_examples_assembled/valid/pairs/null.s,fail

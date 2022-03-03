@@ -115,7 +115,7 @@ fn generate_rhs(rhs: &AssignRhs, scope: &Scope, code: &mut GeneratedCode, regs: 
 
       /* Write pointer to e1 to pair. */
       code.text.push(Asm::always(Instr::Store(
-        e1_size.into(),
+        DataSize::Word,
         Reg::RegNum(0),
         (regs[0], 0),
       )));
@@ -137,7 +137,7 @@ fn generate_rhs(rhs: &AssignRhs, scope: &Scope, code: &mut GeneratedCode, regs: 
 
       /* Write pointer to e2 to pair. */
       code.text.push(Asm::always(Instr::Store(
-        e2_size.into(),
+        DataSize::Word,
         Reg::RegNum(0),
         (regs[0], 4),
       )));
