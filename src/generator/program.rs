@@ -7,12 +7,12 @@ impl Generatable for Program {
   type Input = ();
   type Output = ();
 
-  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], aux: ()) {
+  fn generate(&self, _: &Scope, code: &mut GeneratedCode, regs: &[Reg], aux: ()) {
     /* No registers should be in use by this point. */
     assert!(regs == GENERAL_REGS);
 
     /* Move into program's scope. */
-    let scope = &scope.new_scope(&self.symbol_table);
+    let scope = &Scope::new(&self.symbol_table);
 
     /* Generate code for every function, side affecting the code struct.
      * Each function is allowed to use the registers from min_regs variable
