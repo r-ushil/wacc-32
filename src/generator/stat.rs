@@ -206,8 +206,10 @@ fn generate_print(t: &Type, expr: &Expr, scope: &Scope, code: &mut GeneratedCode
     Type::Char => code
       .text
       .push(Asm::always(Instr::Branch(true, "putchar".to_string()))),
-    // TODO: Change PrintString to PrintRefs
-    Type::Array(_) => RequiredPredefs::PrintString.mark(code),
+    Type::Array(elem_type) => match **elem_type {
+      Type::Char => RequiredPredefs::PrintString.mark(code),
+      _ => RequiredPredefs::PrintRefs.mark(code),
+    },
     Type::Pair(_, _) => RequiredPredefs::PrintRefs.mark(code),
     _ => (),
   };
