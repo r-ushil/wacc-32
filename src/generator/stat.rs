@@ -172,7 +172,10 @@ fn generate_rhs(rhs: &AssignRhs, scope: &Scope, code: &mut GeneratedCode, regs: 
         offset += arg_type.size();
       }
 
-      code.text.push(Asm::always(Branch(true, ident.to_string())));
+      code.text.push(Asm::always(Branch(
+        true,
+        generate_function_name(ident.to_string()),
+      )));
 
       code.text.push(Asm::always(Binary(
         BinaryInstr::Add,

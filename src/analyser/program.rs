@@ -8,7 +8,6 @@ use crate::ast::*;
 
 fn func(scope: &ScopeMut, errors: &mut Vec<SemanticError>, func: &mut Func) -> Option<()> {
   let scope = &mut scope.new_scope(&mut func.params_st);
-  func.ident = format!("f_{}", func.ident);
 
   /* Add parameters to parameter scope. */
   for (pt, pi) in func.signature.params.iter().rev() {

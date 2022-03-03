@@ -58,9 +58,11 @@ impl Generatable for Func {
 
     /* Function label.
     foo: */
-    code
-      .text
-      .push(Asm::Directive(Directive::Label(self.ident.to_string())));
+    code.text.push(Asm::Directive(Directive::Label(if main {
+      self.ident.to_string()
+    } else {
+      generate_function_name(self.ident.to_string())
+    })));
 
     /* Save link register.
     PUSH {lr} */
