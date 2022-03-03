@@ -58,7 +58,7 @@ impl Generatable for RequiredPredefs {
       RequiredPredefs::RuntimeError => throw_runtime_error(code),
       RequiredPredefs::OverflowError => throw_overflow_error(code),
       RequiredPredefs::DivideByZeroError => check_divide_by_zero(code),
-      RequiredPredefs::ArrayBoundsError => todo!(),
+      RequiredPredefs::ArrayBoundsError => check_array_bounds(code),
     }
   }
 }
@@ -84,27 +84,55 @@ fn check_array_bounds(code: &mut GeneratedCode) {
   use self::Instr::*;
   use Asm::*;
 
-
   /* msg_0:                         //generate new msg label */
-	/* .word 44                       //allocate space for size 44 */
-	/* .ascii	"ArrayIndex..."         //convert to ascii */
+  let msg_0 = code.get_msg("ArrayIndexOutOfBoundsError: negative index\n\0");
   /* msg_1:                         //generate new msg label */
-	/* .word 45                       //allocate space for size 44 */
-  /* .ascii	"ArrayIndex..."         //convert to ascii */
-  
-	/* .ascii	"ArrayIndexOutOfBoundsError: index too large\n\0" */
+  let msg_1 = code.get_msg("ArrayIndexOutOfBoundsError: index too large\n\0");
 
   /* PUSH {lr}                      //push link register */
-	/* CMP r0, #0                     //compare r0 to 0 */
-	/* LDRLT r0, =msg_0               //load msg_0 if less than flag set into r0 */
-	/* BLLT p_throw_runtime_error     //branch to runtime error as a result */
-	/* LDR r1, [r1]                   //dereference r1 */
-	/* CMP r0, r1                     //compare r0 and r1 */
-	/* LDRCS r0, =msg_1               //load msg_1 into r0 if carry flag is set */ 
-	/* BLCS p_throw_runtime_error     //branch to runtime error as a result */
-	/* POP {pc}                       //pop PC register */
-
-
+  code.text.push(Instr(AL, Push(Reg::Link)));
+  /* CMP r0, #0                     //compare r0 to 0 */
+  code.text.push(Instr(
+    AL,
+    Unary(UnaryInstr::Cmp, Reg::RegNum(0), Op2::Imm(0), false),
+  ));
+  /* LDRLT r0, =msg_0               //load msg_0 if less than flag set into r0 */
+  code.text.push(Instr(
+    LT,
+    Load(DataSize::Word, Reg::RegNum(0), LoadArg::Label(msg_0)),
+  ));
+  /* BLLT p_throw_runtime_error     //branch to runtime error as a result */
+  RequiredPredefs::RuntimeError.mark(code);
+  code.text.push(Instr(
+    LT,
+    Branch(true, PREDEF_THROW_RUNTIME_ERR.to_string()),
+  ));
+  /* LDR r1, [r1]                   //dereference r1 */
+  code.text.push(Instr(
+    AL,
+    Load(
+      DataSize::Word,
+      Reg::RegNum(1),
+      LoadArg::MemAddress(Reg::RegNum(1), 0),
+    ),
+  ));
+  /* CMP r0, r1                     //compare r0 and r1 */
+  code.text.push(Instr(
+    AL,
+    Unary(UnaryInstr::Cmp, Reg::RegNum(0), Op2::Reg(Reg::RegNum(1), 0), false),
+  ));
+  /* LDRCS r0, =msg_1               //load msg_1 into r0 if carry flag is set */
+  code.text.push(Instr(
+    CS,
+    Load(DataSize::Word, Reg::RegNum(0), LoadArg::Label(msg_1)),
+  ));
+  /* BLCS p_throw_runtime_error     //branch to runtime error as a result */
+  code.text.push(Instr(
+    CS,
+    Branch(true, PREDEF_THROW_RUNTIME_ERR.to_string()),
+  ));
+  /* POP {pc}                       //pop PC register */
+  code.text.push(Instr(AL, Pop(Reg::PC)));
 }
 
 fn read(code: &mut GeneratedCode, fmt: ReadFmt) {
