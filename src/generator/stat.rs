@@ -1,4 +1,4 @@
-use super::{predef::ReadFmt, *};
+use super::{predef::ReadFmt, predef::RequiredPredefs, *};
 use Directive::*;
 use Instr::*;
 
@@ -13,6 +13,15 @@ fn generate_lhs(lhs: &AssignLhs, scope: &Scope, code: &mut GeneratedCode, regs: 
         regs[0],
         (Reg::StackPointer, offset),
       )))
+    }
+    AssignLhs::ArrayElem(elem) => {
+      /* Store address of array element into regs[1]. */
+      let elem_size = elem.generate(scope, code, &regs[1..]);
+
+      /* Write regs[0] to *regs[1]. */
+      code
+        .text
+        .push(Asm::always(Instr::Store(elem_size, regs[1], (regs[0], 0))));
     }
     _ => code.text.push(Asm::Directive(Directive::Label(format!(
       "{:?}.generate(...)",
@@ -149,11 +158,53 @@ fn generate_rhs(rhs: &AssignRhs, scope: &Scope, code: &mut GeneratedCode, regs: 
   }
 }
 
+fn generate_print(t: &Type, expr: &Expr, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
+  expr.generate(scope, code, regs);
+
+  match t {
+    Type::Int => RequiredPredefs::PrintInt.mark(code),
+    Type::Bool => RequiredPredefs::PrintBool.mark(code),
+    Type::String => RequiredPredefs::PrintString.mark(code),
+    Type::Char => RequiredPredefs::PrintString.mark(code),
+    Type::Array(_) => RequiredPredefs::PrintString.mark(code),
+    Type::Pair(_, _) => RequiredPredefs::PrintRefs.mark(code),
+    _ => (),
+  };
+
+  let print_label = match t {
+    Type::Int => predef::PREDEF_PRINT_INT,
+    Type::Bool => predef::PREDEF_PRINT_BOOL,
+    Type::String => predef::PREDEF_PRINT_STRING,
+    Type::Char => predef::PREDEF_PRINT_STRING,
+    Type::Array(_) => predef::PREDEF_PRINT_STRING,
+    Type::Pair(_, _) => predef::PREDEF_PRINT_REFS,
+    _ => unreachable!(),
+  };
+
+  code.text.push(Asm::always(Unary(
+    UnaryInstr::Mov,
+    Reg::RegNum(0),
+    Op2::Reg(regs[0], 0),
+    false,
+  )));
+
+  code
+    .text
+    .push(Asm::always(Branch(true, print_label.to_string())));
+}
+
 impl Generatable for PairElem {
-  // fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {}
+  type Output = ();
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
+    code.text.push(Asm::Directive(Directive::Label(format!(
+      "{:?}.generate(...)",
+      self
+    ))));
+  }
 }
 
 impl Generatable for ScopedStat {
+  type Output = ();
   fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
     let ScopedStat(st, statement) = self;
 
@@ -191,6 +242,7 @@ impl Generatable for ScopedStat {
 }
 
 impl Generatable for Stat {
+  type Output = ();
   fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
     match self {
       Stat::Skip => (),
@@ -222,10 +274,11 @@ impl Generatable for Stat {
       // ));
       // //expr.get_type //todo!() get type of ident
       // let read_type = if true {
-      //   code.predefs.read_char = true;
+      //   ReadChar.mark(code);
+      //   code.predefs.read_char = true; // TODO: Remove after switch.
       //   ReadFmt::Char
       // } else {
-      //   code.predefs.read_int = true;
+      //   code.predefs.read_int = true; // TODO: Remove after switch
       //   ReadFmt::Int
       // }; //replace true with expr type check
 
@@ -252,9 +305,11 @@ impl Generatable for Stat {
       //     false,
       //   ),
       // ));
-
-      // code.predefs.free_pair = true; //set free_pair flag to true
-      //                                /* BL p_free_pair */
+      //set free_pair flag to true
+      /* BL p_free_pair */
+      // code.predefs.free_pair = true; // TODO: Remove after switch
+      // FreePair.mark(code);
+      //
       // code.text.push(Asm::Instr(
       //   CondCode::AL,
       //   Instr::Branch(true, String::from("p_free_pair")),
@@ -312,21 +367,20 @@ impl Generatable for Stat {
         ));
       }
 
-      // Stat::Print(expr) => {
-      //   expr.generate(scope, code, min_reg);
-      //   todo!(); //get type of expr, and switch to the appropriate print branch
+      Stat::Print(t, expr) => {
+        generate_print(t, expr, scope, code, regs);
+      }
 
-      //   // print_stat_gen(code, expr.get_type);
-      // }
+      Stat::Println(t, expr) => {
+        generate_print(t, expr, scope, code, regs);
 
-      // Stat::Println(expr) => {
-      //   expr.generate(scope, code, min_reg);
-      //   todo!();
-      //   // print_stat_gen(code, expr.get_type);
-      //   // code.predefs.println = true;
-      //   // /* BL println */
-      //   // code.text.push(Asm::Instr(CondCode::AL, Instr::Branch(true, String::from("println"))));
-      // }
+        /* BL println */
+        RequiredPredefs::PrintLn.mark(code);
+        code.text.push(Asm::always(Instr::Branch(
+          true,
+          predef::PREDEF_PRINTLN.to_string(),
+        )));
+      }
       Stat::If(cond, true_body, false_body) => {
         let false_label = code.get_label();
         let exit_label = code.get_label();
@@ -416,19 +470,23 @@ fn print_stat_gen(code: &mut GeneratedCode, min_reg: &mut RegNum) {
 
   //   let branch_name = match expr_type {
   //     Type::String => {
-  //       code.predefs.print_strings = true;
+  //       PrintString.mark(code);
+  //       code.predefs.print_strings = true; // TODO: Remove after switch
   //       String::from("p_print_string")
   //     }
   //     Type::Bool => {
-  //       code.predefs.print_bools = true;
+  //       PrintBool.mark(code);
+  //       code.predefs.print_bools = true; // TODO: Remove after switch
   //       String::from("p_print_bool")
   //     }
   //     Type::Int => {
-  //       code.predefs.print_ints = true;
+  //       PrintInt.mark(code);
+  //       code.predefs.print_ints = true; // TODO: Remove after switch
   //       String::from("p_print_int")
   //     }
   //     Type::Ref => {
-  //       code.predefs.print_refs = true;
+  //       PrintRefs.mark(code):
+  //       code.predefs.print_refs = true; // TODO: Remove after switch
   //       String::from("p_print_reference")
   //     }
   //   };

@@ -4,6 +4,8 @@ use super::*;
 
 // #[derive(PartialEq, Debug, Clone)]
 impl Generatable for Program {
+  type Output = ();
+
   fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
     /* No registers should be in use by this point. */
     assert!(regs == GENERAL_REGS);
@@ -29,10 +31,21 @@ impl Generatable for Program {
       symbol_table: self.statement.0.clone(),
     }
     .generate(scope, code, regs);
+
+    /* Write all pre-defined functions that we require to the end of the
+    GeneratedCode */
+    let mut i = 0;
+    while i < code.required_predefs.len() {
+      let required_predef = code.required_predefs[i];
+      required_predef.generate(scope, code, regs);
+      i += 1;
+    }
   }
 }
 
 impl Generatable for Func {
+  type Output = ();
+
   fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
     /* No registers should be in use by this point. */
     assert!(regs == GENERAL_REGS);

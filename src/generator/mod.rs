@@ -12,15 +12,9 @@ use asm::*;
 use scope::*;
 
 trait Generatable: std::fmt::Debug {
-  fn generate(&self, _scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
-    /* THIS DEFAULT IMPLEMENTATION IS JUST FOR TESTING PURPOSES */
-    /* Because it's a default implementation, functionality not yet
-    implemented will just return its inputs. */
-    code.text.push(Asm::Directive(Directive::Label(format!(
-      "{:?}.generate(...)",
-      self
-    ))))
-  }
+  type Output;
+
+  fn generate(&self, _scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) -> Self::Output;
 }
 
 pub fn generate(ast: &Program) -> GeneratedCode {
