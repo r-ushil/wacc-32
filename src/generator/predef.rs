@@ -1,7 +1,7 @@
 use super::*;
 use std::fmt::Display;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub enum RequiredPredefs {
   PrintInt,
   PrintString,
