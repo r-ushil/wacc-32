@@ -450,52 +450,6 @@ impl Generatable for Stat {
   }
 }
 
-// todo!(), add parameter for expr_type
-fn print_stat_gen(code: &mut GeneratedCode, min_reg: &mut RegNum) {
-
-  //   let branch_name = match expr_type {
-  //     Type::String => {
-  //       PrintString.mark(code);
-  //       code.predefs.print_strings = true; // TODO: Remove after switch
-  //       String::from("p_print_string")
-  //     }
-  //     Type::Bool => {
-  //       PrintBool.mark(code);
-  //       code.predefs.print_bools = true; // TODO: Remove after switch
-  //       String::from("p_print_bool")
-  //     }
-  //     Type::Int => {
-  //       PrintInt.mark(code);
-  //       code.predefs.print_ints = true; // TODO: Remove after switch
-  //       String::from("p_print_int")
-  //     }
-  //     Type::Ref => {
-  //       PrintRefs.mark(code):
-  //       code.predefs.print_refs = true; // TODO: Remove after switch
-  //       String::from("p_print_reference")
-  //     }
-  //   };
-
-  // /* MOV r0, min_reg */
-  // code.text.push(Asm::Instr(CondCode::AL, Instr::Unary(UnaryInstr::Mov, Reg::RegNum(0), Op2::Reg(Reg::RegNum(*min_reg), 0), false)));
-
-  // /* BL {branch_name} */
-  // code.text.push(Asm::Instr(CondCode::AL, Instr::Branch(true, branch_name)));
-
-  // *min_reg = *min_reg - 1; //decrement min_reg by 1, no longer needed
-}
-
-/*
-
-1) generate code using B print_int
-1.5) stat.generate(cod)
-2) mark the fact we need it to exist // code.prints.int = true
-...
-100) once code generated, generate all the things which need to exist
-101) if code.prints.int == true { print_int(code) }
-
-*/
-
 #[cfg(test)]
 mod tests {
   use super::*;
