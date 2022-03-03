@@ -123,8 +123,8 @@ fn always_instruction(instruction: Instr) -> Asm {
 
 fn generate_temp_default(expr: &Expr, code: &mut GeneratedCode, regs: &[Reg]) {
   code.text.push(Asm::Directive(Directive::Label(format!(
-    "{:?}.generate(_, {:?})",
-    expr, regs
+    "{:?}.generate(...)",
+    expr
   ))))
 }
 
@@ -179,8 +179,8 @@ fn generate_unary_length(code: &mut GeneratedCode, reg: Reg, unary_op: &UnaryOpe
 
 fn generate_unary_temp_default(code: &mut GeneratedCode, reg: Reg, unary_op: &UnaryOper) {
   code.text.push(Asm::Directive(Directive::Label(format!(
-    "{:?}.generate(_, {:?})",
-    unary_op, reg
+    "{:?}.generate(...)",
+    unary_op
   ))))
 }
 

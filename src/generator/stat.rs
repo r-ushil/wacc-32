@@ -15,8 +15,8 @@ fn generate_lhs(lhs: &AssignLhs, scope: &Scope, code: &mut GeneratedCode, regs: 
       )))
     }
     _ => code.text.push(Asm::Directive(Directive::Label(format!(
-      "{:?}.generate(_, {:?})",
-      lhs, regs
+      "{:?}.generate(...)",
+      lhs
     )))),
   }
 }
@@ -79,17 +79,13 @@ fn generate_rhs(rhs: &AssignRhs, scope: &Scope, code: &mut GeneratedCode, regs: 
       )));
     }
     _ => code.text.push(Asm::Directive(Directive::Label(format!(
-      "{:?}.generate(_, {:?})",
-      rhs, regs
+      "{:?}.generate(...)",
+      rhs
     )))),
   }
 }
 
 impl Generatable for PairElem {
-  // fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {}
-}
-
-impl Generatable for ArrayLiter {
   // fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {}
 }
 
@@ -214,24 +210,21 @@ impl Generatable for Stat {
 
         // todo!()
         // total_offset = somehow get total stack offset for all local vars
-        let total_offset = 0;
+        let total_offset = scope.get_total_offset();
 
         /* ADD sp, sp, #{total_offset} */
-        code.text.push(Asm::Instr(
-          CondCode::AL,
-          Instr::Binary(
-            BinaryInstr::Add,
-            Reg::StackPointer,
-            Reg::StackPointer,
-            Op2::Imm(total_offset),
-            false,
-          ),
-        ));
-
-        /* POP {pc} */
-        code
-          .text
-          .push(Asm::Instr(CondCode::AL, Instr::Pop(Reg::PC)));
+        if total_offset != 0 {
+          code.text.push(Asm::Instr(
+            CondCode::AL,
+            Instr::Binary(
+              BinaryInstr::Add,
+              Reg::StackPointer,
+              Reg::StackPointer,
+              Op2::Imm(total_offset),
+              false,
+            ),
+          ));
+        }
 
         /* POP {pc} */
         code
@@ -314,8 +307,8 @@ impl Generatable for Stat {
         tail.generate(scope, code, regs);
       }
       _ => code.text.push(Asm::Directive(Directive::Label(format!(
-        "{:?}.generate(_, {:?})",
-        self, regs
+        "{:?}.generate(...)",
+        self
       )))),
     }
   }

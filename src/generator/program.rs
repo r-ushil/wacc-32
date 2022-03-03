@@ -111,12 +111,6 @@ impl Generatable for Func {
     POP {pc} */
     code.text.push(Asm::always(Instr::Pop(Reg::PC)));
 
-    /* Put a second jump if not in main to mimick refcompile behaviour.
-    POP {pc} */
-    if !main {
-      code.text.push(Asm::always(Instr::Pop(Reg::PC)));
-    }
-
     /* Mark block for compilations.
     .ltorg */
     code.text.push(Asm::Directive(Directive::Assemble));
