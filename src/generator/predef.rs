@@ -78,7 +78,34 @@ impl Display for ReadFmt {
   }
 }
 
-//todo!() make p_check_array_bounds
+fn check_array_bounds(code: &mut GeneratedCode) {
+  use self::CondCode::*;
+  use self::Directive::*;
+  use self::Instr::*;
+  use Asm::*;
+
+
+  /* msg_0:                         //generate new msg label */
+	/* .word 44                       //allocate space for size 44 */
+	/* .ascii	"ArrayIndex..."         //convert to ascii */
+  /* msg_1:                         //generate new msg label */
+	/* .word 45                       //allocate space for size 44 */
+  /* .ascii	"ArrayIndex..."         //convert to ascii */
+  
+	/* .ascii	"ArrayIndexOutOfBoundsError: index too large\n\0" */
+
+  /* PUSH {lr}                      //push link register */
+	/* CMP r0, #0                     //compare r0 to 0 */
+	/* LDRLT r0, =msg_0               //load msg_0 if less than flag set into r0 */
+	/* BLLT p_throw_runtime_error     //branch to runtime error as a result */
+	/* LDR r1, [r1]                   //dereference r1 */
+	/* CMP r0, r1                     //compare r0 and r1 */
+	/* LDRCS r0, =msg_1               //load msg_1 into r0 if carry flag is set */ 
+	/* BLCS p_throw_runtime_error     //branch to runtime error as a result */
+	/* POP {pc}                       //pop PC register */
+
+
+}
 
 fn read(code: &mut GeneratedCode, fmt: ReadFmt) {
   use self::CondCode::*;
