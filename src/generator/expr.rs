@@ -121,19 +121,19 @@ fn generate_temp_default(expr: &Expr, code: &mut GeneratedCode, regs: &[Reg]) {
 fn generate_unary_op(code: &mut GeneratedCode, scope: &Scope, reg: Reg, unary_op: &UnaryOper) {
   // TODO: Briefly explain the pre-condition that you created in the caller
   match unary_op {
-    UnaryOper::Bang => generate_unary_bang(code, reg, unary_op),
-    UnaryOper::Neg => generate_unary_negation(code, reg, unary_op),
+    UnaryOper::Bang => generate_unary_bang(code, reg),
+    UnaryOper::Neg => generate_unary_negation(code, reg),
     // TODO: Further explanation in comment
     UnaryOper::Ord => (), //handled as char is already moved into reg in main match statement
     // TODO: Further explanation in comment.
     UnaryOper::Chr => (), //similar logic to above
     // TODO: implement this function.
-    // UnaryOper::Len => generate_unary_length(code, reg, unary_op),
+    // UnaryOper::Len => generate_unary_length(code, reg),
     _ => generate_unary_temp_default(code, reg, unary_op),
   }
 }
 
-fn generate_unary_bang(code: &mut GeneratedCode, reg: Reg, unary_op: &UnaryOper) {
+fn generate_unary_bang(code: &mut GeneratedCode, reg: Reg) {
   /* EOR reg, reg, #1 */
   code.text.push(always_instruction(Instr::Binary(
     BinaryInstr::Eor,
@@ -144,7 +144,7 @@ fn generate_unary_bang(code: &mut GeneratedCode, reg: Reg, unary_op: &UnaryOper)
   )));
 }
 
-fn generate_unary_negation(code: &mut GeneratedCode, reg: Reg, unary_op: &UnaryOper) {
+fn generate_unary_negation(code: &mut GeneratedCode, reg: Reg) {
   /* RSBS reg, reg, #0 */
   code.text.push(always_instruction(Instr::Binary(
     BinaryInstr::RevSub,
@@ -156,17 +156,13 @@ fn generate_unary_negation(code: &mut GeneratedCode, reg: Reg, unary_op: &UnaryO
 }
 
 //TODO: Implement this function
-fn generate_unary_length(code: &mut GeneratedCode, scope: &Scope, reg: Reg, unary_op: &UnaryOper) {
-  //   /* LDR r4, [sp, #4]
-  //      LDR r4, [r4]
-
-  //      // get array's stack offset, load into reg
-  //      // get value at reg address (first index) for length
-
-  //   */
-  //   todo!();
-
-  /* LDR  */
+fn generate_unary_length(code: &mut GeneratedCode, scope: &Scope, reg: Reg) {
+  /* LDR reg, [reg]             //derefence value in reg */
+  code.text.push(Asm::always(Instr::Load(
+    DataSize::Word,
+    reg,
+    LoadArg::MemAddress(reg, 0),
+  )));
 }
 
 fn generate_unary_temp_default(code: &mut GeneratedCode, reg: Reg, unary_op: &UnaryOper) {
