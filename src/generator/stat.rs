@@ -2,31 +2,36 @@ use super::{predef::ReadFmt, predef::RequiredPredefs, *};
 use Directive::*;
 use Instr::*;
 
-/* Writes regs[0] to value specified by AssignLhs */
-fn generate_lhs(lhs: &AssignLhs, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], t: &Type) {
-  match lhs {
-    AssignLhs::Ident(id) => {
-      let offset = scope.get_offset(id).unwrap();
+impl Generatable for AssignLhs {
+  type Input = Type;
+  type Output = ();
 
-      code.text.push(Asm::always(Instr::Store(
-        t.size().into(),
-        regs[0],
-        (Reg::StackPointer, offset),
-      )))
-    }
-    AssignLhs::ArrayElem(elem) => {
-      /* Store address of array element into regs[1]. */
-      let elem_size = elem.generate(scope, code, &regs[1..]);
+  /* Writes regs[0] to value specified by AssignLhs */
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], t: Type) {
+    match self {
+      AssignLhs::Ident(id) => {
+        let offset = scope.get_offset(id).unwrap();
 
-      /* Write regs[0] to *regs[1]. */
-      code
-        .text
-        .push(Asm::always(Instr::Store(elem_size, regs[0], (regs[1], 0))));
+        code.text.push(Asm::always(Instr::Store(
+          t.size().into(),
+          regs[0],
+          (Reg::StackPointer, offset),
+        )))
+      }
+      AssignLhs::ArrayElem(elem) => {
+        /* Store address of array element into regs[1]. */
+        let elem_size = elem.generate(scope, code, &regs[1..], ());
+
+        /* Write regs[0] to *regs[1]. */
+        code
+          .text
+          .push(Asm::always(Instr::Store(elem_size, regs[0], (regs[1], 0))));
+      }
+      _ => code.text.push(Asm::Directive(Directive::Label(format!(
+        "{:?}.generate(...)",
+        self
+      )))),
     }
-    _ => code.text.push(Asm::Directive(Directive::Label(format!(
-      "{:?}.generate(...)",
-      lhs
-    )))),
   }
 }
 
@@ -55,111 +60,116 @@ fn generate_malloc(bytes: i32, code: &mut GeneratedCode, reg: Reg) {
   }
 }
 
-fn generate_rhs(rhs: &AssignRhs, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], t: &Type) {
-  match rhs {
-    AssignRhs::Expr(expr) => expr.generate(scope, code, regs),
-    AssignRhs::ArrayLiter(ArrayLiter(exprs)) => {
-      /* Calculate size of elements. */
-      let elem_size = match t {
-        Type::Array(elem_type) => elem_type.size(),
-        /* Semantic analyser should ensure this is an array. */
-        _ => unreachable!(),
-      };
+impl Generatable for AssignRhs {
+  type Input = Type;
+  type Output = ();
 
-      /* Malloc space for array. */
-      generate_malloc(4 + elem_size * exprs.len() as i32, code, regs[0]);
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], t: Type) {
+    match self {
+      AssignRhs::Expr(expr) => expr.generate(scope, code, regs, ()),
+      AssignRhs::ArrayLiter(ArrayLiter(exprs)) => {
+        /* Calculate size of elements. */
+        let elem_size = match t {
+          Type::Array(elem_type) => elem_type.size(),
+          /* Semantic analyser should ensure this is an array. */
+          _ => unreachable!(),
+        };
 
-      /* Write each expression to the array. */
-      for (i, expr) in exprs.iter().enumerate() {
-        /* Evaluate expr to r5. */
-        expr.generate(scope, code, &regs[1..]);
+        /* Malloc space for array. */
+        generate_malloc(4 + elem_size * exprs.len() as i32, code, regs[0]);
 
-        /* Write r5 array. */
-        code.text.push(Asm::always(Instr::Store(
-          elem_size.into(),
+        /* Write each expression to the array. */
+        for (i, expr) in exprs.iter().enumerate() {
+          /* Evaluate expr to r5. */
+          expr.generate(scope, code, &regs[1..], ());
+
+          /* Write r5 array. */
+          code.text.push(Asm::always(Instr::Store(
+            elem_size.into(),
+            regs[1],
+            (regs[0], 4 + (i as i32) * elem_size),
+          )));
+        }
+
+        /* Write length to first byte.
+        LDR r5, =3
+        STR r5, [r4] */
+        code.text.push(Asm::always(Instr::Load(
+          DataSize::Word,
           regs[1],
-          (regs[0], 4 + (i as i32) * elem_size),
+          LoadArg::Imm(exprs.len() as i32),
+        )));
+        code.text.push(Asm::always(Instr::Store(
+          DataSize::Word,
+          regs[1],
+          (regs[0], 0),
         )));
       }
+      AssignRhs::Pair(e1, e2) => {
+        let (e1_size, e2_size) = match t {
+          Type::Pair(t1, t2) => (t1.size(), t2.size()),
+          /* Semantic analyser should ensure this is a pair. */
+          _ => unreachable!(),
+        };
 
-      /* Write length to first byte.
-      LDR r5, =3
-      STR r5, [r4] */
-      code.text.push(Asm::always(Instr::Load(
-        DataSize::Word,
-        regs[1],
-        LoadArg::Imm(exprs.len() as i32),
-      )));
-      code.text.push(Asm::always(Instr::Store(
-        DataSize::Word,
-        regs[1],
-        (regs[0], 0),
-      )));
+        /* Malloc for the pair.
+        regs[0] = malloc(8) */
+        generate_malloc(8, code, regs[0]);
+
+        /* Evaluate e1.
+        regs[1] = eval(e1) */
+        e1.generate(scope, code, &regs[1..], ());
+
+        /* Malloc for e1.
+        r0 = malloc(e1_size) */
+        generate_malloc(e1_size, code, Reg::RegNum(0));
+
+        /* Write e1 to malloced space. */
+        code.text.push(Asm::always(Instr::Store(
+          e1_size.into(),
+          regs[1],
+          (Reg::RegNum(0), 0),
+        )));
+
+        /* Write pointer to e1 to pair. */
+        code.text.push(Asm::always(Instr::Store(
+          DataSize::Word,
+          Reg::RegNum(0),
+          (regs[0], 0),
+        )));
+
+        /* Evaluate e2.
+        regs[1] = eval(e2) */
+        e2.generate(scope, code, &regs[1..], ());
+
+        /* Malloc for e2.
+        r0 = malloc(e2_size) */
+        generate_malloc(e2_size, code, Reg::RegNum(0));
+
+        /* Write e2 to malloced space. */
+        code.text.push(Asm::always(Instr::Store(
+          e2_size.into(),
+          regs[1],
+          (Reg::RegNum(0), 0),
+        )));
+
+        /* Write pointer to e2 to pair. */
+        code.text.push(Asm::always(Instr::Store(
+          DataSize::Word,
+          Reg::RegNum(0),
+          (regs[0], 4),
+        )));
+      }
+      _ => code.text.push(Asm::Directive(Directive::Label(format!(
+        "{:?}.generate(...)",
+        self
+      )))),
     }
-    AssignRhs::Pair(e1, e2) => {
-      let (e1_size, e2_size) = match t {
-        Type::Pair(t1, t2) => (t1.size(), t2.size()),
-        /* Semantic analyser should ensure this is a pair. */
-        _ => unreachable!(),
-      };
-
-      /* Malloc for the pair.
-      regs[0] = malloc(8) */
-      generate_malloc(8, code, regs[0]);
-
-      /* Evaluate e1.
-      regs[1] = eval(e1) */
-      e1.generate(scope, code, &regs[1..]);
-
-      /* Malloc for e1.
-      r0 = malloc(e1_size) */
-      generate_malloc(e1_size, code, Reg::RegNum(0));
-
-      /* Write e1 to malloced space. */
-      code.text.push(Asm::always(Instr::Store(
-        e1_size.into(),
-        regs[1],
-        (Reg::RegNum(0), 0),
-      )));
-
-      /* Write pointer to e1 to pair. */
-      code.text.push(Asm::always(Instr::Store(
-        DataSize::Word,
-        Reg::RegNum(0),
-        (regs[0], 0),
-      )));
-
-      /* Evaluate e2.
-      regs[1] = eval(e2) */
-      e2.generate(scope, code, &regs[1..]);
-
-      /* Malloc for e2.
-      r0 = malloc(e2_size) */
-      generate_malloc(e2_size, code, Reg::RegNum(0));
-
-      /* Write e2 to malloced space. */
-      code.text.push(Asm::always(Instr::Store(
-        e2_size.into(),
-        regs[1],
-        (Reg::RegNum(0), 0),
-      )));
-
-      /* Write pointer to e2 to pair. */
-      code.text.push(Asm::always(Instr::Store(
-        DataSize::Word,
-        Reg::RegNum(0),
-        (regs[0], 4),
-      )));
-    }
-    _ => code.text.push(Asm::Directive(Directive::Label(format!(
-      "{:?}.generate(...)",
-      rhs
-    )))),
   }
 }
 
 fn generate_print(t: &Type, expr: &Expr, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
-  expr.generate(scope, code, regs);
+  expr.generate(scope, code, regs, ());
 
   match t {
     Type::Int => RequiredPredefs::PrintInt.mark(code),
@@ -194,8 +204,10 @@ fn generate_print(t: &Type, expr: &Expr, scope: &Scope, code: &mut GeneratedCode
 }
 
 impl Generatable for PairElem {
+  type Input = ();
   type Output = ();
-  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
+
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], aux: ()) {
     code.text.push(Asm::Directive(Directive::Label(format!(
       "{:?}.generate(...)",
       self
@@ -204,8 +216,9 @@ impl Generatable for PairElem {
 }
 
 impl Generatable for ScopedStat {
+  type Input = ();
   type Output = ();
-  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], aux: ()) {
     let ScopedStat(st, statement) = self;
 
     /* No need to decrement stack pointer if no vars declared. */
@@ -226,7 +239,7 @@ impl Generatable for ScopedStat {
     let scope = scope.new_scope(st);
 
     /* Generated statement. */
-    statement.generate(&scope.new_scope(st), code, regs);
+    statement.generate(&scope.new_scope(st), code, regs, ());
 
     /* Increment stack pointer to old position. */
     if !skip_decrement {
@@ -242,25 +255,30 @@ impl Generatable for ScopedStat {
 }
 
 impl Generatable for Stat {
+  type Input = ();
   type Output = ();
-  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], aux: ()) {
     match self {
       Stat::Skip => (),
       Stat::Declaration(t, id, rhs) => {
-        Stat::Assignment(AssignLhs::Ident(id.clone()), t.clone(), rhs.clone())
-          .generate(scope, code, regs);
+        Stat::Assignment(AssignLhs::Ident(id.clone()), t.clone(), rhs.clone()).generate(
+          scope,
+          code,
+          regs,
+          (),
+        );
       }
       Stat::Assignment(lhs, t, rhs) => {
         /* regs[0] = eval(rhs) */
-        generate_rhs(rhs, scope, code, regs, t);
+        rhs.generate(scope, code, regs, t.clone());
 
         /* stores value of regs[0] into lhs */
-        generate_lhs(lhs, scope, code, regs, t);
+        lhs.generate(scope, code, regs, t.clone());
       }
       // Stat::Read(expr) => {
       // TODO: expr is not and Expr or an Ident, function needs re-writing.
       // // expr is expected to be an identifier, needs to read into a variable
-      // expr.generate(scope, code, regs); //generate expr, load into min_reg
+      // expr.generate(scope, code, regs, ()); //generate expr, load into min_reg
 
       // /* MOV r0, {min_reg} */
       // code.text.push(Asm::Instr(
@@ -294,7 +312,7 @@ impl Generatable for Stat {
       // TODO: expr is not and Expr or an Ident, function needs re-writing.
       // //expr must be of type ident, referring to a pair
 
-      // expr.generate(scope, code, regs); //load pair address into min_reg
+      // expr.generate(scope, code, regs, ()); //load pair address into min_reg
       //                                   /* MOV r0, {min_reg}        //move pair address into r0 */
       // code.text.push(Asm::Instr(
       //   CondCode::AL,
@@ -319,7 +337,7 @@ impl Generatable for Stat {
       // }
       Stat::Return(expr) => {
         /* regs[0] = eval(expr) */
-        expr.generate(scope, code, regs);
+        expr.generate(scope, code, regs, ());
 
         /* r0 = regs[0] */
         code.text.push(Asm::Instr(
@@ -352,7 +370,7 @@ impl Generatable for Stat {
       }
       Stat::Exit(expr) => {
         /* regs[0] = eval(expr) */
-        expr.generate(scope, code, regs);
+        expr.generate(scope, code, regs, ());
 
         /* r0 = regs[0] */
         code.text.push(Asm::Instr(
@@ -386,7 +404,7 @@ impl Generatable for Stat {
         let exit_label = code.get_label();
 
         /* regs[0] = eval(cond) */
-        cond.generate(scope, code, regs);
+        cond.generate(scope, code, regs, ());
 
         /* cmp(regs[0], 0) */
         code.text.push(Asm::always(Unary(
@@ -402,7 +420,7 @@ impl Generatable for Stat {
           .push(Asm::Instr(CondCode::EQ, Branch(false, false_label.clone())));
 
         /* True body. */
-        true_body.generate(scope, code, regs);
+        true_body.generate(scope, code, regs, ());
 
         /* Exit if statement. */
         code
@@ -413,7 +431,7 @@ impl Generatable for Stat {
         code.text.push(Asm::Directive(Label(false_label)));
 
         /* False body. */
-        false_body.generate(scope, code, regs);
+        false_body.generate(scope, code, regs, ());
 
         /* Label to exit if statement. */
         code.text.push(Asm::Directive(Label(exit_label)));
@@ -431,13 +449,13 @@ impl Generatable for Stat {
         code.text.push(Asm::Directive(Label(body_label.clone())));
 
         /* Loop body. */
-        body.generate(scope, code, regs);
+        body.generate(scope, code, regs, ());
 
         /* Cond label */
         code.text.push(Asm::Directive(Label(cond_label)));
 
         /* regs[0] = eval(cond) */
-        cond.generate(scope, code, regs);
+        cond.generate(scope, code, regs, ());
 
         /* cmp(regs[0], 1) */
         code.text.push(Asm::always(Unary(
@@ -452,10 +470,10 @@ impl Generatable for Stat {
           .text
           .push(Asm::Instr(CondCode::EQ, Branch(false, body_label.clone())));
       }
-      Stat::Scope(stat) => stat.generate(scope, code, regs),
+      Stat::Scope(stat) => stat.generate(scope, code, regs, ()),
       Stat::Sequence(head, tail) => {
-        head.generate(scope, code, regs);
-        tail.generate(scope, code, regs);
+        head.generate(scope, code, regs, ());
+        tail.generate(scope, code, regs, ());
       }
       _ => code.text.push(Asm::Directive(Directive::Label(format!(
         "{:?}.generate(...)",
@@ -525,11 +543,11 @@ mod tests {
 
     /* Actual output. */
     let mut actual_code = GeneratedCode::default();
-    stat.generate(scope, &mut actual_code, regs);
+    stat.generate(scope, &mut actual_code, regs, ());
 
     /* Expected output. */
     let mut expected_code = GeneratedCode::default();
-    expr.generate(scope, &mut expected_code, regs);
+    expr.generate(scope, &mut expected_code, regs, ());
 
     /* MOV r0, r4 */
     expected_code.text.push(Asm::Instr(

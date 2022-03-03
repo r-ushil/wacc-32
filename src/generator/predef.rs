@@ -42,8 +42,9 @@ impl RequiredPredefs {
 }
 
 impl Generatable for RequiredPredefs {
+  type Input = ();
   type Output = ();
-  fn generate(&self, _scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
+  fn generate(&self, _scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], aux: ()) {
     match *self {
       RequiredPredefs::PrintInt => print_int_or_ref(code, PrintFmt::Int),
       RequiredPredefs::PrintString => print_string(code),
@@ -90,8 +91,10 @@ fn check_array_bounds(code: &mut GeneratedCode) {
   let msg_1 = code.get_msg("ArrayIndexOutOfBoundsError: index too large\n\0");
 
   /* p_check_array_bounds: */
-  code.text.push(Directive(Label(PREDEF_CHECK_ARRAY_BOUNDS.to_string())));
-  
+  code
+    .text
+    .push(Directive(Label(PREDEF_CHECK_ARRAY_BOUNDS.to_string())));
+
   /* PUSH {lr}                      //push link register */
   code.text.push(Instr(AL, Push(Reg::Link)));
   /* CMP r0, #0                     //compare r0 to 0 */

@@ -4,8 +4,9 @@ use super::*;
 use crate::generator::asm::*;
 
 impl Generatable for Expr {
+  type Input = ();
   type Output = ();
-  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], aux: ()) {
     match self {
       Expr::IntLiter(val) => generate_int_liter(code, regs, val),
       Expr::BoolLiter(val) => generate_bool_liter(code, regs, val),
@@ -23,7 +24,7 @@ impl Generatable for Expr {
 
 fn generate_array_elem(scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], elem: &ArrayElem) {
   /* Get address of array elem and store in regs[0]. */
-  let array_elem_size = elem.generate(scope, code, regs);
+  let array_elem_size = elem.generate(scope, code, regs, ());
 
   /* Read from that address into regs[0]. */
   code.text.push(Asm::always(Instr::Load(
@@ -96,7 +97,7 @@ fn generate_unary_app(
   expr: &Box<Expr>,
 ) {
   /* Stores expression's value in regs[0]. */
-  expr.generate(scope, code, regs);
+  expr.generate(scope, code, regs, ());
 
   /* Applies unary operator to regs[0]. */
   generate_unary_op(code, regs[0], op);
@@ -111,10 +112,10 @@ fn generate_binary_app(
   expr2: &Box<Expr>,
 ) {
   /* regs[0] = eval(expr1) */
-  expr1.generate(scope, code, regs);
+  expr1.generate(scope, code, regs, ());
 
   /* regs[1] = eval(expr2) */
-  expr2.generate(scope, code, &regs[1..]);
+  expr2.generate(scope, code, &regs[1..], ());
 
   /* regs[0] = regs[0] <op> regs[1] */
   generate_binary_op(code, regs[0], regs[1], op);
@@ -363,11 +364,12 @@ fn binary_comp_ops(
 }
 
 impl Generatable for ArrayElem {
+  type Input = ();
   type Output = DataSize;
 
   /* Stores the address of the element in regs[0],
   returns size of element. */
-  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) -> DataSize {
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], aux: ()) -> DataSize {
     let ArrayElem(id, indexes) = self;
     let mut current_type = scope.get_type(id).unwrap();
     let array_ptr_reg = regs[0];
@@ -398,7 +400,7 @@ impl Generatable for ArrayElem {
 
       /* index_regs[0] = eval(index)
       LDR {index_regs[0]} {index}     //load index into first index reg */
-      index.generate(scope, code, index_regs);
+      index.generate(scope, code, index_regs, ());
 
       /* Dereference. */
       /* LDR {array_ptr_reg} [{array_ptr_reg}] */
@@ -460,7 +462,7 @@ impl Generatable for ArrayElem {
     }
 
     RequiredPredefs::ArrayBoundsError.mark(code);
-    
+
     current_type.size().into()
   }
 }

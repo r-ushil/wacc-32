@@ -4,9 +4,10 @@ use super::*;
 
 // #[derive(PartialEq, Debug, Clone)]
 impl Generatable for Program {
+  type Input = ();
   type Output = ();
 
-  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], aux: ()) {
     /* No registers should be in use by this point. */
     assert!(regs == GENERAL_REGS);
 
@@ -17,7 +18,7 @@ impl Generatable for Program {
      * Each function is allowed to use the registers from min_regs variable
      * and up. */
     for function in &self.funcs {
-      function.generate(scope, code, regs);
+      function.generate(scope, code, regs, ());
     }
     /* The statement of the program should be compiled as if it is in a
      * function called main, which takes nothing and returns an int exit code */
@@ -30,23 +31,24 @@ impl Generatable for Program {
       body: *self.statement.1.clone(),
       symbol_table: self.statement.0.clone(),
     }
-    .generate(scope, code, regs);
+    .generate(scope, code, regs, ());
 
     /* Write all pre-defined functions that we require to the end of the
     GeneratedCode */
     let mut i = 0;
     while i < code.required_predefs.len() {
       let required_predef = code.required_predefs[i];
-      required_predef.generate(scope, code, regs);
+      required_predef.generate(scope, code, regs, ());
       i += 1;
     }
   }
 }
 
 impl Generatable for Func {
+  type Input = ();
   type Output = ();
 
-  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], aux: ()) {
     /* No registers should be in use by this point. */
     assert!(regs == GENERAL_REGS);
 
@@ -98,7 +100,7 @@ impl Generatable for Func {
     LDR r4, [sp, #8]
     MOV r0, r4
     ADD sp, sp, #4 */
-    self.body.generate(scope, code, regs);
+    self.body.generate(scope, code, regs, ());
 
     /* Main function implicitly ends in return 0. */
     if main {
