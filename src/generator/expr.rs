@@ -315,14 +315,14 @@ fn binary_div_mod(op: BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2: Reg
     /* MOV r0, reg1 */
     code.text.push(always_instruction(Instr::Unary(
       UnaryInstr::Mov,
-      Reg::RegNum(0),
+      Reg::Argument(ArgReg::r0),
       Op2::Reg(reg1, 0),
       false,
     )));
     /* MOV r1, reg2 */
     code.text.push(always_instruction(Instr::Unary(
       UnaryInstr::Mov,
-      Reg::RegNum(1),
+      Reg::Argument(ArgReg::r1),
       Op2::Reg(reg2, 0),
       false,
     )));
@@ -344,21 +344,21 @@ fn binary_div_mod(op: BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2: Reg
     code.text.push(always_instruction(Instr::Unary(
       UnaryInstr::Mov,
       reg1,
-      Op2::Reg(Reg::RegNum(0), 0),
+      Op2::Reg(Reg::Argument(ArgReg::r0), 0),
       false,
     )));
   } else if op == BinaryOper::Mod {
     /* MOV r0, reg1 */
     code.text.push(always_instruction(Instr::Unary(
       UnaryInstr::Mov,
-      Reg::RegNum(0),
+      Reg::Argument(ArgReg::r0),
       Op2::Reg(reg1, 0),
       false,
     )));
     /* MOV r1, reg2 */
     code.text.push(always_instruction(Instr::Unary(
       UnaryInstr::Mov,
-      Reg::RegNum(1),
+      Reg::Argument(ArgReg::r1),
       Op2::Reg(reg2, 0),
       false,
     )));
@@ -380,7 +380,7 @@ fn binary_div_mod(op: BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2: Reg
     code.text.push(always_instruction(Instr::Unary(
       UnaryInstr::Mov,
       reg1,
-      Op2::Reg(Reg::RegNum(1), 0),
+      Op2::Reg(Reg::Argument(ArgReg::r1), 0),
       false,
     )));
   } else {
@@ -466,7 +466,7 @@ impl Generatable for ArrayElem {
       /* MOV r0, {index_reg[0]} */
       code.text.push(Asm::always(Instr::Unary(
         UnaryInstr::Mov,
-        Reg::RegNum(0),
+        Reg::Argument(ArgReg::r0),
         Op2::Reg(index_regs[0], 0),
         false,
       )));
@@ -475,7 +475,7 @@ impl Generatable for ArrayElem {
       /* MOV r1, {array_ptr_reg} */
       code.text.push(Asm::always(Instr::Unary(
         UnaryInstr::Mov,
-        Reg::RegNum(1),
+        Reg::Argument(ArgReg::r1),
         Op2::Reg(array_ptr_reg, 0),
         false,
       )));

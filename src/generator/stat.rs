@@ -41,7 +41,7 @@ fn generate_malloc(bytes: i32, code: &mut GeneratedCode, reg: Reg) {
   /* LDR r0, ={bytes} */
   code.text.push(Asm::always(Instr::Load(
     DataSize::Word,
-    Reg::RegNum(0),
+    Reg::Argument(ArgReg::r0),
     LoadArg::Imm(bytes),
   )));
 
@@ -51,11 +51,11 @@ fn generate_malloc(bytes: i32, code: &mut GeneratedCode, reg: Reg) {
     .push(Asm::always(Instr::Branch(true, String::from("malloc"))));
 
   /* MOV {regs[0]}, r0 */
-  if reg != Reg::RegNum(0) {
+  if reg != Reg::Argument(ArgReg::r0) {
     code.text.push(Asm::always(Instr::Unary(
       UnaryInstr::Mov,
       reg,
-      Op2::Reg(Reg::RegNum(0), 0),
+      Op2::Reg(Reg::Argument(ArgReg::r0), 0),
       false,
     )));
   }
@@ -125,20 +125,20 @@ impl Generatable for AssignRhs {
 
         /* Malloc for e1.
         r0 = malloc(e1_size) */
-        generate_malloc(e1_size, code, Reg::RegNum(0));
+        generate_malloc(e1_size, code, Reg::Argument(ArgReg::r0));
 
         /* Write e1 to malloced space. */
         code.text.push(Asm::always(Instr::Store(
           e1_size.into(),
           regs[1],
-          (Reg::RegNum(0), 0),
+          (Reg::Argument(ArgReg::r0), 0),
           AddressingMode::Default,
         )));
 
         /* Write pointer to e1 to pair. */
         code.text.push(Asm::always(Instr::Store(
           DataSize::Word,
-          Reg::RegNum(0),
+          Reg::Argument(ArgReg::r0),
           (regs[0], 0),
           AddressingMode::Default,
         )));
@@ -149,19 +149,19 @@ impl Generatable for AssignRhs {
 
         /* Malloc for e2.
         r0 = malloc(e2_size) */
-        generate_malloc(e2_size, code, Reg::RegNum(0));
+        generate_malloc(e2_size, code, Reg::Argument(ArgReg::r0));
 
         /* Write e2 to malloced space. */
         code.text.push(Asm::always(Instr::store(
           e2_size.into(),
           regs[1],
-          (Reg::RegNum(0), 0),
+          (Reg::Argument(ArgReg::r0), 0),
         )));
 
         /* Write pointer to e2 to pair. */
         code.text.push(Asm::always(Instr::store(
           DataSize::Word,
-          Reg::RegNum(0),
+          Reg::Argument(ArgReg::r0),
           (regs[0], 4),
         )));
       }
@@ -227,7 +227,7 @@ impl Generatable for AssignRhs {
         code.text.push(Asm::always(Unary(
           UnaryInstr::Mov,
           regs[0],
-          Op2::Reg(Reg::RegNum(0), 0),
+          Op2::Reg(Reg::Argument(ArgReg::r0), 0),
           false,
         )));
       }
@@ -253,7 +253,7 @@ impl Generatable for PairElem {
     /* CHECK: regs[0] != NULL */
     code.text.push(Asm::always(Instr::Unary(
       UnaryInstr::Mov,
-      Reg::RegNum(0),
+      Reg::Argument(ArgReg::r0),
       Op2::Reg(regs[0], 0),
       false,
     )));
@@ -688,8 +688,8 @@ mod tests {
       CondCode::AL,
       Instr::Unary(
         UnaryInstr::Mov,
-        Reg::RegNum(0),
-        Op2::Reg(Reg::RegNum(4), 0),
+        Reg::Argument(ArgReg::r0),
+        Op2::Reg(Reg::GeneralPurpose(GenReg::r4), 0),
         false,
       ),
     ));

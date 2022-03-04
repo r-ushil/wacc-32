@@ -1,4 +1,4 @@
-use super::{display::unescape_char, predef::RequiredPredefs};
+use super::{display::unescape_char, predef::RequiredPredefs, Generatable};
 use std::fs::File;
 
 /* ======== Type aliases. ======== */
@@ -253,22 +253,50 @@ impl From<Imm> for Op2 {
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum Reg {
-  RegNum(RegNum),
+  Argument(ArgReg),
+  GeneralPurpose(GenReg),
   StackPointer,
   Link,
   PC,
 }
 
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum ArgReg {
+  r0,
+  r1,
+  r2,
+  r3,
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum GenReg {
+  r4,
+  r5,
+  r6,
+  r7,
+  r8,
+  r9,
+  r10,
+  r11,
+}
+
+pub const ARGUMENT_REGS: [Reg; 4] = [
+  Reg::Argument(ArgReg::r0),
+  Reg::Argument(ArgReg::r1),
+  Reg::Argument(ArgReg::r2),
+  Reg::Argument(ArgReg::r3),
+];
+
 /* General purpose registers usable for expression evaluation. */
 pub const GENERAL_REGS: [Reg; 8] = [
-  Reg::RegNum(4),
-  Reg::RegNum(5),
-  Reg::RegNum(6),
-  Reg::RegNum(7),
-  Reg::RegNum(8),
-  Reg::RegNum(9),
-  Reg::RegNum(10),
-  Reg::RegNum(11),
+  Reg::GeneralPurpose(GenReg::r4),
+  Reg::GeneralPurpose(GenReg::r5),
+  Reg::GeneralPurpose(GenReg::r6),
+  Reg::GeneralPurpose(GenReg::r7),
+  Reg::GeneralPurpose(GenReg::r8),
+  Reg::GeneralPurpose(GenReg::r9),
+  Reg::GeneralPurpose(GenReg::r10),
+  Reg::GeneralPurpose(GenReg::r11),
 ];
 
 #[derive(PartialEq, Eq, Debug, Clone)]

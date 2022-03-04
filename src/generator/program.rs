@@ -130,7 +130,7 @@ impl Generatable for Func {
 
       code.text.push(Asm::always(Instr::Load(
         DataSize::Word,
-        Reg::RegNum(0),
+        Reg::Argument(ArgReg::r0),
         LoadArg::Imm(0),
       )))
     }
