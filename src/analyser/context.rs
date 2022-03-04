@@ -16,31 +16,31 @@ pub struct SymbolTable {
 }
 
 #[derive(Debug)]
-pub struct ScopeMut<'a> {
+pub struct ScopeBuilder<'a> {
   /* Maps identifiers to types for each variable declared in this scope. */
-  symbol_table: &'a mut SymbolTable,
+  current: &'a mut SymbolTable,
   /* The scope this scope is inside of,
   and where abouts within that scope it is. */
   /* context: None means this is the global scope. */
-  context: Option<&'a ScopeMut<'a>>,
+  parents: Option<&'a ScopeBuilder<'a>>,
 }
 
 #[allow(dead_code)]
-impl ScopeMut<'_> {
+impl ScopeBuilder<'_> {
   /* Makes new Symbol table with initial global scope. */
-  pub fn new<'a>(symbol_table: &'a mut SymbolTable) -> ScopeMut<'a> {
+  pub fn new<'a>(symbol_table: &'a mut SymbolTable) -> ScopeBuilder<'a> {
     /* This is base symbol table, depth = 0. */
     symbol_table.prefix = String::new();
 
     /*  */
-    ScopeMut {
-      symbol_table,
-      context: None,
+    ScopeBuilder {
+      current: symbol_table,
+      parents: None,
     }
   }
 
   pub fn add_error(&self, errors: &mut Vec<SemanticError>, error: SemanticError) {
-    if let Some(parent) = self.context {
+    if let Some(parent) = self.parents {
       /* Scope has parent, wrap error in nested. */
       parent.add_error(errors, error)
     } else {
@@ -51,23 +51,23 @@ impl ScopeMut<'_> {
 
   /* Returns type of given ident */
   pub fn get_type(&self, ident: &Ident) -> Option<(&Type, Ident)> {
-    match self.symbol_table.table.get(ident) {
+    match self.current.table.get(ident) {
       /* Identifier declared in this scope, return. */
       Some((t, offset)) => {
-        let new_id = format!("{}{}", self.symbol_table.prefix, offset);
+        let new_id = format!("{}{}", self.current.prefix, offset);
         Some((t, new_id))
       }
       /* Look for identifier in parent scope, recurse. */
-      None => self.context?.get_type(ident),
+      None => self.parents?.get_type(ident),
     }
   }
 
   pub fn get_offset(&self, ident: &Ident) -> Option<Offset> {
-    match self.symbol_table.table.get(ident) {
+    match self.current.table.get(ident) {
       /* Identifier declared in this scope, return. */
-      Some((_, base_offset)) => Some(self.symbol_table.size - base_offset),
+      Some((_, base_offset)) => Some(self.current.size - base_offset),
       /* Look for identifier in parent scope, recurse. */
-      None => Some(self.context?.get_offset(ident)? + self.symbol_table.size),
+      None => Some(self.parents?.get_offset(ident)? + self.current.size),
     }
   }
 
@@ -75,29 +75,29 @@ impl ScopeMut<'_> {
   returns old value. */
   pub fn insert(&mut self, ident: &Ident, val: Type) -> Option<Ident> {
     /* Stackframe will be increased in size by val bytes */
-    self.symbol_table.size += val.size();
+    self.current.size += val.size();
 
     /* Offset of this variable from top of stack frame will be size
     of stack from. */
-    let offset = self.symbol_table.size;
+    let offset = self.current.size;
 
-    match self.symbol_table.table.insert(ident.clone(), (val, offset)) {
+    match self.current.table.insert(ident.clone(), (val, offset)) {
       /* Val replaced something but we aren't allowed to change the type of
       variables, return None signifiying error. */
       Some(_) => None,
       /* No conflict, first time this identifier used in this scope, return
       unit signifiying success. */
-      None => Some(format!("{}{}", self.symbol_table.prefix, offset)),
+      None => Some(format!("{}{}", self.current.prefix, offset)),
     }
   }
 
-  pub fn new_scope<'a>(&'a self, symbol_table: &'a mut SymbolTable) -> ScopeMut<'a> {
+  pub fn new_scope<'a>(&'a self, symbol_table: &'a mut SymbolTable) -> ScopeBuilder<'a> {
     /* Every time we enter a new scope, add another _ to all the variable names. */
-    symbol_table.prefix = format!("{}_", self.symbol_table.prefix);
+    symbol_table.prefix = format!("{}_", self.current.prefix);
 
-    ScopeMut {
-      symbol_table,
-      context: Some(self),
+    ScopeBuilder {
+      current: symbol_table,
+      parents: Some(self),
     }
   }
 }
@@ -106,8 +106,8 @@ impl ScopeMut<'_> {
 mod tests {
   use super::*;
 
-  fn make_scope<'a>(symbol_table: &'a mut SymbolTable) -> ScopeMut<'a> {
-    let mut scope = ScopeMut::new(symbol_table);
+  fn make_scope<'a>(symbol_table: &'a mut SymbolTable) -> ScopeBuilder<'a> {
+    let mut scope = ScopeBuilder::new(symbol_table);
 
     for i in 0..4 {
       let var1 = format!("{}{}", "x", i);

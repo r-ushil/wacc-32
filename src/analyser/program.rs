@@ -1,12 +1,12 @@
 use super::{
-  context::{ScopeMut, SymbolTable},
+  context::{ScopeBuilder, SymbolTable},
   stat::{ReturnBehaviour::*, *},
   unify::Unifiable,
   SemanticError,
 };
 use crate::ast::*;
 
-fn func(scope: &ScopeMut, errors: &mut Vec<SemanticError>, func: &mut Func) -> Option<()> {
+fn func(scope: &ScopeBuilder, errors: &mut Vec<SemanticError>, func: &mut Func) -> Option<()> {
   let scope = &mut scope.new_scope(&mut func.params_st);
 
   /* Add parameters to parameter scope. */
@@ -45,7 +45,7 @@ fn func(scope: &ScopeMut, errors: &mut Vec<SemanticError>, func: &mut Func) -> O
 #[allow(dead_code)]
 pub fn program(errors: &mut Vec<SemanticError>, program: &mut Program) -> Option<()> {
   /* root, global scope. */
-  let mut scope = ScopeMut::new(&mut program.symbol_table);
+  let mut scope = ScopeBuilder::new(&mut program.symbol_table);
 
   /* Add all function signatures to global before analysing. (hoisting) */
   for func in program.funcs.iter() {
@@ -77,7 +77,7 @@ mod tests {
   #[test]
   fn func_parameters_checked() {
     let mut symbol_table = SymbolTable::default();
-    let scope = &mut ScopeMut::new(&mut symbol_table);
+    let scope = &mut ScopeBuilder::new(&mut symbol_table);
 
     /* Function */
     /* int double(int x) is return x * 2 end */
@@ -143,7 +143,7 @@ mod tests {
       ScopedStat::new(Stat::Return(Expr::IntLiter(2))),
     );
     assert!(func(
-      &mut ScopeMut::new(&mut SymbolTable::default()),
+      &mut ScopeBuilder::new(&mut SymbolTable::default()),
       &mut vec![],
       &mut f3
     )
@@ -160,7 +160,7 @@ mod tests {
     );
 
     assert!(func(
-      &mut ScopeMut::new(&mut SymbolTable::default()),
+      &mut ScopeBuilder::new(&mut SymbolTable::default()),
       &mut vec![],
       &mut f4
     )
@@ -179,7 +179,7 @@ mod tests {
       Box::new(Stat::Return(Expr::IntLiter(5))),
     );
     let x = func(
-      &mut ScopeMut::new(&mut SymbolTable::default()),
+      &mut ScopeBuilder::new(&mut SymbolTable::default()),
       &mut vec![],
       &mut f5,
     );
@@ -203,7 +203,7 @@ mod tests {
       )),
     );
     assert!(func(
-      &mut ScopeMut::new(&mut SymbolTable::default()),
+      &mut ScopeBuilder::new(&mut SymbolTable::default()),
       &mut vec![],
       &mut f6
     )

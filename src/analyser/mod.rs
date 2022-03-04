@@ -6,7 +6,7 @@ mod unify;
 
 use std::fmt::Display;
 
-use context::ScopeMut;
+use context::ScopeBuilder;
 use unify::Unifiable;
 
 use crate::ast::*;
@@ -37,7 +37,7 @@ check things, and when an AST represents a value, returns their type. */
 /* If types are the same, return that type.
 Otherwise, error. */
 fn equal_types<L: HasType, R: HasType>(
-  scope: &ScopeMut,
+  scope: &ScopeBuilder,
   errors: &mut Vec<SemanticError>,
   lhs: &mut L,
   rhs: &mut R,
@@ -65,7 +65,7 @@ fn equal_types<L: HasType, R: HasType>(
 
 /* Errors if AST node does not have expected type. */
 fn expected_type<'a, A: HasType>(
-  scope: &ScopeMut,
+  scope: &ScopeBuilder,
   errors: &mut Vec<SemanticError>,
   expected_type: &'a Type,
   actual: &mut A,
@@ -96,23 +96,23 @@ retrieve it without worrying what AST node it is. */
 /* E.g: IntLiter(5).get_type(_) = Ok(BaseType(Int)) */
 pub trait HasType {
   // TODO: make this return a reference to the type instead of a copy.
-  fn get_type(&mut self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type>;
+  fn get_type(&mut self, scope: &ScopeBuilder, errors: &mut Vec<SemanticError>) -> Option<Type>;
 }
 
 impl<T: HasType> HasType for &mut T {
-  fn get_type(&mut self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&mut self, scope: &ScopeBuilder, errors: &mut Vec<SemanticError>) -> Option<Type> {
     (**self).get_type(scope, errors)
   }
 }
 
 impl<T: HasType> HasType for Box<T> {
-  fn get_type(&mut self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&mut self, scope: &ScopeBuilder, errors: &mut Vec<SemanticError>) -> Option<Type> {
     (**self).get_type(scope, errors)
   }
 }
 
 impl HasType for Ident {
-  fn get_type(&mut self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&mut self, scope: &ScopeBuilder, errors: &mut Vec<SemanticError>) -> Option<Type> {
     match scope.get_type(self) {
       Some((t, new_id)) => {
         *self = new_id;
@@ -130,7 +130,7 @@ impl HasType for Ident {
 }
 
 impl HasType for ArrayElem {
-  fn get_type(&mut self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&mut self, scope: &ScopeBuilder, errors: &mut Vec<SemanticError>) -> Option<Type> {
     let ArrayElem(id, indexes) = self;
     let mut errored = false;
 
@@ -191,7 +191,7 @@ mod tests {
     let id = String::from("x");
 
     let mut symbol_table = SymbolTable::default();
-    let mut scope = ScopeMut::new(&mut symbol_table);
+    let mut scope = ScopeBuilder::new(&mut symbol_table);
 
     /* x: Array(Array(Int)) */
     scope.insert(&id, Type::Array(Box::new(Type::Array(Box::new(Type::Int)))));
@@ -215,7 +215,7 @@ mod tests {
     let mut x = String::from("x");
     let x_type = Type::Int;
     let mut symbol_table = SymbolTable::default();
-    let mut scope = ScopeMut::new(&mut symbol_table);
+    let mut scope = ScopeBuilder::new(&mut symbol_table);
 
     /* x: BaseType(Int) */
     scope.insert(&x, x_type.clone()).unwrap();
@@ -231,7 +231,7 @@ mod tests {
     let id = String::from("x");
 
     let mut symbol_table = SymbolTable::default();
-    let mut scope = ScopeMut::new(&mut symbol_table);
+    let mut scope = ScopeBuilder::new(&mut symbol_table);
 
     /* x: Array(Array(Int)) */
     scope.insert(&id, Type::Array(Box::new(Type::Array(Box::new(Type::Int)))));

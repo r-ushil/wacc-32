@@ -1,8 +1,8 @@
-use super::{context::ScopeMut, equal_types, expected_type, HasType, SemanticError};
+use super::{context::ScopeBuilder, equal_types, expected_type, HasType, SemanticError};
 use crate::ast::*;
 
 impl HasType for Expr {
-  fn get_type(&mut self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&mut self, scope: &ScopeBuilder, errors: &mut Vec<SemanticError>) -> Option<Type> {
     Some(match self {
       Expr::IntLiter(_) => Type::Int,
       Expr::BoolLiter(_) => Type::Bool,
@@ -104,7 +104,7 @@ mod tests {
 
   /* Defines a scope with 10 variables, each starting with prefix and ending
    * with 0..10 */
-  fn populate_scope(scope: &mut ScopeMut, prefix: &str) {
+  fn populate_scope(scope: &mut ScopeBuilder, prefix: &str) {
     for i in 0..10 {
       let ident = format!("{}{}", prefix, i);
       let t = Type::Int;
@@ -115,7 +115,7 @@ mod tests {
   #[test]
   fn literals() {
     let mut symbol_table = SymbolTable::default();
-    let scope = &ScopeMut::new(&mut symbol_table);
+    let scope = &ScopeBuilder::new(&mut symbol_table);
 
     assert_eq!(
       Expr::IntLiter(5).get_type(scope, &mut vec!()),
@@ -138,7 +138,7 @@ mod tests {
   #[test]
   fn idents() {
     let mut symbol_table = SymbolTable::default();
-    let mut scope = ScopeMut::new(&mut symbol_table);
+    let mut scope = ScopeBuilder::new(&mut symbol_table);
     populate_scope(&mut scope, "var");
 
     assert_eq!(
@@ -153,7 +153,7 @@ mod tests {
     let x_type = Type::Array(Box::new(Type::Int));
 
     let mut symbol_table = SymbolTable::default();
-    let mut scope = ScopeMut::new(&mut symbol_table);
+    let mut scope = ScopeBuilder::new(&mut symbol_table);
     scope.insert(&x, x_type);
 
     assert_eq!(
@@ -166,7 +166,7 @@ mod tests {
   fn unary_apps() {
     /* Symbol Table */
     let mut symbol_table = SymbolTable::default();
-    let scope = &mut ScopeMut::new(&mut symbol_table);
+    let scope = &mut ScopeBuilder::new(&mut symbol_table);
 
     /* BANG */
     /* !false: Bool */
@@ -242,7 +242,7 @@ mod tests {
   #[test]
   fn binary_apps() {
     let mut symbol_table = SymbolTable::default();
-    let scope = &mut ScopeMut::new(&mut symbol_table);
+    let scope = &mut ScopeBuilder::new(&mut symbol_table);
 
     /* 5 + false: ERROR */
     assert!(Expr::BinaryApp(
