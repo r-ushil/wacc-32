@@ -5,7 +5,13 @@ generate_our_test_data() {
     our_output_file=$(echo $in | cut -d, -f2)
 
     mkdir -p $(dirname $our_output_file)
-    ../../target/release/wacc_32 $input_file $our_output_file >/dev/null 2>&1
+
+    echo --------- stdout --------- > $our_output_file
+    cat $input_file >> $our_output_file
+    exit_code=$(echo $?)
+    echo -------------------------- >> $our_output_file
+
+    echo Exit code: $exit_code >> $our_output_file
 
   done < ./test_list
 }
@@ -16,7 +22,13 @@ generate_their_test_data() {
     their_output_file=$(echo $in | cut -d, -f3)
 
     mkdir -p $(dirname $their_output_file)
-    python3 ../apps/refCompileSimple.py $input_file $their_output_file > /dev/null 2>&1
+
+    echo --------- stdout --------- > $their_output_file
+    cat $input_file >> $their_output_file
+    exit_code=$(echo $?)
+    echo -------------------------- >> $their_output_file
+
+    echo Exit code: $exit_code >> $their_output_file
 
   done < ./test_list
 }
