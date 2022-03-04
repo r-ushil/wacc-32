@@ -45,6 +45,8 @@ impl Generatable for Program {
   }
 }
 
+const MAX_OP2_VALUE: i32 = 1024;
+
 impl Generatable for Func {
   type Input = ();
   type Output = ();
@@ -75,15 +77,18 @@ impl Generatable for Func {
     code.text.push(Asm::always(Instr::Push(Reg::Link)));
 
     /* Allocate space on stack for local vars. */
-    if self.body_st.size != 0 {
-      /* Don't modify sp if we're only doing to decrement by 0. */
+    let mut body_st_size = self.body_st.size;
+
+    while body_st_size > 0 {
       code.text.push(Asm::always(Instr::Binary(
         BinaryInstr::Sub,
         Reg::StackPointer,
         Reg::StackPointer,
-        Op2::Imm(self.body_st.size),
+        Op2::Imm(MAX_OP2_VALUE.min(body_st_size)),
         false,
       )));
+
+      body_st_size -= MAX_OP2_VALUE;
     }
 
     /* Move into parameter scope. */
@@ -109,16 +114,20 @@ impl Generatable for Func {
     /* Main function implicitly ends in return 0. */
     if main {
       /* Deallocate stack for main function. */
-      let total_offset = scope.get_total_offset();
-      if total_offset != 0 {
+      let mut body_st_size = scope.get_total_offset();
+
+      while body_st_size > 0 {
         code.text.push(Asm::always(Instr::Binary(
           BinaryInstr::Add,
           Reg::StackPointer,
           Reg::StackPointer,
-          Op2::Imm(total_offset),
+          Op2::Imm(MAX_OP2_VALUE.min(body_st_size)),
           false,
         )));
+
+        body_st_size -= MAX_OP2_VALUE;
       }
+
       code.text.push(Asm::always(Instr::Load(
         DataSize::Word,
         Reg::RegNum(0),
