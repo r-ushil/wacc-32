@@ -49,56 +49,64 @@ impl HasType for AssignRhs {
         }
       }
       AssignRhs::PairElem(elem) => elem.get_type(scope, errors),
-      AssignRhs::Call(id, args) => match id.get_type(scope, errors)? {
-        Type::Func(bx) => {
-          let FuncSig {
-            params,
-            return_type,
-          } = *bx;
-          let mut errored = false;
+      AssignRhs::Call(id, args) => {
+        /* TODO: make it never replace id in the first place,
+        so we don't have to set it back again after. */
+        let old_id = id.clone();
 
-          /* Must be same amount of args as parameters */
-          if params.len() != args.len() {
-            scope.add_error(
-              errors,
-              SemanticError::Normal(format!("Function called with wrong amount of arguments.")),
-            );
-            errored = true;
-          }
+        match id.get_type(scope, errors)? {
+          Type::Func(bx) => {
+            /* Function idents shouldn't be renamed. */
+            *id = old_id;
 
-          /* Types must be pairwise the same. */
-          for (arg, (param_type, param_id)) in args.iter().zip(params.iter()) {
-            if arg
-              .clone()
-              .get_type(scope, errors)?
-              .unify(param_type.clone())
-              .is_none()
-            {
+            let FuncSig {
+              params,
+              return_type,
+            } = *bx;
+            let mut errored = false;
+
+            /* Must be same amount of args as parameters */
+            if params.len() != args.len() {
               scope.add_error(
                 errors,
-                SemanticError::Normal(format!("Incorrect type passed to function.")),
+                SemanticError::Normal(format!("Function called with wrong amount of arguments.")),
               );
               errored = true;
             }
-          }
 
-          if errored {
+            /* Types must be pairwise the same. */
+            for (arg, (param_type, param_id)) in args.iter_mut().zip(params.iter()) {
+              if arg
+                .get_type(scope, errors)?
+                .unify(param_type.clone())
+                .is_none()
+              {
+                scope.add_error(
+                  errors,
+                  SemanticError::Normal(format!("Incorrect type passed to function.")),
+                );
+                errored = true;
+              }
+            }
+
+            if errored {
+              None
+            } else {
+              Some(return_type)
+            }
+          }
+          t => {
+            scope.add_error(
+              errors,
+              SemanticError::Normal(format!(
+                "TYPE ERROR:\n\tExpected: Function\n\tActual: {:?}",
+                t
+              )),
+            );
             None
-          } else {
-            Some(return_type)
           }
         }
-        t => {
-          scope.add_error(
-            errors,
-            SemanticError::Normal(format!(
-              "TYPE ERROR:\n\tExpected: Function\n\tActual: {:?}",
-              t
-            )),
-          );
-          None
-        }
-      },
+      }
     }
   }
 }
@@ -203,11 +211,13 @@ pub fn stat(
   match statement {
     Stat::Skip => Some(Never), /* Skips never return. */
     Stat::Declaration(expected, id, val) => {
-      if let (Some(_), Some(_)) = (
+      if let (Some(_), Some(new_id)) = (
         expected_type(scope, errors, &expected, val),
         /* Adds identifier to symbol table. */
         scope.insert(id, expected.clone()),
       ) {
+        /* Rename ident. (global ident) */
+        *id = new_id;
         Some(Never)
       } else {
         None
@@ -395,7 +405,7 @@ mod tests {
 
     stat(&mut outer_scope, &mut vec![], &mut intx5);
 
-    assert_eq!(outer_scope.get_type(&x()), Some(&Type::Int));
+    assert!(matches!(outer_scope.get_type(&x()), Some((&Type::Int, _))));
   }
 
   #[test]
@@ -453,8 +463,8 @@ mod tests {
 
     /* When in outer scope, x and z should be ints. */
     let outer_scope = ScopeMut::new(&mut st);
-    assert_eq!(outer_scope.get_type(&x()), Some(&Type::Int));
-    assert_eq!(outer_scope.get_type(&z()), Some(&Type::Int));
+    assert!(matches!(outer_scope.get_type(&x()), Some((&Type::Int, _))));
+    assert!(matches!(outer_scope.get_type(&z()), Some((&Type::Int, _))));
 
     /* Check offsets are correct from outer scope. */
     assert_eq!(outer_scope.get_offset(&x()), Some(4));
@@ -462,9 +472,9 @@ mod tests {
 
     /* When in inner scope, x, y, and z should be ints. */
     let inner_scope = outer_scope.new_scope(&mut inner_st);
-    assert_eq!(inner_scope.get_type(&x()), Some(&Type::Int));
-    assert_eq!(inner_scope.get_type(&y()), Some(&Type::Int));
-    assert_eq!(inner_scope.get_type(&z()), Some(&Type::Int));
+    assert!(matches!(inner_scope.get_type(&x()), Some((&Type::Int, _))));
+    assert!(matches!(inner_scope.get_type(&y()), Some((&Type::Int, _))));
+    assert!(matches!(inner_scope.get_type(&z()), Some((&Type::Int, _))));
 
     /* x and z's offsets should be offset by 4 more now because y is using 4 bytes. */
     assert_eq!(inner_scope.get_offset(&x()), Some(8));

@@ -1,6 +1,8 @@
 /* This is code gen's version of context.rs, cannot re-use context.rs
 because that's mutable. */
 
+use std::collections::HashMap;
+
 use crate::analyser::context::{self, *};
 use crate::ast::*;
 
@@ -9,19 +11,68 @@ pub use context::SymbolTable;
 #[derive(Debug)]
 pub struct Scope<'a> {
   /* Maps identifiers to types for each variable declared in this scope. */
-  symbol_table: &'a SymbolTable,
+  symbol_table: SymbolTable,
   /* The scope this scope is inside of,
   and where abouts within that scope it is. */
   /* context: None means this is the global scope. */
   context: Option<(ContextLocation, &'a Scope<'a>)>,
 }
 
+/* Makes a new SymbolTable same as the old, but all
+of the symbols are renamed according to the global rename rule. */
+fn rename_st(st: &SymbolTable) -> SymbolTable {
+  let mut new_st = SymbolTable {
+    table: HashMap::new(),
+    size: st.size,
+    prefix: st.prefix.clone(),
+  };
+
+  for (id, (t, offset)) in st.table.iter() {
+    let new_id = if let Type::Func(_) = t {
+      id.clone()
+    } else {
+      format!("{}{}", st.prefix, offset)
+    };
+
+    new_st.table.insert(new_id, (t.clone(), *offset));
+  }
+
+  new_st
+}
+
 #[allow(dead_code)]
 impl Scope<'_> {
   /* Makes new Symbol table with initial global scope. */
-  pub fn new<'a>(symbol_table: &'a SymbolTable) -> Scope<'a> {
+  pub fn new<'a>(st: &'a SymbolTable) -> Scope<'a> {
+    /* When symbol tables are used in the analyser, they're used by callers
+    who only have the origional idents the programmer gave to them, now we're
+    in code gen, the global rename has been done to the whole AST.
+    This means .generate(...) is being called on AST nodes which have the
+    renamed identifiers, so the symbol table needs to be changed to be indexed
+    by these new values. */
+
+    /* Make new symbol table from fresh to copy the renamed values into. */
+    let mut new_st = SymbolTable {
+      table: HashMap::new(),
+      size: st.size,
+      prefix: st.prefix.clone(),
+    };
+
+    for (id, (t, offset)) in st.table.iter() {
+      /* Calculate what it got renamed to. */
+      let new_id = if let Type::Func(_) = t {
+        /* Functions don't get renamed. */
+        id.clone()
+      } else {
+        /* Everything else does. */
+        format!("{}{}", st.prefix, offset)
+      };
+
+      new_st.table.insert(new_id, (t.clone(), *offset));
+    }
+
     Scope {
-      symbol_table,
+      symbol_table: new_st,
       context: None,
     }
   }
@@ -65,9 +116,11 @@ impl Scope<'_> {
   }
 
   pub fn new_scope<'a>(&'a self, symbol_table: &'a SymbolTable) -> Scope<'a> {
-    Scope {
-      symbol_table,
-      context: Some((ContextLocation::Scope, self)),
-    }
+    let mut st = Scope::new(symbol_table);
+
+    /* The parent of the returned scope is the caller. */
+    st.context = Some((ContextLocation::Scope, self));
+
+    st
   }
 }
