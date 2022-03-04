@@ -1,4 +1,8 @@
-use super::{predef::ReadFmt, predef::RequiredPredefs, *};
+use super::{
+  predef::RequiredPredefs,
+  predef::{ReadFmt, PREDEF_CHECK_NULL_POINTER, PREDEF_FREE_ARRAY, PREDEF_FREE_PAIR},
+  *,
+};
 use Directive::*;
 use Instr::*;
 
@@ -271,7 +275,7 @@ impl Generatable for PairElem {
     )));
     code.text.push(Asm::always(Instr::Branch(
       true,
-      String::from("p_check_null_pointer"),
+      PREDEF_CHECK_NULL_POINTER.to_string(),
     )));
     RequiredPredefs::CheckNullPointer.mark(code);
 
@@ -439,7 +443,7 @@ fn generate_stat_free(
       /* BL p_free_array */
       code.text.push(Asm::always(Instr::Branch(
         true,
-        String::from("p_free_array"),
+        PREDEF_FREE_ARRAY.to_string(),
       )));
     }
     Type::Pair(_, _) => {
@@ -448,7 +452,7 @@ fn generate_stat_free(
       /* BL p_free_pair */
       code.text.push(Asm::always(Instr::Branch(
         true,
-        String::from("p_free_pair"),
+        PREDEF_FREE_PAIR.to_string(),
       )));
     }
     _ => unreachable!("Can't free this type!"),
