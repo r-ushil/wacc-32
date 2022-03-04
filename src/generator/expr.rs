@@ -149,7 +149,7 @@ fn generate_binary_app(
     /* The PUSH instruction above decremented stack pointer,
     so we need to expand symbol table to reflect this. */
     let st = SymbolTable {
-      size: 4,
+      size: ARM_DSIZE_WORD,
       ..Default::default()
     };
 
@@ -512,14 +512,14 @@ impl Generatable for ArrayElem {
         BinaryInstr::Add,
         array_ptr_reg,
         array_ptr_reg,
-        Op2::Imm(4),
+        Op2::Imm(ARM_DSIZE_WORD),
         false,
       )));
 
       /* Move to correct element. */
       let shift = match current_type.size() {
-        4 => 2, /* Hardcoded log_2(current_type.size()) :) */
-        1 => 0,
+        ARM_DSIZE_WORD => 2, /* Hardcoded log_2(current_type.size()) :) */
+        ARM_DSIZE_BYTE => 0,
         /* Elements of sizes not equal to 4 or 1 not implemented. */
         _ => unimplemented!(),
       };

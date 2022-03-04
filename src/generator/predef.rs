@@ -200,7 +200,7 @@ fn read(code: &mut GeneratedCode, fmt: ReadFmt) {
       BinaryInstr::Add,
       Reg::Arg(ArgReg::R0),
       Reg::Arg(ArgReg::R0),
-      Op2::Imm(4),
+      Op2::Imm(ARM_DSIZE_WORD),
       false,
     ),
   ));
@@ -245,7 +245,7 @@ fn println(code: &mut GeneratedCode) {
       BinaryInstr::Add,
       Reg::Arg(ArgReg::R0),
       Reg::Arg(ArgReg::R0),
-      Op2::Imm(4),
+      Op2::Imm(ARM_DSIZE_WORD),
       false,
     ),
   ));
@@ -606,7 +606,7 @@ fn print_bool(code: &mut GeneratedCode) {
       BinaryInstr::Add,
       Reg::Arg(ArgReg::R0),
       Reg::Arg(ArgReg::R0),
-      Op2::Imm(4),
+      Op2::Imm(ARM_DSIZE_WORD),
       false,
     ),
   ));
@@ -663,7 +663,7 @@ fn print_string(code: &mut GeneratedCode) {
       BinaryInstr::Add,
       Reg::Arg(ArgReg::R2),
       Reg::Arg(ArgReg::R0),
-      Op2::Imm(4),
+      Op2::Imm(ARM_DSIZE_WORD),
       false,
     ),
   ));
@@ -683,7 +683,7 @@ fn print_string(code: &mut GeneratedCode) {
       BinaryInstr::Add,
       Reg::Arg(ArgReg::R0),
       Reg::Arg(ArgReg::R0),
-      Op2::Imm(4),
+      Op2::Imm(ARM_DSIZE_WORD),
       false,
     ),
   ));
@@ -774,7 +774,7 @@ fn print_int_or_ref(code: &mut GeneratedCode, opt: PrintFmt) {
       BinaryInstr::Add,
       Reg::Arg(ArgReg::R0),
       Reg::Arg(ArgReg::R0),
-      Op2::Imm(4),
+      Op2::Imm(ARM_DSIZE_WORD),
       false,
     ),
   ));

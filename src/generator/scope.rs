@@ -8,6 +8,8 @@ use crate::ast::*;
 
 pub use context::SymbolTable;
 
+use super::asm::{DataSize, ARM_DSIZE_WORD};
+
 #[derive(Debug)]
 pub struct Scope<'a> {
   /* Maps identifiers to types for each variable declared in this scope. */
@@ -82,7 +84,7 @@ impl Scope<'_> {
   }
 
   pub fn get_total_offset(&self) -> Offset {
-    if self.symbol_table.table.is_empty() && self.symbol_table.size == 4 {
+    if self.symbol_table.table.is_empty() && self.symbol_table.size == ARM_DSIZE_WORD {
       /* When there are no symbols but the scope is 4 bytes long, we're at the
       scope used to reserve space for the lr register. */
       0

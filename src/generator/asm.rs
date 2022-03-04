@@ -195,6 +195,9 @@ pub enum LoadArg {
   Label(Label),
 }
 
+pub const ARM_DSIZE_WORD: i32 = 4;
+pub const ARM_DSIZE_BYTE: i32 = 1;
+
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum DataSize {
   Byte,
@@ -205,8 +208,8 @@ pub enum DataSize {
 impl From<i32> for DataSize {
   fn from(i: i32) -> Self {
     match i {
-      1 => DataSize::Byte,
-      4 => DataSize::Word,
+      ARM_DSIZE_BYTE => DataSize::Byte,
+      ARM_DSIZE_WORD => DataSize::Word,
       _ => unimplemented!(),
     }
   }
