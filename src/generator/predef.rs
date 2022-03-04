@@ -303,7 +303,7 @@ fn check_divide_by_zero(code: &mut GeneratedCode) {
 
   /* Create a msg label to display when divide by zero occurs. */
   /* msg_divide_by_zero: */
-  let msg_label = code.get_msg("DivideByZeroError: divide or modulo by zero\\n\\0");
+  let msg_label = code.get_msg("DivideByZeroError: divide or modulo by zero\\\n\\\0");
 
   /* Generate label to throw a runtime error for whatever's in registers */
   /* p_check_divide_by_zero: */
