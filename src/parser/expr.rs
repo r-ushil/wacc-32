@@ -71,14 +71,16 @@ fn expr_binary_app(prec: u8, input: &str) -> IResult<&str, Expr, ErrorTree<&str>
     return expr_atom(input);
   }
 
-  let (input, lhs) = expr_binary_app(prec - 1, input)?;
-  let (input, op) = match binary_oper_prec(prec)(input) {
-    Ok(op) => op,
-    _ => return Ok((input, lhs)),
-  };
-  let (input, rhs) = expr_binary_app(prec, input)?;
+  let term = |i| expr_binary_app(prec - 1, i);
 
-  Ok((input, Expr::BinaryApp(Box::new(lhs), op, Box::new(rhs))))
+  let (mut input, mut lhs) = term(input)?;
+
+  while let Ok((i, (op, rhs))) = pair(binary_oper_prec(prec), term)(input) {
+    input = i;
+    lhs = Expr::BinaryApp(Box::new(lhs), op, Box::new(rhs));
+  }
+
+  Ok((input, lhs))
 }
 
 //〈int-liter〉::= (‘+’ | ‘-’) ? (‘0’-‘9’)
@@ -118,7 +120,9 @@ fn unary_oper(input: &str) -> IResult<&str, UnaryOper, ErrorTree<&str>> {
   ))(input)
 }
 
-fn binary_oper_prec<'a>(prec: u8) -> impl FnMut(&'a str) -> IResult<&'a str, BinaryOper> {
+fn binary_oper_prec<'a>(
+  prec: u8,
+) -> impl FnMut(&'a str) -> IResult<&'a str, BinaryOper, ErrorTree<&str>> {
   use BinaryOper::*;
 
   move |input| match prec {
@@ -282,22 +286,23 @@ mod tests {
 
   #[test]
   fn test_expr_binary_app_sum_mult() {
+    let x = expr("w + x * y + z");
     assert!(matches!(
-      expr("w + x * y + z"),
+      x,
       Ok((
         "",
         ast)) if ast == Expr::BinaryApp(
-          Box::new(Expr::Ident("w".to_string())),
-          BinaryOper::Add,
           Box::new(Expr::BinaryApp(
+            Box::new(Expr::Ident("w".to_string())),
+            BinaryOper::Add,
             Box::new(Expr::BinaryApp(
               Box::new(Expr::Ident("x".to_string())),
               BinaryOper::Mul,
               Box::new(Expr::Ident("y".to_string()))
             )),
-            BinaryOper::Add,
-            Box::new(Expr::Ident("z".to_string())),
           )),
+          BinaryOper::Add,
+          Box::new(Expr::Ident("z".to_string())),
         )
     ))
   }
@@ -353,17 +358,17 @@ mod tests {
       Ok((
         "",
         ast)) if ast == Expr::BinaryApp(
-          Box::new(Expr::Ident("w".to_string())),
-          BinaryOper::Mul,
           Box::new(Expr::BinaryApp(
+            Box::new(Expr::Ident("w".to_string())),
+            BinaryOper::Mul,
             Box::new(Expr::BinaryApp(
               Box::new(Expr::Ident("x".to_string())),
               BinaryOper::Eq,
               Box::new(Expr::Ident("y".to_string()))
             )),
-            BinaryOper::Mul,
-            Box::new(Expr::Ident("z".to_string())),
           )),
+          BinaryOper::Mul,
+          Box::new(Expr::Ident("z".to_string())),
         )
     ))
   }

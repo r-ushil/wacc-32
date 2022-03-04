@@ -135,8 +135,12 @@ fn generate_binary_app(
     expr2.generate(scope, code, &regs[1..], ());
   } else {
     code.text.push(Asm::always(Instr::Push(regs[0])));
-    expr2.generate(scope, code, regs, ());
-    code.text.push(Asm::always(Instr::Pop(regs[1])));
+    let st = SymbolTable {
+      size: 4,
+      ..Default::default()
+    };
+    expr2.generate(&scope.new_scope(&st), code, &[regs[1], regs[0]], ());
+    code.text.push(Asm::always(Instr::Pop(regs[0])));
   }
 
   /* regs[0] = regs[0] <op> regs[1] */

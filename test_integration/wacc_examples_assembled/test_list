@@ -35,11 +35,11 @@
 ../wacc_examples/valid/expressions/lessCharExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/lessCharExpr.s,./wacc_examples_assembled/valid/expressions/lessCharExpr.s,pass
 ../wacc_examples/valid/expressions/lessEqExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/lessEqExpr.s,./wacc_examples_assembled/valid/expressions/lessEqExpr.s,pass
 ../wacc_examples/valid/expressions/lessExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/lessExpr.s,./wacc_examples_assembled/valid/expressions/lessExpr.s,pass
-../wacc_examples/valid/expressions/longExpr2.wacc,./wacc_examples_assembled_ours/valid/expressions/longExpr2.s,./wacc_examples_assembled/valid/expressions/longExpr2.s,fail
+../wacc_examples/valid/expressions/longExpr2.wacc,./wacc_examples_assembled_ours/valid/expressions/longExpr2.s,./wacc_examples_assembled/valid/expressions/longExpr2.s,pass
 ../wacc_examples/valid/expressions/longExpr3.wacc,./wacc_examples_assembled_ours/valid/expressions/longExpr3.s,./wacc_examples_assembled/valid/expressions/longExpr3.s,pass
 ../wacc_examples/valid/expressions/longExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/longExpr.s,./wacc_examples_assembled/valid/expressions/longExpr.s,fail
-../wacc_examples/valid/expressions/longSplitExpr2.wacc,./wacc_examples_assembled_ours/valid/expressions/longSplitExpr2.s,./wacc_examples_assembled/valid/expressions/longSplitExpr2.s,fail
-../wacc_examples/valid/expressions/longSplitExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/longSplitExpr.s,./wacc_examples_assembled/valid/expressions/longSplitExpr.s,fail
+../wacc_examples/valid/expressions/longSplitExpr2.wacc,./wacc_examples_assembled_ours/valid/expressions/longSplitExpr2.s,./wacc_examples_assembled/valid/expressions/longSplitExpr2.s,pass
+../wacc_examples/valid/expressions/longSplitExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/longSplitExpr.s,./wacc_examples_assembled/valid/expressions/longSplitExpr.s,pass
 ../wacc_examples/valid/expressions/minusExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/minusExpr.s,./wacc_examples_assembled/valid/expressions/minusExpr.s,pass
 ../wacc_examples/valid/expressions/minusMinusExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/minusMinusExpr.s,./wacc_examples_assembled/valid/expressions/minusMinusExpr.s,pass
 ../wacc_examples/valid/expressions/minusNoWhitespaceExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/minusNoWhitespaceExpr.s,./wacc_examples_assembled/valid/expressions/minusNoWhitespaceExpr.s,pass

@@ -610,17 +610,17 @@ mod tests {
           AssignLhs::Ident("a".to_string()),
           Type::default(),
           AssignRhs::Expr(Expr::BinaryApp(
-            Box::new(Expr::Ident("w".to_string())),
-            BinaryOper::Add,
             Box::new(Expr::BinaryApp(
+              Box::new(Expr::Ident("w".to_string())),
+              BinaryOper::Add,
               Box::new(Expr::BinaryApp(
                 Box::new(Expr::Ident("x".to_string())),
                 BinaryOper::Mul,
                 Box::new(Expr::Ident("y".to_string()))
               )),
-              BinaryOper::Add,
-              Box::new(Expr::Ident("z".to_string())),
             )),
+            BinaryOper::Add,
+            Box::new(Expr::Ident("z".to_string())),
           ))
         )
     ));
