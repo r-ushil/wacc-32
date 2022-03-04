@@ -161,7 +161,7 @@ fn read(code: &mut GeneratedCode, fmt: ReadFmt) {
 
   /* Create a msg label for reading an integer or character */
 
-  let msg = code.get_msg(if fmt == ReadFmt::Int { "%d\0" } else { "%c\0" });
+  let msg = code.get_msg(if fmt == ReadFmt::Int { "%d\0" } else { " %c\0" });
 
   /* Generate a p_read_{fmt} label to branch to when reading an int or a char */
 

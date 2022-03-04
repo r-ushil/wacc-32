@@ -97,7 +97,7 @@
 ../wacc_examples/valid/if/ifFalse.wacc,./wacc_examples_assembled_ours/valid/if/ifFalse.s,./wacc_examples_assembled/valid/if/ifFalse.s,pass
 ../wacc_examples/valid/if/ifTrue.wacc,./wacc_examples_assembled_ours/valid/if/ifTrue.s,./wacc_examples_assembled/valid/if/ifTrue.s,pass
 ../wacc_examples/valid/if/whitespace.wacc,./wacc_examples_assembled_ours/valid/if/whitespace.s,./wacc_examples_assembled/valid/if/whitespace.s,pass
-../wacc_examples/valid/IO/IOLoop.wacc,./wacc_examples_assembled_ours/valid/IO/IOLoop.s,./wacc_examples_assembled/valid/IO/IOLoop.s,fail
+../wacc_examples/valid/IO/IOLoop.wacc,./wacc_examples_assembled_ours/valid/IO/IOLoop.s,./wacc_examples_assembled/valid/IO/IOLoop.s,pass
 ../wacc_examples/valid/IO/IOSequence.wacc,./wacc_examples_assembled_ours/valid/IO/IOSequence.s,./wacc_examples_assembled/valid/IO/IOSequence.s,pass
 ../wacc_examples/valid/IO/print/hashInProgram.wacc,./wacc_examples_assembled_ours/valid/IO/print/hashInProgram.s,./wacc_examples_assembled/valid/IO/print/hashInProgram.s,pass
 ../wacc_examples/valid/IO/print/multipleStringsAssignment.wacc,./wacc_examples_assembled_ours/valid/IO/print/multipleStringsAssignment.s,./wacc_examples_assembled/valid/IO/print/multipleStringsAssignment.s,pass
@@ -113,11 +113,11 @@
 ../wacc_examples/valid/IO/print/print.wacc,./wacc_examples_assembled_ours/valid/IO/print/print.s,./wacc_examples_assembled/valid/IO/print/print.s,pass
 ../wacc_examples/valid/IO/read/echoBigInt.wacc,./wacc_examples_assembled_ours/valid/IO/read/echoBigInt.s,./wacc_examples_assembled/valid/IO/read/echoBigInt.s,pass
 ../wacc_examples/valid/IO/read/echoBigNegInt.wacc,./wacc_examples_assembled_ours/valid/IO/read/echoBigNegInt.s,./wacc_examples_assembled/valid/IO/read/echoBigNegInt.s,pass
-../wacc_examples/valid/IO/read/echoChar.wacc,./wacc_examples_assembled_ours/valid/IO/read/echoChar.s,./wacc_examples_assembled/valid/IO/read/echoChar.s,fail
+../wacc_examples/valid/IO/read/echoChar.wacc,./wacc_examples_assembled_ours/valid/IO/read/echoChar.s,./wacc_examples_assembled/valid/IO/read/echoChar.s,pass
 ../wacc_examples/valid/IO/read/echoInt.wacc,./wacc_examples_assembled_ours/valid/IO/read/echoInt.s,./wacc_examples_assembled/valid/IO/read/echoInt.s,pass
 ../wacc_examples/valid/IO/read/echoNegInt.wacc,./wacc_examples_assembled_ours/valid/IO/read/echoNegInt.s,./wacc_examples_assembled/valid/IO/read/echoNegInt.s,pass
-../wacc_examples/valid/IO/read/echoPuncChar.wacc,./wacc_examples_assembled_ours/valid/IO/read/echoPuncChar.s,./wacc_examples_assembled/valid/IO/read/echoPuncChar.s,fail
-../wacc_examples/valid/IO/read/read.wacc,./wacc_examples_assembled_ours/valid/IO/read/read.s,./wacc_examples_assembled/valid/IO/read/read.s,fail
+../wacc_examples/valid/IO/read/echoPuncChar.wacc,./wacc_examples_assembled_ours/valid/IO/read/echoPuncChar.s,./wacc_examples_assembled/valid/IO/read/echoPuncChar.s,pass
+../wacc_examples/valid/IO/read/read.wacc,./wacc_examples_assembled_ours/valid/IO/read/read.s,./wacc_examples_assembled/valid/IO/read/read.s,pass
 ../wacc_examples/valid/pairs/checkRefPair.wacc,./wacc_examples_assembled_ours/valid/pairs/checkRefPair.s,./wacc_examples_assembled/valid/pairs/checkRefPair.s,pass
 ../wacc_examples/valid/pairs/createPair02.wacc,./wacc_examples_assembled_ours/valid/pairs/createPair02.s,./wacc_examples_assembled/valid/pairs/createPair02.s,pass
 ../wacc_examples/valid/pairs/createPair03.wacc,./wacc_examples_assembled_ours/valid/pairs/createPair03.s,./wacc_examples_assembled/valid/pairs/createPair03.s,pass
@@ -131,7 +131,7 @@
 ../wacc_examples/valid/pairs/printNull.wacc,./wacc_examples_assembled_ours/valid/pairs/printNull.s,./wacc_examples_assembled/valid/pairs/printNull.s,pass
 ../wacc_examples/valid/pairs/printPairOfNulls.wacc,./wacc_examples_assembled_ours/valid/pairs/printPairOfNulls.s,./wacc_examples_assembled/valid/pairs/printPairOfNulls.s,pass
 ../wacc_examples/valid/pairs/printPair.wacc,./wacc_examples_assembled_ours/valid/pairs/printPair.s,./wacc_examples_assembled/valid/pairs/printPair.s,pass
-../wacc_examples/valid/pairs/readPair.wacc,./wacc_examples_assembled_ours/valid/pairs/readPair.s,./wacc_examples_assembled/valid/pairs/readPair.s,fail
+../wacc_examples/valid/pairs/readPair.wacc,./wacc_examples_assembled_ours/valid/pairs/readPair.s,./wacc_examples_assembled/valid/pairs/readPair.s,pass
 ../wacc_examples/valid/pairs/writeFst.wacc,./wacc_examples_assembled_ours/valid/pairs/writeFst.s,./wacc_examples_assembled/valid/pairs/writeFst.s,pass
 ../wacc_examples/valid/pairs/writeSnd.wacc,./wacc_examples_assembled_ours/valid/pairs/writeSnd.s,./wacc_examples_assembled/valid/pairs/writeSnd.s,pass
 ../wacc_examples/valid/runtimeErr/arrayOutOfBounds/arrayNegBounds.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/arrayOutOfBounds/arrayNegBounds.s,./wacc_examples_assembled/valid/runtimeErr/arrayOutOfBounds/arrayNegBounds.s,pass
@@ -192,7 +192,7 @@
 ../wacc_examples/valid/variables/zeroIntDeclaration.wacc,./wacc_examples_assembled_ours/valid/variables/zeroIntDeclaration.s,./wacc_examples_assembled/valid/variables/zeroIntDeclaration.s,pass
 ../wacc_examples/valid/while/fibonacciFullIt.wacc,./wacc_examples_assembled_ours/valid/while/fibonacciFullIt.s,./wacc_examples_assembled/valid/while/fibonacciFullIt.s,pass
 ../wacc_examples/valid/while/fibonacciIterative.wacc,./wacc_examples_assembled_ours/valid/while/fibonacciIterative.s,./wacc_examples_assembled/valid/while/fibonacciIterative.s,pass
-../wacc_examples/valid/while/loopCharCondition.wacc,./wacc_examples_assembled_ours/valid/while/loopCharCondition.s,./wacc_examples_assembled/valid/while/loopCharCondition.s,fail
+../wacc_examples/valid/while/loopCharCondition.wacc,./wacc_examples_assembled_ours/valid/while/loopCharCondition.s,./wacc_examples_assembled/valid/while/loopCharCondition.s,pass
 ../wacc_examples/valid/while/loopIntCondition.wacc,./wacc_examples_assembled_ours/valid/while/loopIntCondition.s,./wacc_examples_assembled/valid/while/loopIntCondition.s,pass
 ../wacc_examples/valid/while/max.wacc,./wacc_examples_assembled_ours/valid/while/max.s,./wacc_examples_assembled/valid/while/max.s,fail
 ../wacc_examples/valid/while/min.wacc,./wacc_examples_assembled_ours/valid/while/min.s,./wacc_examples_assembled/valid/while/min.s,fail
