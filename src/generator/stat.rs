@@ -6,7 +6,8 @@ impl Generatable for AssignLhs {
   type Input = Type;
   type Output = (Reg, Offset, DataSize);
 
-  /* Writes regs[0] to value specified by AssignLhs */
+  /* Returns a (Reg, Offset) which specifies the memory address of
+  this Lhs. Also returns how much data is stored at said address. */
   fn generate(
     &self,
     scope: &Scope,
@@ -21,16 +22,14 @@ impl Generatable for AssignLhs {
         (Reg::StackPointer, offset, t.size().into())
       }
       AssignLhs::ArrayElem(elem) => {
-        /* Store address of array element into regs[1]. */
-        let elem_size = elem.generate(scope, code, &regs[1..], ());
+        let elem_size = elem.generate(scope, code, regs, ());
 
-        (Reg::General(regs[1]), 0, elem_size)
+        (Reg::General(regs[0]), 0, elem_size)
       }
       AssignLhs::PairElem(elem) => {
-        /* Stores address of elem in regs[1]. */
-        let elem_size = elem.generate(scope, code, &regs[1..], ());
+        let elem_size = elem.generate(scope, code, regs, ());
 
-        (Reg::General(regs[1]), 0, elem_size)
+        (Reg::General(regs[0]), 0, elem_size)
       }
     }
   }
@@ -352,7 +351,7 @@ fn generate_stat_assignment(
   rhs.generate(scope, code, regs, t.clone());
 
   /* stores value of regs[0] into lhs */
-  let (ptr_reg, offset, data_size) = lhs.generate(scope, code, regs, t.clone());
+  let (ptr_reg, offset, data_size) = lhs.generate(scope, code, &regs[1..], t.clone());
   code.text.push(Asm::always(Instr::Store(
     data_size,
     Reg::General(regs[0]),
@@ -370,13 +369,15 @@ fn generate_stat_read(
 ) {
   let (ptr_reg, offset, _) = lhs.generate(scope, code, regs, type_.clone());
 
-  code.text.push(Asm::always(Instr::Binary(
-    BinaryInstr::Add,
-    Reg::General(regs[0]),
-    ptr_reg,
-    Op2::Imm(offset),
-    false,
-  )));
+  if offset != 0 || Reg::General(regs[0]) != ptr_reg {
+    code.text.push(Asm::always(Instr::Binary(
+      BinaryInstr::Add,
+      Reg::General(regs[0]),
+      ptr_reg,
+      Op2::Imm(offset),
+      false,
+    )));
+  }
 
   /* MOV r0, {regs[0]} */
   code.text.push(Asm::Instr(
