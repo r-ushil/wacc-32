@@ -102,7 +102,7 @@ fn generate_assign_rhs_array_liter(
 
   /* Malloc space for array. */
   generate_malloc(
-    4 + elem_size * exprs.len() as i32,
+    ARM_DSIZE_WORD + elem_size * exprs.len() as i32,
     code,
     Reg::General(regs[0]),
   );
@@ -116,7 +116,10 @@ fn generate_assign_rhs_array_liter(
     code.text.push(Asm::always(Instr::Store(
       elem_size.into(),
       Reg::General(regs[1]),
-      (Reg::General(regs[0]), 4 + (i as i32) * elem_size),
+      (
+        Reg::General(regs[0]),
+        ARM_DSIZE_WORD + (i as i32) * elem_size,
+      ),
       AddressingMode::Default,
     )));
   }
@@ -198,7 +201,7 @@ fn generate_assign_rhs_pair(
   code.text.push(Asm::always(Instr::store(
     DataSize::Word,
     Reg::Arg(ArgReg::R0),
-    (Reg::General(regs[0]), 4),
+    (Reg::General(regs[0]), ARM_DSIZE_WORD),
   )));
 }
 
@@ -317,7 +320,7 @@ impl Generatable for PairElem {
     /*  */
     let (t, pair, offset) = match self {
       PairElem::Fst(t, pair) => (t, pair, 0),
-      PairElem::Snd(t, pair) => (t, pair, 4),
+      PairElem::Snd(t, pair) => (t, pair, ARM_DSIZE_WORD),
     };
 
     /* Store address of pair in regs[0]. */
