@@ -251,7 +251,7 @@ fn generate_binary_op(
       /* BLNE p_throw_overflow_error */
       code.text.push(Asm::Instr(
         CondCode::NE,
-        Instr::Branch(true, String::from("p_throw_overflow_error")),
+        Instr::Branch(true, predef::PREDEF_THROW_OVERFLOW_ERR.to_string()),
       ));
       RequiredPredefs::OverflowError.mark(code);
     }
@@ -349,7 +349,7 @@ fn binary_div_mod(op: BinaryOper, code: &mut GeneratedCode, gen_reg1: GenReg, ge
     /* BL __aeabi_idiv */
     code.text.push(always_instruction(Instr::Branch(
       true,
-      String::from("__aeabi_idiv"),
+      predef::PREDEF_AEABI_IDIV.to_string(),
     )));
 
     /* MOV reg1, r0 */
@@ -385,7 +385,7 @@ fn binary_div_mod(op: BinaryOper, code: &mut GeneratedCode, gen_reg1: GenReg, ge
     /* BL __aeabi_idivmod */
     code.text.push(always_instruction(Instr::Branch(
       true,
-      String::from("__aeabi_idivmod"),
+      predef::PREDEF_AEABI_IDIVMOD.to_string(),
     )));
 
     /* MOV reg1, r1 */
@@ -502,7 +502,7 @@ impl Generatable for ArrayElem {
       /* BL p_check_array_bounds */
       code.text.push(Asm::always(Instr::Branch(
         true,
-        String::from("p_check_array_bounds"),
+        predef::PREDEF_CHECK_ARRAY_BOUNDS.to_string(),
       )));
 
       /* Move over size field.

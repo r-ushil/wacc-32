@@ -331,7 +331,7 @@ impl Generatable for PairElem {
     )));
     code.text.push(Asm::always(Instr::Branch(
       true,
-      String::from("p_check_null_pointer"),
+      predef::PREDEF_CHECK_NULL_POINTER.to_string(),
     )));
     RequiredPredefs::CheckNullPointer.mark(code);
 
@@ -497,7 +497,7 @@ fn generate_stat_free(
       /* BL p_free_array */
       code.text.push(Asm::always(Instr::Branch(
         true,
-        String::from("p_free_array"),
+        predef::PREDEF_FREE_ARRAY.to_string(),
       )));
     }
     Type::Pair(_, _) => {
@@ -506,7 +506,7 @@ fn generate_stat_free(
       /* BL p_free_pair */
       code.text.push(Asm::always(Instr::Branch(
         true,
-        String::from("p_free_pair"),
+        predef::PREDEF_FREE_PAIR.to_string(),
       )));
     }
     _ => unreachable!("Can't free this type!"),

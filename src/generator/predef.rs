@@ -7,6 +7,9 @@ pub const PREDEF_SYS_FREE: &str = "free";
 pub const PREDEF_SYS_PRINTF: &str = "printf";
 pub const PREDEF_SYS_SCANF: &str = "scanf";
 
+pub const PREDEF_AEABI_IDIV: &str = "__aeabi_idiv";
+pub const PREDEF_AEABI_IDIVMOD: &str = "__aeabi_idivmod";
+
 pub const PREDEF_PRINT_INT: &str = "p_print_int";
 pub const PREDEF_PRINT_STRING: &str = "p_print_string";
 pub const PREDEF_PRINT_BOOL: &str = "p_print_bool";
