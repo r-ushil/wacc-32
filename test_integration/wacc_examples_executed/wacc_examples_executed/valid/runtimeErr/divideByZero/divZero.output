@@ -1,0 +1,4 @@
+--------- stdout ---------
+DivideByZeroError: divide or modulo by zero
+--------------------------
+Exit code: 255

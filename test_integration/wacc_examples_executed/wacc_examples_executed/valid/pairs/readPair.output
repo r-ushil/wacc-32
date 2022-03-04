@@ -1,0 +1,5 @@
+--------- stdout ---------
+Please enter the first element (char): Please enter the second element (int): The first element was N
+The second element was 0
+--------------------------
+Exit code: 0

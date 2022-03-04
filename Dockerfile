@@ -1,5 +1,7 @@
 FROM rust:1.57 AS base
 WORKDIR /
+RUN apt-get update
+RUN apt-get -y install gcc-arm-linux-gnueabihf libc6-dev-armhf-cross qemu-user-static
 RUN cargo new wacc
 WORKDIR /wacc
 

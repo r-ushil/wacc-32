@@ -1,0 +1,4 @@
+--------- stdout ---------
+Printing an array variable gives an address, such as 0x75be8
+--------------------------
+Exit code: 0

@@ -1,0 +1,5 @@
+--------- stdout ---------
+Change c
+Should print "Change c" once before.
+--------------------------
+Exit code: 0

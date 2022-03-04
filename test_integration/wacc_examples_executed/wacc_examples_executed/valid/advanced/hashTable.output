@@ -1,0 +1,20 @@
+--------- stdout ---------
+===========================================
+========== Hash Table Program =============
+===========================================
+=                                         =
+= Please choose the following options:    =
+=                                         =
+= a: insert an integer                    =
+= b: find an integer                      =
+= c: count the integers                   =
+= d: print all integers                   =
+= e: remove an integer                    =
+= f: remove all integers                  =
+= g: exit                                 =
+=                                         =
+===========================================
+Your decision: You have entered: N which is invalid, please try again.
+Your decision: Goodbye Human
+--------------------------
+Exit code: 0

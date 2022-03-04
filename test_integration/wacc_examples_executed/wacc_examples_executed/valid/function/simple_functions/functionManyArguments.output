@@ -1,0 +1,10 @@
+--------- stdout ---------
+a is 42
+b is true
+c is u
+d is hello
+e is 0x74bf8
+f is 0x74c08
+answer is g
+--------------------------
+Exit code: 0
