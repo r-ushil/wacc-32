@@ -1,5 +1,8 @@
 use self::CondCode::*;
-use super::predef::{RequiredPredefs, PREDEF_THROW_OVERFLOW_ERR, PREDEF_DIVIDE_BY_ZERO, PREDEF_CHECK_ARRAY_BOUNDS, PREDEF_ARM_DIV, PREDEF_ARM_MOD};
+use super::predef::{
+  RequiredPredefs, PREDEF_ARM_DIV, PREDEF_ARM_MOD, PREDEF_CHECK_ARRAY_BOUNDS,
+  PREDEF_DIVIDE_BY_ZERO, PREDEF_THROW_OVERFLOW_ERR,
+};
 use super::*;
 use crate::generator::asm::*;
 
@@ -135,7 +138,6 @@ fn generate_binary_app(
   if regs.len() > MIN_STACK_MACHINE_REGS {
     expr2.generate(scope, code, &regs[1..], ());
   } else {
-
     /* PUSH {reg[0]} */
     code
       .text
