@@ -442,10 +442,24 @@ fn free_pair(code: &mut GeneratedCode) {
   ));
 
   //set runtime error generation to true
-  /*  PUSH {r0}           //push r0 */
   RequiredPredefs::RuntimeError.mark(code);
 
+  /*  PUSH {r0}           //push r0 */
   code.text.push(Instr(AL, Push(Reg::RegNum(0))));
+
+  code.text.push(Instr(
+    AL,
+    Load(
+      DataSize::Word,
+      Reg::RegNum(0),
+      LoadArg::MemAddress(Reg::RegNum(0), 0),
+    ),
+  ));
+
+  code
+    .text
+    .push(Instr(AL, Branch(true, String::from("free"))));
+
   /*  LDR r0, [sp]        //load stack pointer address into r0 */
   code.text.push(Instr(
     AL,

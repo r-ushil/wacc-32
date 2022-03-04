@@ -294,7 +294,7 @@ fn generate_binary_op(code: &mut GeneratedCode, reg1: Reg, reg2: Reg, bin_op: &B
         dst,
         reg1,
         Op2::Reg(reg2, 0),
-        true,
+        false,
       )));
     }
     BinaryOper::Or => {
@@ -304,7 +304,7 @@ fn generate_binary_op(code: &mut GeneratedCode, reg1: Reg, reg2: Reg, bin_op: &B
         dst,
         reg1,
         Op2::Reg(reg2, 0),
-        true,
+        false,
       )));
     }
   }
