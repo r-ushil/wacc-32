@@ -303,7 +303,7 @@ pub enum ArgReg {
   R0,
   R1,
   R2,
-  R3,
+  // R3, unused
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
@@ -335,15 +335,15 @@ pub enum CondCode {
   EQ,
   NE,
   CS,
-  HS,
-  CC,
-  LO,
-  MI,
-  PL,
+  // HS, unused
+  // CC, unused
+  // LO, unused
+  // MI, unused
+  // PL, unused
   VS,
-  VC,
-  HI,
-  LS,
+  // VC, unused
+  // HI, unused
+  // LS, unused
   GE,
   LT,
   GT,
