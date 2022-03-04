@@ -284,14 +284,14 @@ fn binary_div_mod(op: BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2: Reg
       UnaryInstr::Mov,
       Reg::RegNum(0),
       Op2::Reg(reg1, 0),
-      true,
+      false,
     )));
     /* MOV r1, reg2 */
     code.text.push(always_instruction(Instr::Unary(
       UnaryInstr::Mov,
       Reg::RegNum(1),
       Op2::Reg(reg2, 0),
-      true,
+      false,
     )));
 
     /* BL p_check_divide_by_zero */
@@ -305,6 +305,14 @@ fn binary_div_mod(op: BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2: Reg
     code.text.push(always_instruction(Instr::Branch(
       true,
       String::from("__aeabi_idiv"),
+    )));
+
+    /* MOV reg1, r0 */
+    code.text.push(always_instruction(Instr::Unary(
+      UnaryInstr::Mov,
+      reg1,
+      Op2::Reg(Reg::RegNum(0), 0),
+      false,
     )));
   } else if op == BinaryOper::Mod {
     /* MOV r0, reg1 */
@@ -333,6 +341,14 @@ fn binary_div_mod(op: BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2: Reg
     code.text.push(always_instruction(Instr::Branch(
       true,
       String::from("__aeabi_idivmod"),
+    )));
+
+    /* MOV reg1, r0 */
+    code.text.push(always_instruction(Instr::Unary(
+      UnaryInstr::Mov,
+      reg1,
+      Op2::Reg(Reg::RegNum(0), 0),
+      false,
     )));
   } else {
     unreachable!("undefined!");
