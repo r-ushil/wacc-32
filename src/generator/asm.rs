@@ -2,8 +2,6 @@ use super::{display::unescape_char, predef::RequiredPredefs};
 
 /* ======== Type aliases. ======== */
 
-/* r4, r5, r0, ... */
-pub type RegNum = u8;
 /* An immediate value. */
 pub type Imm = i32;
 /* A location which can be branched to. */
