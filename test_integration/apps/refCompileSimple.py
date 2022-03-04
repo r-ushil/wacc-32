@@ -10,7 +10,7 @@ def main():
 
 def compileAndReformat(inputPath, outputPath):
     output = subprocess \
-        .check_output(['refCompile', '-a', inputPath]) \
+        .check_output(['ruby', '../apps/refCompile', '-a', inputPath]) \
         .decode('utf-8') \
         .split('\n') \
 
