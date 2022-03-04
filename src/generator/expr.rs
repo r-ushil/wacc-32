@@ -25,7 +25,7 @@ impl Generatable for Expr {
 fn generate_pair_liter(code: &mut GeneratedCode, regs: &[GenReg]) {
   code.text.push(Asm::always(Instr::Load(
     DataSize::Word,
-    Reg::Gen(regs[0]),
+    Reg::General(regs[0]),
     LoadArg::Imm(0),
   )));
 }
@@ -37,8 +37,8 @@ fn generate_array_elem(scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg],
   /* Read from that address into regs[0]. */
   code.text.push(Asm::always(Instr::Load(
     array_elem_size.into(),
-    Reg::Gen(regs[0]),
-    LoadArg::MemAddress(Reg::Gen(regs[0]), 0),
+    Reg::General(regs[0]),
+    LoadArg::MemAddress(Reg::General(regs[0]), 0),
   )));
 }
 
@@ -48,7 +48,7 @@ fn generate_ident(scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], id: 
 
   code.text.push(Asm::always(Instr::Load(
     scope.get_type(id).unwrap().size().into(),
-    Reg::Gen(regs[0]),
+    Reg::General(regs[0]),
     LoadArg::MemAddress(Reg::StackPointer, offset),
   )))
 }
@@ -57,7 +57,7 @@ fn generate_int_liter(code: &mut GeneratedCode, regs: &[GenReg], val: &i32) {
   /* LDR r{min_reg}, val */
   code.text.push(always_instruction(Instr::Load(
     DataSize::Word,
-    Reg::Gen(regs[0]),
+    Reg::General(regs[0]),
     LoadArg::Imm(*val),
   )))
 }
@@ -68,7 +68,7 @@ fn generate_bool_liter(code: &mut GeneratedCode, regs: &[GenReg], val: &bool) {
   /* MOV r{min_reg}, #imm */
   code.text.push(always_instruction(Instr::Unary(
     UnaryInstr::Mov,
-    Reg::Gen(regs[0]),
+    Reg::General(regs[0]),
     Op2::Imm(imm),
     false,
   )))
@@ -85,7 +85,7 @@ fn generate_char_liter(code: &mut GeneratedCode, regs: &[GenReg], val: &char) {
   /* MOV r{min_reg}, #'val' */
   code.text.push(always_instruction(Instr::Unary(
     UnaryInstr::Mov,
-    Reg::Gen(regs[0]),
+    Reg::General(regs[0]),
     ch_op2,
     false,
   )))
@@ -99,7 +99,7 @@ fn generate_string_liter(code: &mut GeneratedCode, regs: &[GenReg], val: &String
   /* LDR r{min_reg}, ={msg_{msg_no}} */
   code.text.push(always_instruction(Instr::Load(
     DataSize::Word,
-    Reg::Gen(regs[0]),
+    Reg::General(regs[0]),
     LoadArg::Label(msg_label),
   )))
 }
@@ -115,7 +115,7 @@ fn generate_unary_app(
   expr.generate(scope, code, regs, ());
 
   /* Applies unary operator to regs[0]. */
-  generate_unary_op(code, Reg::Gen(regs[0]), op);
+  generate_unary_op(code, Reg::General(regs[0]), op);
 }
 
 fn generate_binary_app(
@@ -133,13 +133,17 @@ fn generate_binary_app(
   if regs.len() > 2 {
     expr2.generate(scope, code, &regs[1..], ());
   } else {
-    code.text.push(Asm::always(Instr::Push(Reg::Gen(regs[0]))));
+    code
+      .text
+      .push(Asm::always(Instr::Push(Reg::General(regs[0]))));
     let st = SymbolTable {
       size: 4,
       ..Default::default()
     };
     expr2.generate(&scope.new_scope(&st), code, &[regs[1], regs[0]], ());
-    code.text.push(Asm::always(Instr::Pop(Reg::Gen(regs[0]))));
+    code
+      .text
+      .push(Asm::always(Instr::Pop(Reg::General(regs[0]))));
   }
 
   /* regs[0] = regs[0] <op> regs[1] */
@@ -223,9 +227,9 @@ fn generate_binary_op(
   bin_op: &BinaryOper,
 ) {
   // TODO: Briefly explain the pre-condition that you created in the caller
-  let dst = Reg::Gen(gen_reg1.clone());
-  let reg1 = Reg::Gen(gen_reg1);
-  let reg2 = Reg::Gen(gen_reg2);
+  let dst = Reg::General(gen_reg1.clone());
+  let reg1 = Reg::General(gen_reg1);
+  let reg2 = Reg::General(gen_reg2);
   match bin_op {
     BinaryOper::Mul => {
       /* SMULL r4, r5, r4, r5 */
@@ -317,8 +321,8 @@ fn generate_binary_op(
 }
 
 fn binary_div_mod(op: BinaryOper, code: &mut GeneratedCode, gen_reg1: GenReg, gen_reg2: GenReg) {
-  let reg1 = Reg::Gen(gen_reg1);
-  let reg2 = Reg::Gen(gen_reg2);
+  let reg1 = Reg::General(gen_reg1);
+  let reg2 = Reg::General(gen_reg2);
   if op == BinaryOper::Div {
     /* MOV r0, reg1 */
     code.text.push(always_instruction(Instr::Unary(
@@ -438,7 +442,7 @@ impl Generatable for ArrayElem {
   ) -> DataSize {
     let ArrayElem(id, indexes) = self;
     let mut current_type = scope.get_type(id).unwrap();
-    let array_ptr_reg = Reg::Gen(regs[0]);
+    let array_ptr_reg = Reg::General(regs[0]);
     let index_regs = &regs[1..];
 
     /* Get reference to {id}.
@@ -481,7 +485,7 @@ impl Generatable for ArrayElem {
       code.text.push(Asm::always(Instr::Unary(
         UnaryInstr::Mov,
         Reg::Arg(ArgReg::r0),
-        Op2::Reg(Reg::Gen(index_regs[0]), 0),
+        Op2::Reg(Reg::General(index_regs[0]), 0),
         false,
       )));
 
@@ -522,7 +526,7 @@ impl Generatable for ArrayElem {
         BinaryInstr::Add,
         array_ptr_reg,
         array_ptr_reg,
-        Op2::Reg(Reg::Gen(index_regs[0]), -shift),
+        Op2::Reg(Reg::General(index_regs[0]), -shift),
         false,
       )))
     }

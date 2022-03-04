@@ -240,7 +240,7 @@ impl Display for Reg {
       Link => write!(f, "lr"),
       PC => write!(f, "pc"),
       Arg(arg_reg) => write!(f, "{}", arg_reg),
-      Gen(gen_reg) => write!(f, "{}", gen_reg),
+      General(gen_reg) => write!(f, "{}", gen_reg),
     }
   }
 }

@@ -254,7 +254,7 @@ impl From<Imm> for Op2 {
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum Reg {
   Arg(ArgReg),
-  Gen(GenReg),
+  General(GenReg),
   StackPointer,
   Link,
   PC,

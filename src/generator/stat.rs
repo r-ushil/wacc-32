@@ -24,13 +24,13 @@ impl Generatable for AssignLhs {
         /* Store address of array element into regs[1]. */
         let elem_size = elem.generate(scope, code, &regs[1..], ());
 
-        (Reg::Gen(regs[1]), 0, elem_size)
+        (Reg::General(regs[1]), 0, elem_size)
       }
       AssignLhs::PairElem(elem) => {
         /* Stores address of elem in regs[1]. */
         let elem_size = elem.generate(scope, code, &regs[1..], ());
 
-        (Reg::Gen(regs[1]), 0, elem_size)
+        (Reg::General(regs[1]), 0, elem_size)
       }
     }
   }
@@ -77,7 +77,11 @@ impl Generatable for AssignRhs {
         };
 
         /* Malloc space for array. */
-        generate_malloc(4 + elem_size * exprs.len() as i32, code, Reg::Gen(regs[0]));
+        generate_malloc(
+          4 + elem_size * exprs.len() as i32,
+          code,
+          Reg::General(regs[0]),
+        );
 
         /* Write each expression to the array. */
         for (i, expr) in exprs.iter().enumerate() {
@@ -87,8 +91,8 @@ impl Generatable for AssignRhs {
           /* Write r5 array. */
           code.text.push(Asm::always(Instr::Store(
             elem_size.into(),
-            Reg::Gen(regs[1]),
-            (Reg::Gen(regs[0]), 4 + (i as i32) * elem_size),
+            Reg::General(regs[1]),
+            (Reg::General(regs[0]), 4 + (i as i32) * elem_size),
             AddressingMode::Default,
           )));
         }
@@ -98,13 +102,13 @@ impl Generatable for AssignRhs {
         STR r5, [r4] */
         code.text.push(Asm::always(Instr::Load(
           DataSize::Word,
-          Reg::Gen(regs[1]),
+          Reg::General(regs[1]),
           LoadArg::Imm(exprs.len() as i32),
         )));
         code.text.push(Asm::always(Instr::Store(
           DataSize::Word,
-          Reg::Gen(regs[1]),
-          (Reg::Gen(regs[0]), 0),
+          Reg::General(regs[1]),
+          (Reg::General(regs[0]), 0),
           AddressingMode::Default,
         )));
       }
@@ -117,7 +121,7 @@ impl Generatable for AssignRhs {
 
         /* Malloc for the pair.
         regs[0] = malloc(8) */
-        generate_malloc(8, code, Reg::Gen(regs[0]));
+        generate_malloc(8, code, Reg::General(regs[0]));
 
         /* Evaluate e1.
         regs[1] = eval(e1) */
@@ -130,7 +134,7 @@ impl Generatable for AssignRhs {
         /* Write e1 to malloced space. */
         code.text.push(Asm::always(Instr::Store(
           e1_size.into(),
-          Reg::Gen(regs[1]),
+          Reg::General(regs[1]),
           (Reg::Arg(ArgReg::r0), 0),
           AddressingMode::Default,
         )));
@@ -139,7 +143,7 @@ impl Generatable for AssignRhs {
         code.text.push(Asm::always(Instr::Store(
           DataSize::Word,
           Reg::Arg(ArgReg::r0),
-          (Reg::Gen(regs[0]), 0),
+          (Reg::General(regs[0]), 0),
           AddressingMode::Default,
         )));
 
@@ -154,7 +158,7 @@ impl Generatable for AssignRhs {
         /* Write e2 to malloced space. */
         code.text.push(Asm::always(Instr::store(
           e2_size.into(),
-          Reg::Gen(regs[1]),
+          Reg::General(regs[1]),
           (Reg::Arg(ArgReg::r0), 0),
         )));
 
@@ -162,7 +166,7 @@ impl Generatable for AssignRhs {
         code.text.push(Asm::always(Instr::store(
           DataSize::Word,
           Reg::Arg(ArgReg::r0),
-          (Reg::Gen(regs[0]), 4),
+          (Reg::General(regs[0]), 4),
         )));
       }
       AssignRhs::PairElem(elem) => {
@@ -172,8 +176,8 @@ impl Generatable for AssignRhs {
         /* Dereference. */
         code.text.push(Asm::always(Instr::Load(
           elem_size,
-          Reg::Gen(regs[0]),
-          LoadArg::MemAddress(Reg::Gen(regs[0]), 0),
+          Reg::General(regs[0]),
+          LoadArg::MemAddress(Reg::General(regs[0]), 0),
         )));
       }
       AssignRhs::Call(ident, exprs) => {
@@ -198,7 +202,7 @@ impl Generatable for AssignRhs {
 
           code.text.push(Asm::always(Instr::store_with_mode(
             arg_type.size().into(),
-            Reg::Gen(regs[0]),
+            Reg::General(regs[0]),
             (Reg::StackPointer, -arg_type.size()),
             AddressingMode::PreIndexed,
           )));
@@ -226,7 +230,7 @@ impl Generatable for AssignRhs {
 
         code.text.push(Asm::always(Unary(
           UnaryInstr::Mov,
-          Reg::Gen(regs[0]),
+          Reg::General(regs[0]),
           Op2::Reg(Reg::Arg(ArgReg::r0), 0),
           false,
         )));
@@ -260,7 +264,7 @@ impl Generatable for PairElem {
     code.text.push(Asm::always(Instr::Unary(
       UnaryInstr::Mov,
       Reg::Arg(ArgReg::r0),
-      Op2::Reg(Reg::Gen(regs[0]), 0),
+      Op2::Reg(Reg::General(regs[0]), 0),
       false,
     )));
     code.text.push(Asm::always(Instr::Branch(
@@ -272,8 +276,8 @@ impl Generatable for PairElem {
     /* Dereference. */
     code.text.push(Asm::always(Instr::Load(
       DataSize::Word,
-      Reg::Gen(regs[0]),
-      LoadArg::MemAddress(Reg::Gen(regs[0]), offset),
+      Reg::General(regs[0]),
+      LoadArg::MemAddress(Reg::General(regs[0]), offset),
     )));
 
     /* Return how much data needs to be read from regs[0]. */
@@ -351,7 +355,7 @@ fn generate_stat_assignment(
   let (ptr_reg, offset, data_size) = lhs.generate(scope, code, regs, t.clone());
   code.text.push(Asm::always(Instr::Store(
     data_size,
-    Reg::Gen(regs[0]),
+    Reg::General(regs[0]),
     (ptr_reg, offset),
     AddressingMode::Default,
   )));
@@ -368,7 +372,7 @@ fn generate_stat_read(
 
   code.text.push(Asm::always(Instr::Binary(
     BinaryInstr::Add,
-    Reg::Gen(regs[0]),
+    Reg::General(regs[0]),
     ptr_reg,
     Op2::Imm(offset),
     false,
@@ -380,7 +384,7 @@ fn generate_stat_read(
     Instr::Unary(
       UnaryInstr::Mov,
       Reg::Arg(ArgReg::r0),
-      Op2::Reg(Reg::Gen(regs[0]), 0),
+      Op2::Reg(Reg::General(regs[0]), 0),
       false,
     ),
   ));
@@ -417,7 +421,7 @@ fn generate_stat_free(
     Instr::Unary(
       UnaryInstr::Mov,
       Reg::Arg(ArgReg::r0),
-      Op2::Reg(Reg::Gen(regs[0]), 0),
+      Op2::Reg(Reg::General(regs[0]), 0),
       false,
     ),
   ));
@@ -454,7 +458,7 @@ fn generate_stat_return(scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg]
     Instr::Unary(
       UnaryInstr::Mov,
       Reg::Arg(ArgReg::r0),
-      Op2::Reg(Reg::Gen(regs[0]), 0),
+      Op2::Reg(Reg::General(regs[0]), 0),
       false,
     ),
   ));
@@ -491,7 +495,7 @@ fn generate_stat_exit(scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], 
     Instr::Unary(
       UnaryInstr::Mov,
       Reg::Arg(ArgReg::r0),
-      Op2::Reg(Reg::Gen(regs[0]), 0),
+      Op2::Reg(Reg::General(regs[0]), 0),
       false,
     ),
   ));
@@ -515,7 +519,7 @@ fn generate_stat_print(
   code.text.push(Asm::always(Unary(
     UnaryInstr::Mov,
     Reg::Arg(ArgReg::r0),
-    Op2::Reg(Reg::Gen(regs[0]), 0),
+    Op2::Reg(Reg::General(regs[0]), 0),
     false,
   )));
 
@@ -583,7 +587,7 @@ fn generate_stat_if(
   /* cmp(regs[0], 0) */
   code.text.push(Asm::always(Unary(
     UnaryInstr::Cmp,
-    Reg::Gen(regs[0]),
+    Reg::General(regs[0]),
     Op2::Imm(0),
     false,
   )));
@@ -641,7 +645,7 @@ fn generate_stat_while(
   /* cmp(regs[0], 1) */
   code.text.push(Asm::always(Unary(
     UnaryInstr::Cmp,
-    Reg::Gen(regs[0]),
+    Reg::General(regs[0]),
     Op2::Imm(1),
     false,
   )));
@@ -720,7 +724,7 @@ mod tests {
       Instr::Unary(
         UnaryInstr::Mov,
         Reg::Arg(ArgReg::r0),
-        Op2::Reg(Reg::Gen(GenReg::r4), 0),
+        Op2::Reg(Reg::General(GenReg::r4), 0),
         false,
       ),
     ));
