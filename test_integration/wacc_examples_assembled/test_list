@@ -23,7 +23,7 @@
 ../wacc_examples/valid/expressions/boolCalc.wacc,./wacc_examples_assembled_ours/valid/expressions/boolCalc.s,./wacc_examples_assembled/valid/expressions/boolCalc.s,fail
 ../wacc_examples/valid/expressions/boolExpr1.wacc,./wacc_examples_assembled_ours/valid/expressions/boolExpr1.s,./wacc_examples_assembled/valid/expressions/boolExpr1.s,fail
 ../wacc_examples/valid/expressions/charComparisonExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/charComparisonExpr.s,./wacc_examples_assembled/valid/expressions/charComparisonExpr.s,pass
-../wacc_examples/valid/expressions/divExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/divExpr.s,./wacc_examples_assembled/valid/expressions/divExpr.s,fail
+../wacc_examples/valid/expressions/divExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/divExpr.s,./wacc_examples_assembled/valid/expressions/divExpr.s,pass
 ../wacc_examples/valid/expressions/equalsExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/equalsExpr.s,./wacc_examples_assembled/valid/expressions/equalsExpr.s,pass
 ../wacc_examples/valid/expressions/equalsOverAnd.wacc,./wacc_examples_assembled_ours/valid/expressions/equalsOverAnd.s,./wacc_examples_assembled/valid/expressions/equalsOverAnd.s,fail
 ../wacc_examples/valid/expressions/equalsOverBool.wacc,./wacc_examples_assembled_ours/valid/expressions/equalsOverBool.s,./wacc_examples_assembled/valid/expressions/equalsOverBool.s,fail
