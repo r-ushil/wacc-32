@@ -1,5 +1,4 @@
-use super::{display::unescape_char, predef::RequiredPredefs, Generatable};
-use std::fs::File;
+use super::{display::unescape_char, predef::RequiredPredefs};
 
 /* ======== Type aliases. ======== */
 
@@ -73,10 +72,6 @@ impl GeneratedCode {
       .push(Asm::Directive(Ascii(escaped_content.to_string())));
 
     label
-  }
-
-  pub fn asm<I: Into<Asm>>(&mut self, i: I) {
-    self.text.push(i.into())
   }
 }
 
@@ -153,7 +148,7 @@ pub enum Directive {
 pub enum AddressingMode {
   Default,
   PreIndexed,
-  PostIndexed,
+  // PostIndexed,  unused
 }
 
 /* ======== Instructions! ======== */

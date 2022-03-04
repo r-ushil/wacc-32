@@ -61,7 +61,6 @@ impl Display for Asm {
                 }
               }
               AddressingMode::PreIndexed => write!(f, "[{}, #{}]!", src, off),
-              AddressingMode::PostIndexed => write!(f, "[{}], #{}", src, off),
             }
           }
 
