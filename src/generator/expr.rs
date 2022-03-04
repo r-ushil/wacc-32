@@ -181,6 +181,16 @@ fn generate_unary_negation(code: &mut GeneratedCode, reg: Reg) {
     Op2::Imm(0),
     true,
   )));
+
+  /* BLVS p_throw_overflow_error */
+  code.text.push(Asm::Instr(
+    VS,
+    Instr::Branch(true, PREDEF_THROW_OVERFLOW_ERR.to_string()),
+  ));
+
+  RequiredPredefs::OverflowError.mark(code);
+
+
 }
 
 fn generate_unary_length(code: &mut GeneratedCode, reg: Reg) {
