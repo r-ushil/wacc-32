@@ -130,24 +130,37 @@ fn generate_binary_app(
 
   /* regs[0] = eval(expr1) */
   expr1.generate(scope, code, regs, ());
+
   if regs.len() > MIN_STACK_MACHINE_REGS {
+    /* Haven't run out of registers, evaluate normally. */
     expr2.generate(scope, code, &regs[1..], ());
+
+    /* regs[0] = regs[0] <op> regs[1] */
+    generate_binary_op(code, regs[0], regs[0], regs[1], op);
   } else {
+    /* Save regs[0] so we can use it for evaluating LHS. */
     code
       .text
       .push(Asm::always(Instr::Push(Reg::General(regs[0]))));
+
+    /* The PUSH instruction above decremented stack pointer,
+    so we need to expand symbol table to reflect this. */
     let st = SymbolTable {
       size: 4,
       ..Default::default()
     };
-    expr2.generate(&scope.new_scope(&st), code, &[regs[1], regs[0]], ());
+
+    /* Evaluate LHS using all registers. */
+    expr2.generate(&scope.new_scope(&st), code, regs, ());
+
+    /* Restore RHS into next available register. */
     code
       .text
-      .push(Asm::always(Instr::Pop(Reg::General(regs[0]))));
-  }
+      .push(Asm::always(Instr::Pop(Reg::General(regs[1]))));
 
-  /* regs[0] = regs[0] <op> regs[1] */
-  generate_binary_op(code, regs[0], regs[1], op);
+    /* regs[0] = regs[1] <op> regs[0] */
+    generate_binary_op(code, regs[0], regs[1], regs[0], op);
+  }
 }
 
 fn always_instruction(instruction: Instr) -> Asm {
@@ -222,12 +235,13 @@ fn generate_unary_temp_default(code: &mut GeneratedCode, reg: Reg, unary_op: &Un
 
 fn generate_binary_op(
   code: &mut GeneratedCode,
+  gen_dst: GenReg,
   gen_reg1: GenReg,
   gen_reg2: GenReg,
   bin_op: &BinaryOper,
 ) {
   // TODO: Briefly explain the pre-condition that you created in the caller
-  let dst = Reg::General(gen_reg1.clone());
+  let dst = Reg::General(gen_dst);
   let reg1 = Reg::General(gen_reg1);
   let reg2 = Reg::General(gen_reg2);
   match bin_op {
