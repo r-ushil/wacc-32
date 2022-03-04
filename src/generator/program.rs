@@ -21,7 +21,7 @@ impl Generatable for Program {
     /* The statement of the program should be compiled as if it is in a
      * function called main, which takes nothing and returns an int exit code */
     Func {
-      ident: String::from("main"),
+      ident: WACC_PROGRAM_MAIN_LABEL.to_string(),
       signature: FuncSig {
         params: Vec::new(),
         return_type: Type::Int,
@@ -52,7 +52,7 @@ impl Generatable for Func {
     assert!(regs == GENERAL_REGS);
 
     // TODO: make this a more robust check
-    let main = self.ident == "main";
+    let main = self.ident == WACC_PROGRAM_MAIN_LABEL;
 
     /* Comments reflect the following example:
     int foo(int x) is
@@ -93,7 +93,7 @@ impl Generatable for Func {
 
     /* Make new 4 byte scope to reserve space for link register. */
     let mut lr_table = SymbolTable::default();
-    lr_table.size = 4;
+    lr_table.size = ARM_DSIZE_WORD;
     let scope = &scope.new_scope(&lr_table);
 
     /* Move into function body scope. */

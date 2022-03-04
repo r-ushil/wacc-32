@@ -1,7 +1,7 @@
 use self::CondCode::*;
 use super::predef::{
-  RequiredPredefs, PREDEF_ARM_DIV, PREDEF_ARM_MOD, PREDEF_CHECK_ARRAY_BOUNDS,
-  PREDEF_DIVIDE_BY_ZERO, PREDEF_THROW_OVERFLOW_ERR,
+  RequiredPredefs, PREDEF_AEABI_IDIV, PREDEF_AEABI_IDIVMOD, PREDEF_CHECK_ARRAY_BOUNDS,
+  PREDEF_CHECK_DIVIDE_BY_ZERO, PREDEF_THROW_OVERFLOW_ERR,
 };
 use super::*;
 use crate::generator::asm::*;
@@ -154,7 +154,7 @@ fn generate_binary_app(
     /* The PUSH instruction above decremented stack pointer,
     so we need to expand symbol table to reflect this. */
     let st = SymbolTable {
-      size: 4,
+      size: ARM_DSIZE_WORD,
       ..Default::default()
     };
 
@@ -349,13 +349,13 @@ fn binary_div_mod(op: BinaryOper, code: &mut GeneratedCode, gen_reg1: GenReg, ge
     RequiredPredefs::DivideByZeroError.mark(code);
     code.text.push(always_instruction(Instr::Branch(
       true,
-      PREDEF_DIVIDE_BY_ZERO.to_string(),
+      PREDEF_CHECK_DIVIDE_BY_ZERO.to_string(),
     )));
 
     /* BL __aeabi_idiv */
     code.text.push(always_instruction(Instr::Branch(
       true,
-      PREDEF_ARM_DIV.to_string(),
+      PREDEF_AEABI_IDIV.to_string(),
     )));
 
     /* MOV reg1, r0 */
@@ -385,13 +385,13 @@ fn binary_div_mod(op: BinaryOper, code: &mut GeneratedCode, gen_reg1: GenReg, ge
     RequiredPredefs::DivideByZeroError.mark(code);
     code.text.push(always_instruction(Instr::Branch(
       true,
-      PREDEF_DIVIDE_BY_ZERO.to_string(),
+      PREDEF_CHECK_DIVIDE_BY_ZERO.to_string(),
     )));
 
     /* BL __aeabi_idivmod */
     code.text.push(always_instruction(Instr::Branch(
       true,
-      PREDEF_ARM_MOD.to_string(),
+      PREDEF_AEABI_IDIVMOD.to_string(),
     )));
 
     /* MOV reg1, r1 */
@@ -517,14 +517,14 @@ impl Generatable for ArrayElem {
         BinaryInstr::Add,
         array_ptr_reg,
         array_ptr_reg,
-        Op2::Imm(4),
+        Op2::Imm(ARM_DSIZE_WORD),
         false,
       )));
 
       /* Move to correct element. */
       let shift = match current_type.size() {
-        4 => 2, /* Hardcoded log_2(current_type.size()) :) */
-        1 => 0,
+        ARM_DSIZE_WORD => 2, /* Hardcoded log_2(current_type.size()) :) */
+        ARM_DSIZE_BYTE => 0,
         /* Elements of sizes not equal to 4 or 1 not implemented. */
         _ => unimplemented!(),
       };
