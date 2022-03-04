@@ -17,6 +17,10 @@ pub const PREDEF_THROW_OVERFLOW_ERR: &str = "p_throw_overflow_error";
 pub const PREDEF_CHECK_NULL_POINTER: &str = "p_check_null_pointer";
 
 pub const PREDEF_CHECK_ARRAY_BOUNDS: &str = "p_check_array_bounds";
+pub const PREDEF_DIVIDE_BY_ZERO: &str = "p_check_divide_by_zero";
+
+pub const PREDEF_ARM_DIV: &str = "__aeabi_idiv";
+pub const PREDEF_ARM_MOD: &str = "__aeabi_idivmod";
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum RequiredPredefs {
