@@ -45,8 +45,6 @@ impl Generatable for Program {
   }
 }
 
-const MAX_OP2_VALUE: i32 = 1024;
-
 impl Generatable for Func {
   type Input = ();
   type Output = ();
@@ -76,20 +74,21 @@ impl Generatable for Func {
     PUSH {lr} */
     code.text.push(Asm::always(Instr::Push(Reg::Link)));
 
+    let body_st_size = self.body_st.size;
+
     /* Allocate space on stack for local vars. */
-    let mut body_st_size = self.body_st.size;
-
-    while body_st_size > 0 {
-      code.text.push(Asm::always(Instr::Binary(
-        BinaryInstr::Sub,
-        Reg::StackPointer,
-        Reg::StackPointer,
-        Op2::Imm(MAX_OP2_VALUE.min(body_st_size)),
-        false,
-      )));
-
-      body_st_size -= MAX_OP2_VALUE;
-    }
+    code.text.append(&mut Op2::imm_unroll(
+      |offset| {
+        Asm::always(Instr::Binary(
+          BinaryInstr::Sub,
+          Reg::StackPointer,
+          Reg::StackPointer,
+          Op2::Imm(offset),
+          false,
+        ))
+      },
+      body_st_size,
+    ));
 
     /* Move into parameter scope. */
     let scope = &scope.new_scope(&self.params_st);
@@ -114,19 +113,20 @@ impl Generatable for Func {
     /* Main function implicitly ends in return 0. */
     if main {
       /* Deallocate stack for main function. */
-      let mut body_st_size = scope.get_total_offset();
+      let body_st_size = scope.get_total_offset();
 
-      while body_st_size > 0 {
-        code.text.push(Asm::always(Instr::Binary(
-          BinaryInstr::Add,
-          Reg::StackPointer,
-          Reg::StackPointer,
-          Op2::Imm(MAX_OP2_VALUE.min(body_st_size)),
-          false,
-        )));
-
-        body_st_size -= MAX_OP2_VALUE;
-      }
+      code.text.append(&mut Op2::imm_unroll(
+        |offset: i32| {
+          Asm::always(Instr::Binary(
+            BinaryInstr::Add,
+            Reg::StackPointer,
+            Reg::StackPointer,
+            Op2::Imm(offset),
+            false,
+          ))
+        },
+        body_st_size,
+      ));
 
       code.text.push(Asm::always(Instr::Load(
         DataSize::Word,

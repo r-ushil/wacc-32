@@ -99,6 +99,7 @@ impl Default for GeneratedCode {
 pub enum Asm {
   Directive(Directive),
   Instr(CondCode, Instr),
+  // Asms(Vec<Asm>),
 }
 
 impl Asm {
@@ -106,7 +107,28 @@ impl Asm {
   pub fn always(i: Instr) -> Asm {
     Asm::Instr(CondCode::AL, i)
   }
+
+  // pub fn binary() {}
+
+  // pub fn add(a: i32, b: i32, c: i32) -> Asm {
+  //   Asm::always(Instr::Pop(Reg::PC))
+  // }
+
+  // pub fn flags()
+
+  // pub fn eq(cond: CondCode, mut asm: Asm) -> Asm {
+  //   match &mut asm {
+  //     Asm::Instr(c, _) => *c = cond,
+  //     _ => panic!("Incorrect shortcut usage."),
+  //   }
+
+  //   asm
+  // }
 }
+
+// fn main() {
+//   let x = Asm::eq(Asm::add(1, 2, 3));
+// }
 
 impl<I> From<I> for Asm
 where
@@ -237,6 +259,8 @@ pub enum BinaryInstr {
 
 /* ======== Helper types for use within assembly representations.  ======== */
 
+pub const OP2_MAX_VALUE: Imm = 1024;
+
 #[derive(PartialEq, Eq, Debug, Clone)]
 // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289851539.htm
 pub enum Op2 {
@@ -244,6 +268,26 @@ pub enum Op2 {
   Char(char),
   /* Register shifted right {Shift} times. */
   Reg(Reg, Shift),
+}
+
+impl Op2 {
+  pub fn imm_unroll<F>(mut instr_builder: F, imm: Imm) -> Vec<Asm>
+  where
+    F: FnMut(Imm) -> Asm,
+  {
+    let asm_count = (imm / OP2_MAX_VALUE).unsigned_abs();
+    let mut asms: Vec<Asm> = Vec::with_capacity(asm_count as usize);
+
+    let imm_sign = imm.signum();
+    let mut imm_abs = imm;
+
+    while imm_abs > 0 {
+      asms.push(instr_builder(imm_sign * OP2_MAX_VALUE.min(imm_abs)));
+      imm_abs -= OP2_MAX_VALUE;
+    }
+
+    asms
+  }
 }
 
 impl From<Imm> for Op2 {
