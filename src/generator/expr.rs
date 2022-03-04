@@ -219,6 +219,13 @@ fn generate_binary_op(code: &mut GeneratedCode, reg1: Reg, reg2: Reg, bin_op: &B
         Op2::Reg(reg1.clone(), 31),
         false,
       )));
+
+      /* BLNE p_throw_overflow_error */
+      code.text.push(Asm::Instr(
+        CondCode::NE,
+        Instr::Branch(true, String::from("p_throw_overflow_error")),
+      ));
+      RequiredPredefs::OverflowError.mark(code);
     }
     BinaryOper::Div => binary_div_mod(BinaryOper::Div, code, reg1, reg2),
     BinaryOper::Mod => binary_div_mod(BinaryOper::Mod, code, reg1, reg2),
