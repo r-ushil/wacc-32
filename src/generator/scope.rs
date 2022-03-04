@@ -18,29 +18,6 @@ pub struct Scope<'a> {
   context: Option<(ContextLocation, &'a Scope<'a>)>,
 }
 
-/* Makes a new SymbolTable same as the old, but all
-of the symbols are renamed according to the global rename rule. */
-fn rename_st(st: &SymbolTable) -> SymbolTable {
-  let mut new_st = SymbolTable {
-    table: HashMap::new(),
-    size: st.size,
-    prefix: st.prefix.clone(),
-  };
-
-  for (id, (t, offset)) in st.table.iter() {
-    let new_id = if let Type::Func(_) = t {
-      id.clone()
-    } else {
-      format!("{}{}", st.prefix, offset)
-    };
-
-    new_st.table.insert(new_id, (t.clone(), *offset));
-  }
-
-  new_st
-}
-
-#[allow(dead_code)]
 impl Scope<'_> {
   /* Makes new Symbol table with initial global scope. */
   pub fn new<'a>(st: &'a SymbolTable) -> Scope<'a> {

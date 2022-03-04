@@ -1,10 +1,7 @@
-use super::{display::unescape_char, predef::RequiredPredefs, Generatable};
-use std::fs::File;
+use super::{display::unescape_char, predef::RequiredPredefs};
 
 /* ======== Type aliases. ======== */
 
-/* r4, r5, r0, ... */
-pub type RegNum = u8;
 /* An immediate value. */
 pub type Imm = i32;
 /* A location which can be branched to. */
@@ -73,10 +70,6 @@ impl GeneratedCode {
       .push(Asm::Directive(Ascii(escaped_content.to_string())));
 
     label
-  }
-
-  pub fn asm<I: Into<Asm>>(&mut self, i: I) {
-    self.text.push(i.into())
   }
 }
 
@@ -153,7 +146,7 @@ pub enum Directive {
 pub enum AddressingMode {
   Default,
   PreIndexed,
-  PostIndexed,
+  // PostIndexed,  unused
 }
 
 /* ======== Instructions! ======== */
@@ -310,7 +303,7 @@ pub enum ArgReg {
   R0,
   R1,
   R2,
-  R3,
+  // R3, unused
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
@@ -324,8 +317,6 @@ pub enum GenReg {
   R10,
   R11,
 }
-
-pub const ARGUMENT_REGS: [ArgReg; 4] = [ArgReg::R0, ArgReg::R1, ArgReg::R2, ArgReg::R3];
 
 /* General purpose registers usable for expression evaluation. */
 pub const GENERAL_REGS: [GenReg; 8] = [
@@ -344,24 +335,18 @@ pub enum CondCode {
   EQ,
   NE,
   CS,
-  HS,
-  CC,
-  LO,
-  MI,
-  PL,
+  // HS, unused
+  // CC, unused
+  // LO, unused
+  // MI, unused
+  // PL, unused
   VS,
-  VC,
-  HI,
-  LS,
+  // VC, unused
+  // HI, unused
+  // LS, unused
   GE,
   LT,
   GT,
   LE,
   AL,
-}
-
-#[derive(PartialEq, Eq, Debug, Clone)]
-pub enum Load {
-  Imm(Imm),
-  Label(Label),
 }

@@ -17,13 +17,16 @@ pub const PREDEF_THROW_OVERFLOW_ERR: &str = "p_throw_overflow_error";
 pub const PREDEF_CHECK_NULL_POINTER: &str = "p_check_null_pointer";
 
 pub const PREDEF_CHECK_ARRAY_BOUNDS: &str = "p_check_array_bounds";
+pub const PREDEF_DIVIDE_BY_ZERO: &str = "p_check_divide_by_zero";
+
+pub const PREDEF_ARM_DIV: &str = "__aeabi_idiv";
+pub const PREDEF_ARM_MOD: &str = "__aeabi_idivmod";
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum RequiredPredefs {
   PrintInt,
   PrintString,
   PrintBool,
-  PrintChar,
   PrintRefs,
   PrintLn,
   ReadChar,
@@ -50,12 +53,11 @@ impl RequiredPredefs {
 impl Generatable for RequiredPredefs {
   type Input = ();
   type Output = ();
-  fn generate(&self, _scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], aux: ()) {
+  fn generate(&self, _scope: &Scope, code: &mut GeneratedCode, _regs: &[GenReg], _aux: ()) {
     match *self {
       RequiredPredefs::PrintInt => print_int_or_ref(code, PrintFmt::Int),
       RequiredPredefs::PrintString => print_string(code),
       RequiredPredefs::PrintBool => print_bool(code),
-      RequiredPredefs::PrintChar => todo!(), // TODO: Implement
       RequiredPredefs::PrintRefs => print_int_or_ref(code, PrintFmt::Ref),
       RequiredPredefs::PrintLn => println(code),
       RequiredPredefs::ReadChar => read(code, ReadFmt::Char),
