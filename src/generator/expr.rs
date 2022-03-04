@@ -345,14 +345,14 @@ fn binary_div_mod(op: BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2: Reg
       UnaryInstr::Mov,
       Reg::RegNum(0),
       Op2::Reg(reg1, 0),
-      true,
+      false,
     )));
     /* MOV r1, reg2 */
     code.text.push(always_instruction(Instr::Unary(
       UnaryInstr::Mov,
       Reg::RegNum(1),
       Op2::Reg(reg2, 0),
-      true,
+      false,
     )));
 
     /* BL p_check_divide_by_zero */
@@ -368,11 +368,11 @@ fn binary_div_mod(op: BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2: Reg
       String::from("__aeabi_idivmod"),
     )));
 
-    /* MOV reg1, r0 */
+    /* MOV reg1, r1 */
     code.text.push(always_instruction(Instr::Unary(
       UnaryInstr::Mov,
       reg1,
-      Op2::Reg(Reg::RegNum(0), 0),
+      Op2::Reg(Reg::RegNum(1), 0),
       false,
     )));
   } else {
