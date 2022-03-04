@@ -27,15 +27,15 @@ fn func(scope: &ScopeBuilder, errors: &mut Vec<SemanticError>, func: &mut Func) 
           t, func.signature.return_type
         )),
       );
-      return None;
+      None
     }
     AtEnd(_) => Some(()),
     _ => {
       scope.add_error(
         errors,
-        SemanticError::Syntax(format!("The last statement should be a return or exit.")),
+        SemanticError::Syntax("The last statement should be a return or exit.".to_string()),
       );
-      return None;
+      None
     }
   }
 }
@@ -58,11 +58,11 @@ pub fn program(errors: &mut Vec<SemanticError>, program: &mut Program) -> Option
   }
 
   /* Program body must never return, but it can exit. */
-  match scoped_stat(&mut scope, errors, &mut program.statement)? {
+  match scoped_stat(&scope, errors, &mut program.statement)? {
     MidWay(t) | AtEnd(t) if t != Type::Any => {
       scope.add_error(
         errors,
-        SemanticError::Normal(format!("Cannot have 'return' statement in main")),
+        SemanticError::Normal("Cannot have 'return' statement in main".to_string()),
       );
       None
     }
@@ -109,7 +109,7 @@ mod tests {
 
     /* Can compare parameter type with return type. */
     /* bool double(int x) is return x end */
-    let mut f2 = f.clone();
+    let mut f2 = f;
     f2.signature.return_type = Type::Bool;
     f2.body = Stat::Return(Expr::Ident(String::from("x")));
     assert!(func(scope, &mut vec![], &mut f2).is_none());
@@ -192,7 +192,7 @@ mod tests {
       if true then return true else skip fi;
       return 5
     end*/
-    let mut f6 = f.clone();
+    let mut f6 = f;
     f6.body = Stat::Sequence(
       Box::new(Stat::If(
         Expr::BoolLiter(true),

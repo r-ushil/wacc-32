@@ -148,16 +148,16 @@ mod tests {
 
   #[test]
   fn test_ident() {
-    assert!(matches!(ident("_hello123"), Ok(("", ast)) if ast == "_hello123".to_string()));
+    assert!(matches!(ident("_hello123"), Ok(("", ast)) if ast == *"_hello123"));
     assert!(matches!(
       ident("_hello123 test"),
-      Ok(("test", ast)) if ast == ("_hello123".to_string())));
+      Ok(("test", ast)) if ast == *"_hello123"));
     assert!(ident("9test").is_err());
-    assert!(matches!(ident("te@st"), Ok(("@st", ast)) if ast == "te".to_string()));
+    assert!(matches!(ident("te@st"), Ok(("@st", ast)) if ast == *"te"));
 
     assert!(ident("read").is_err());
     assert!(ident("begin").is_err());
-    assert!(matches!(ident("lenx"), Ok(("", ast)) if ast == "lenx".to_string()));
+    assert!(matches!(ident("lenx"), Ok(("", ast)) if ast == *"lenx"));
   }
 
   #[test]

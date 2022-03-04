@@ -22,7 +22,7 @@ pub struct ScopeReader<'a> {
 
 impl ScopeReader<'_> {
   /* Makes new Symbol table with initial global scope. */
-  pub fn new<'a>(st: &'a SymbolTable) -> ScopeReader<'a> {
+  pub fn new(st: &SymbolTable) -> ScopeReader<'_> {
     /* When symbol tables are used in the analyser, they're used by callers
     who only have the origional idents the programmer gave to them, now we're
     in code General, the global rename has been done to the whole AST.

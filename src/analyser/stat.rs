@@ -37,10 +37,7 @@ impl HasType for AssignRhs {
         if let (Some(lhs_type), Some(rhs_type)) =
           (e1.get_type(scope, errors), e2.get_type(scope, errors))
         {
-          Some(Type::Pair(
-            Box::new(lhs_type.clone()),
-            Box::new(rhs_type.clone()),
-          ))
+          Some(Type::Pair(Box::new(lhs_type), Box::new(rhs_type)))
         } else {
           None
         }
@@ -66,7 +63,9 @@ impl HasType for AssignRhs {
             if params.len() != args.len() {
               scope.add_error(
                 errors,
-                SemanticError::Normal(format!("Function called with wrong amount of arguments.")),
+                SemanticError::Normal(
+                  "Function called with wrong amount of arguments.".to_string(),
+                ),
               );
               errored = true;
             }
@@ -80,7 +79,7 @@ impl HasType for AssignRhs {
               {
                 scope.add_error(
                   errors,
-                  SemanticError::Normal(format!("Incorrect type passed to function.")),
+                  SemanticError::Normal("Incorrect type passed to function.".to_string()),
                 );
                 errored = true;
               }
@@ -116,7 +115,9 @@ impl HasType for PairElem {
           Type::Any => {
             scope.add_error(
               errors,
-              SemanticError::Normal(format!("TYPE ERROR:\n\tExpected: BaseType\n\tActual: Null")),
+              SemanticError::Normal(
+                "TYPE ERROR:\n\tExpected: BaseType\n\tActual: Null".to_string(),
+              ),
             );
             None
           }
@@ -138,7 +139,9 @@ impl HasType for PairElem {
           Type::Any => {
             scope.add_error(
               errors,
-              SemanticError::Normal(format!("TYPE ERROR:\n\tExpected: BaseType\n\tActual: Null")),
+              SemanticError::Normal(
+                "TYPE ERROR:\n\tExpected: BaseType\n\tActual: Null".to_string(),
+              ),
             );
             None
           }
@@ -209,7 +212,7 @@ pub fn stat(
     Stat::Skip => Some(Never), /* Skips never return. */
     Stat::Declaration(expected, id, val) => {
       if let (Some(_), Some(new_id)) = (
-        expected_type(scope, errors, &expected, val),
+        expected_type(scope, errors, expected, val),
         /* Adds identifier to symbol table. */
         scope.insert(id, expected.clone()),
       ) {
@@ -235,7 +238,7 @@ pub fn stat(
         _ => {
           scope.add_error(
             errors,
-            SemanticError::Normal(format!("Read statements must read char or int.")),
+            SemanticError::Normal("Read statements must read char or int.".to_string()),
           );
           None
         } /*  */
@@ -290,9 +293,9 @@ pub fn stat(
         if !true_behaviour.same_return(&false_behaviour) {
           scope.add_error(
             errors,
-            SemanticError::Normal(format!(
-              "Branches of if statement return values of different types."
-            )),
+            SemanticError::Normal(
+              "Branches of if statement return values of different types.".to_string(),
+            ),
           );
           return None;
         }
@@ -369,7 +372,7 @@ mod tests {
     scope.insert(&x_id, x_type.clone()).unwrap();
     assert_eq!(
       AssignLhs::Ident(x_id.clone()).get_type(scope, &mut vec![]),
-      Some(x_type.clone())
+      Some(x_type)
     );
 
     assert!(

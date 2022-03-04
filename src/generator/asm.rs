@@ -65,9 +65,7 @@ impl GeneratedCode {
     self.data.push(Asm::Directive(Word(content.len())));
 
     /* .ascii "%c\0" */
-    self
-      .data
-      .push(Asm::Directive(Ascii(escaped_content.to_string())));
+    self.data.push(Asm::Directive(Ascii(escaped_content)));
 
     label
   }

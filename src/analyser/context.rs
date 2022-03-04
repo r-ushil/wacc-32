@@ -28,7 +28,7 @@ pub struct ScopeBuilder<'a> {
 #[allow(dead_code)]
 impl ScopeBuilder<'_> {
   /* Makes new Symbol table with initial global scope. */
-  pub fn new<'a>(symbol_table: &'a mut SymbolTable) -> ScopeBuilder<'a> {
+  pub fn new(symbol_table: &mut SymbolTable) -> ScopeBuilder<'_> {
     /* This is base symbol table, depth = 0. */
     symbol_table.prefix = String::new();
 
@@ -106,7 +106,7 @@ impl ScopeBuilder<'_> {
 mod tests {
   use super::*;
 
-  fn make_scope<'a>(symbol_table: &'a mut SymbolTable) -> ScopeBuilder<'a> {
+  fn make_scope(symbol_table: &mut SymbolTable) -> ScopeBuilder<'_> {
     let mut scope = ScopeBuilder::new(symbol_table);
 
     for i in 0..4 {
