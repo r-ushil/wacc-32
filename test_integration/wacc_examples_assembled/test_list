@@ -31,7 +31,7 @@
 ../wacc_examples/valid/expressions/greaterEqExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/greaterEqExpr.s,./wacc_examples_assembled/valid/expressions/greaterEqExpr.s,pass
 ../wacc_examples/valid/expressions/greaterExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/greaterExpr.s,./wacc_examples_assembled/valid/expressions/greaterExpr.s,pass
 ../wacc_examples/valid/expressions/intCalc.wacc,./wacc_examples_assembled_ours/valid/expressions/intCalc.s,./wacc_examples_assembled/valid/expressions/intCalc.s,pass
-../wacc_examples/valid/expressions/intExpr1.wacc,./wacc_examples_assembled_ours/valid/expressions/intExpr1.s,./wacc_examples_assembled/valid/expressions/intExpr1.s,fail
+../wacc_examples/valid/expressions/intExpr1.wacc,./wacc_examples_assembled_ours/valid/expressions/intExpr1.s,./wacc_examples_assembled/valid/expressions/intExpr1.s,pass
 ../wacc_examples/valid/expressions/lessCharExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/lessCharExpr.s,./wacc_examples_assembled/valid/expressions/lessCharExpr.s,pass
 ../wacc_examples/valid/expressions/lessEqExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/lessEqExpr.s,./wacc_examples_assembled/valid/expressions/lessEqExpr.s,pass
 ../wacc_examples/valid/expressions/lessExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/lessExpr.s,./wacc_examples_assembled/valid/expressions/lessExpr.s,pass
@@ -45,8 +45,8 @@
 ../wacc_examples/valid/expressions/minusNoWhitespaceExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/minusNoWhitespaceExpr.s,./wacc_examples_assembled/valid/expressions/minusNoWhitespaceExpr.s,pass
 ../wacc_examples/valid/expressions/minusPlusExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/minusPlusExpr.s,./wacc_examples_assembled/valid/expressions/minusPlusExpr.s,pass
 ../wacc_examples/valid/expressions/modExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/modExpr.s,./wacc_examples_assembled/valid/expressions/modExpr.s,fail
-../wacc_examples/valid/expressions/multExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/multExpr.s,./wacc_examples_assembled/valid/expressions/multExpr.s,fail
-../wacc_examples/valid/expressions/multNoWhitespaceExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/multNoWhitespaceExpr.s,./wacc_examples_assembled/valid/expressions/multNoWhitespaceExpr.s,fail
+../wacc_examples/valid/expressions/multExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/multExpr.s,./wacc_examples_assembled/valid/expressions/multExpr.s,pass
+../wacc_examples/valid/expressions/multNoWhitespaceExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/multNoWhitespaceExpr.s,./wacc_examples_assembled/valid/expressions/multNoWhitespaceExpr.s,pass
 ../wacc_examples/valid/expressions/negBothDiv.wacc,./wacc_examples_assembled_ours/valid/expressions/negBothDiv.s,./wacc_examples_assembled/valid/expressions/negBothDiv.s,pass
 ../wacc_examples/valid/expressions/negBothMod.wacc,./wacc_examples_assembled_ours/valid/expressions/negBothMod.s,./wacc_examples_assembled/valid/expressions/negBothMod.s,fail
 ../wacc_examples/valid/expressions/negDividendDiv.wacc,./wacc_examples_assembled_ours/valid/expressions/negDividendDiv.s,./wacc_examples_assembled/valid/expressions/negDividendDiv.s,pass
@@ -141,9 +141,9 @@
 ../wacc_examples/valid/runtimeErr/divideByZero/divZero.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/divideByZero/divZero.s,./wacc_examples_assembled/valid/runtimeErr/divideByZero/divZero.s,pass
 ../wacc_examples/valid/runtimeErr/divideByZero/modByZero.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/divideByZero/modByZero.s,./wacc_examples_assembled/valid/runtimeErr/divideByZero/modByZero.s,fail
 ../wacc_examples/valid/runtimeErr/integerOverflow/intJustOverflow.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/integerOverflow/intJustOverflow.s,./wacc_examples_assembled/valid/runtimeErr/integerOverflow/intJustOverflow.s,pass
-../wacc_examples/valid/runtimeErr/integerOverflow/intmultOverflow.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/integerOverflow/intmultOverflow.s,./wacc_examples_assembled/valid/runtimeErr/integerOverflow/intmultOverflow.s,fail
-../wacc_examples/valid/runtimeErr/integerOverflow/intnegateOverflow2.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/integerOverflow/intnegateOverflow2.s,./wacc_examples_assembled/valid/runtimeErr/integerOverflow/intnegateOverflow2.s,fail
-../wacc_examples/valid/runtimeErr/integerOverflow/intnegateOverflow3.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/integerOverflow/intnegateOverflow3.s,./wacc_examples_assembled/valid/runtimeErr/integerOverflow/intnegateOverflow3.s,fail
+../wacc_examples/valid/runtimeErr/integerOverflow/intmultOverflow.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/integerOverflow/intmultOverflow.s,./wacc_examples_assembled/valid/runtimeErr/integerOverflow/intmultOverflow.s,pass
+../wacc_examples/valid/runtimeErr/integerOverflow/intnegateOverflow2.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/integerOverflow/intnegateOverflow2.s,./wacc_examples_assembled/valid/runtimeErr/integerOverflow/intnegateOverflow2.s,pass
+../wacc_examples/valid/runtimeErr/integerOverflow/intnegateOverflow3.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/integerOverflow/intnegateOverflow3.s,./wacc_examples_assembled/valid/runtimeErr/integerOverflow/intnegateOverflow3.s,pass
 ../wacc_examples/valid/runtimeErr/integerOverflow/intnegateOverflow4.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/integerOverflow/intnegateOverflow4.s,./wacc_examples_assembled/valid/runtimeErr/integerOverflow/intnegateOverflow4.s,pass
 ../wacc_examples/valid/runtimeErr/integerOverflow/intnegateOverflow.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/integerOverflow/intnegateOverflow.s,./wacc_examples_assembled/valid/runtimeErr/integerOverflow/intnegateOverflow.s,fail
 ../wacc_examples/valid/runtimeErr/integerOverflow/intUnderflow.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/integerOverflow/intUnderflow.s,./wacc_examples_assembled/valid/runtimeErr/integerOverflow/intUnderflow.s,pass
