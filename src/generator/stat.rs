@@ -67,9 +67,10 @@ fn generate_malloc(bytes: i32, code: &mut GeneratedCode, reg: Reg) {
   )));
 
   /* BL malloc */
-  code
-    .text
-    .push(Asm::always(Instr::Branch(true, String::from("malloc"))));
+  code.text.push(Asm::always(Instr::Branch(
+    true,
+    predef::PREDEF_SYS_MALLOC.to_string(),
+  )));
 
   /* MOV {regs[0]}, r0 */
   if reg != Reg::Arg(ArgReg::R0) {
