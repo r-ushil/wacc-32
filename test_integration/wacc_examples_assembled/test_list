@@ -184,7 +184,7 @@
 ../wacc_examples/valid/variables/emptyStringDeclaration.wacc,./wacc_examples_assembled_ours/valid/variables/emptyStringDeclaration.s,./wacc_examples_assembled/valid/variables/emptyStringDeclaration.s,pass
 ../wacc_examples/valid/variables/intDeclaration.wacc,./wacc_examples_assembled_ours/valid/variables/intDeclaration.s,./wacc_examples_assembled/valid/variables/intDeclaration.s,pass
 ../wacc_examples/valid/variables/longVarNames.wacc,./wacc_examples_assembled_ours/valid/variables/longVarNames.s,./wacc_examples_assembled/valid/variables/longVarNames.s,pass
-../wacc_examples/valid/variables/manyVariables.wacc,./wacc_examples_assembled_ours/valid/variables/manyVariables.s,./wacc_examples_assembled/valid/variables/manyVariables.s,fail
+../wacc_examples/valid/variables/manyVariables.wacc,./wacc_examples_assembled_ours/valid/variables/manyVariables.s,./wacc_examples_assembled/valid/variables/manyVariables.s,pass
 ../wacc_examples/valid/variables/negIntDeclaration.wacc,./wacc_examples_assembled_ours/valid/variables/negIntDeclaration.s,./wacc_examples_assembled/valid/variables/negIntDeclaration.s,pass
 ../wacc_examples/valid/variables/puncCharDeclaration.wacc,./wacc_examples_assembled_ours/valid/variables/puncCharDeclaration.s,./wacc_examples_assembled/valid/variables/puncCharDeclaration.s,pass
 ../wacc_examples/valid/variables/stringDeclaration.wacc,./wacc_examples_assembled_ours/valid/variables/stringDeclaration.s,./wacc_examples_assembled/valid/variables/stringDeclaration.s,pass
