@@ -14,7 +14,7 @@ impl Generatable for AssignLhs {
   this Lhs. Also returns how much data is stored at said address. */
   fn generate(
     &self,
-    scope: &Scope,
+    scope: &ScopeReader,
     code: &mut GeneratedCode,
     regs: &[GenReg],
     t: Type,
@@ -68,7 +68,7 @@ impl Generatable for AssignRhs {
   type Input = Type;
   type Output = ();
 
-  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], t: Type) {
+  fn generate(&self, scope: &ScopeReader, code: &mut GeneratedCode, regs: &[GenReg], t: Type) {
     match self {
       AssignRhs::Expr(expr) => expr.generate(scope, code, regs, ()),
       AssignRhs::ArrayLiter(ArrayLiter(exprs)) => {
@@ -252,7 +252,7 @@ impl Generatable for PairElem {
   /* Puts the address of the element in regs[0], returns size pointed to. */
   fn generate(
     &self,
-    scope: &Scope,
+    scope: &ScopeReader,
     code: &mut GeneratedCode,
     regs: &[GenReg],
     _aux: (),
@@ -294,7 +294,7 @@ impl Generatable for PairElem {
 impl Generatable for ScopedStat {
   type Input = ();
   type Output = ();
-  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], _aux: ()) {
+  fn generate(&self, scope: &ScopeReader, code: &mut GeneratedCode, regs: &[GenReg], _aux: ()) {
     let ScopedStat(st, statement) = self;
 
     /* Allocate space on stack for variables declared in this scope. */
@@ -334,7 +334,7 @@ impl Generatable for ScopedStat {
 }
 
 fn generate_stat_declaration(
-  scope: &Scope,
+  scope: &ScopeReader,
   code: &mut GeneratedCode,
   regs: &[GenReg],
   t: &Type,
@@ -350,7 +350,7 @@ fn generate_stat_declaration(
 }
 
 fn generate_stat_assignment(
-  scope: &Scope,
+  scope: &ScopeReader,
   code: &mut GeneratedCode,
   regs: &[GenReg],
   lhs: &AssignLhs,
@@ -371,7 +371,7 @@ fn generate_stat_assignment(
 }
 
 fn generate_stat_read(
-  scope: &Scope,
+  scope: &ScopeReader,
   code: &mut GeneratedCode,
   regs: &[GenReg],
   type_: &Type,
@@ -418,7 +418,7 @@ fn generate_stat_read(
 }
 
 fn generate_stat_free(
-  scope: &Scope,
+  scope: &ScopeReader,
   code: &mut GeneratedCode,
   regs: &[GenReg],
   t: &Type,
@@ -459,7 +459,12 @@ fn generate_stat_free(
   }
 }
 
-fn generate_stat_return(scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], expr: &Expr) {
+fn generate_stat_return(
+  scope: &ScopeReader,
+  code: &mut GeneratedCode,
+  regs: &[GenReg],
+  expr: &Expr,
+) {
   /* regs[0] = eval(expr) */
   expr.generate(scope, code, regs, ());
 
@@ -496,7 +501,7 @@ fn generate_stat_return(scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg]
     .push(Asm::Instr(CondCode::AL, Instr::Pop(Reg::PC)));
 }
 
-fn generate_stat_exit(scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], expr: &Expr) {
+fn generate_stat_exit(scope: &ScopeReader, code: &mut GeneratedCode, regs: &[GenReg], expr: &Expr) {
   /* regs[0] = eval(expr) */
   expr.generate(scope, code, regs, ());
 
@@ -519,7 +524,7 @@ fn generate_stat_exit(scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], 
 }
 
 fn generate_stat_print(
-  scope: &Scope,
+  scope: &ScopeReader,
   code: &mut GeneratedCode,
   regs: &[GenReg],
   t: &Type,
@@ -565,7 +570,7 @@ fn generate_stat_print(
 }
 
 fn generate_stat_println(
-  scope: &Scope,
+  scope: &ScopeReader,
   code: &mut GeneratedCode,
   regs: &[GenReg],
   t: &Type,
@@ -582,7 +587,7 @@ fn generate_stat_println(
 }
 
 fn generate_stat_if(
-  scope: &Scope,
+  scope: &ScopeReader,
   code: &mut GeneratedCode,
   regs: &[GenReg],
   cond: &Expr,
@@ -627,7 +632,7 @@ fn generate_stat_if(
 }
 
 fn generate_stat_while(
-  scope: &Scope,
+  scope: &ScopeReader,
   code: &mut GeneratedCode,
   regs: &[GenReg],
   cond: &Expr,
@@ -668,7 +673,7 @@ fn generate_stat_while(
 }
 
 fn generate_stat_scope(
-  scope: &Scope,
+  scope: &ScopeReader,
   code: &mut GeneratedCode,
   regs: &[GenReg],
   stat: &ScopedStat,
@@ -677,7 +682,7 @@ fn generate_stat_scope(
 }
 
 fn generate_stat_sequence(
-  scope: &Scope,
+  scope: &ScopeReader,
   code: &mut GeneratedCode,
   regs: &[GenReg],
   head: &Stat,
@@ -690,7 +695,7 @@ fn generate_stat_sequence(
 impl Generatable for Stat {
   type Input = ();
   type Output = ();
-  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], _aux: ()) {
+  fn generate(&self, scope: &ScopeReader, code: &mut GeneratedCode, regs: &[GenReg], _aux: ()) {
     match self {
       Stat::Skip => (),
       Stat::Declaration(t, id, rhs) => generate_stat_declaration(scope, code, regs, t, id, rhs),
@@ -716,7 +721,7 @@ mod tests {
   #[test]
   fn exit_statement() {
     let symbol_table = SymbolTable::default();
-    let scope = &Scope::new(&symbol_table);
+    let scope = &ScopeReader::new(&symbol_table);
     let expr = Expr::IntLiter(0);
     let stat = Stat::Exit(expr.clone());
     let regs = &GENERAL_REGS;

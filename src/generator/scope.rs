@@ -9,18 +9,18 @@ use crate::ast::*;
 pub use context::SymbolTable;
 
 #[derive(Debug)]
-pub struct Scope<'a> {
+pub struct ScopeReader<'a> {
   /* Maps identifiers to types for each variable declared in this scope. */
-  symbol_table: SymbolTable,
+  current: SymbolTable,
   /* The scope this scope is inside of,
   and where abouts within that scope it is. */
   /* context: None means this is the global scope. */
-  context: Option<&'a Scope<'a>>,
+  parents: Option<&'a ScopeReader<'a>>,
 }
 
-impl Scope<'_> {
+impl ScopeReader<'_> {
   /* Makes new Symbol table with initial global scope. */
-  pub fn new<'a>(st: &'a SymbolTable) -> Scope<'a> {
+  pub fn new<'a>(st: &'a SymbolTable) -> ScopeReader<'a> {
     /* When symbol tables are used in the analyser, they're used by callers
     who only have the origional idents the programmer gave to them, now we're
     in code General, the global rename has been done to the whole AST.
@@ -48,55 +48,55 @@ impl Scope<'_> {
       new_st.table.insert(new_id, (t.clone(), *offset));
     }
 
-    Scope {
-      symbol_table: new_st,
-      context: None,
+    ScopeReader {
+      current: new_st,
+      parents: None,
     }
   }
 
   /* Returns type of given ident */
   pub fn get_type(&self, ident: &Ident) -> Option<&Type> {
-    match self.symbol_table.table.get(ident) {
+    match self.current.table.get(ident) {
       /* Identifier declared in this scope, return. */
       Some((t, _)) => Some(t),
       /* Look for identifier in parent scope, recurse. */
-      None => self.context?.get_type(ident),
+      None => self.parents?.get_type(ident),
     }
   }
 
   pub fn get_offset(&self, ident: &Ident) -> Option<Offset> {
-    match self.symbol_table.table.get(ident) {
+    match self.current.table.get(ident) {
       /* Identifier declared in this scope, return. */
-      Some((_, base_offset)) => Some(self.symbol_table.size - base_offset),
+      Some((_, base_offset)) => Some(self.current.size - base_offset),
       /* Look for identifier in parent scope, recurse. */
-      None => Some(self.context?.get_offset(ident)? + self.symbol_table.size),
+      None => Some(self.parents?.get_offset(ident)? + self.current.size),
     }
   }
 
   /* Same as get_type, but only checks the bottom most table. */
   pub fn get_bottom(&self, ident: &Ident) -> Option<&Type> {
-    match self.context {
+    match self.parents {
       Some(parent) => parent.get_bottom(ident),
-      None => Some(&self.symbol_table.table.get(ident)?.0),
+      None => Some(&self.current.table.get(ident)?.0),
     }
   }
 
   pub fn get_total_offset(&self) -> Offset {
-    if self.symbol_table.table.is_empty() && self.symbol_table.size == 4 {
+    if self.current.table.is_empty() && self.current.size == 4 {
       /* When there are no symbols but the scope is 4 bytes long, we're at the
       scope used to reserve space for the lr register. */
       0
     } else {
       /* Otherwise, add the size of this scope and all the above scopes. */
-      self.symbol_table.size + self.context.unwrap().get_total_offset()
+      self.current.size + self.parents.unwrap().get_total_offset()
     }
   }
 
-  pub fn new_scope<'a>(&'a self, symbol_table: &'a SymbolTable) -> Scope<'a> {
-    let mut st = Scope::new(symbol_table);
+  pub fn new_scope<'a>(&'a self, symbol_table: &'a SymbolTable) -> ScopeReader<'a> {
+    let mut st = ScopeReader::new(symbol_table);
 
     /* The parent of the returned scope is the caller. */
-    st.context = Some(self);
+    st.parents = Some(self);
 
     st
   }
