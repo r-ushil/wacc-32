@@ -227,7 +227,7 @@ fn generate_binary_op(
   gen_reg2: GenReg,
   bin_op: &BinaryOper,
 ) {
-  let dst = Reg::General(gen_reg1.clone());
+  let dst = Reg::General(gen_dst);
   let reg1 = Reg::General(gen_reg1);
   let reg2 = Reg::General(gen_reg2);
 
