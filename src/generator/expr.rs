@@ -138,9 +138,6 @@ fn generate_binary_app(
   if regs.len() > MIN_STACK_MACHINE_REGS {
     /* Haven't run out of registers, evaluate normally. */
     expr2.generate(scope, code, &regs[1..], ());
-
-    /* regs[0] = regs[0] <op> regs[1] */
-    generate_binary_op(code, regs[0], regs[0], regs[1], op);
   } else {
     /* Save regs[0] so we can use it for evaluating LHS. */
     code
