@@ -73,11 +73,10 @@ fn expr_binary_app(prec: u8, input: &str) -> IResult<&str, Expr, ErrorTree<&str>
 
   let term = |i| expr_binary_app(prec - 1, i);
 
-  let (input, mut lhs) = term(input)?;
+  let (mut input, mut lhs) = term(input)?;
 
-  let (input, terms) = many0(pair(binary_oper_prec(prec), term))(input)?;
-
-  for (op, rhs) in terms {
+  while let Ok((i, (op, rhs))) = pair(binary_oper_prec(prec), term)(input) {
+    input = i;
     lhs = Expr::BinaryApp(Box::new(lhs), op, Box::new(rhs));
   }
 
