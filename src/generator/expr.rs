@@ -127,11 +127,17 @@ fn generate_binary_app(
   op: &BinaryOper,
   expr2: &Box<Expr>,
 ) {
+  assert!(regs.len() >= 2);
+
   /* regs[0] = eval(expr1) */
   expr1.generate(scope, code, regs, ());
-
-  /* regs[1] = eval(expr2) */
-  expr2.generate(scope, code, &regs[1..], ());
+  if regs.len() > 2 {
+    expr2.generate(scope, code, &regs[1..], ());
+  } else {
+    code.text.push(Asm::always(Instr::Push(regs[0])));
+    expr2.generate(scope, code, regs, ());
+    code.text.push(Asm::always(Instr::Pop(regs[1])));
+  }
 
   /* regs[0] = regs[0] <op> regs[1] */
   generate_binary_op(code, regs[0], regs[1], op);
