@@ -118,7 +118,10 @@ impl<T: HasType> HasType for Box<T> {
 impl HasType for Ident {
   fn get_type(&mut self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
     match scope.get_type(self) {
-      Some(t) => Some(t.clone()),
+      Some((t, new_id)) => {
+        *self = new_id;
+        Some(t.clone())
+      }
       None => {
         scope.add_error(
           errors,

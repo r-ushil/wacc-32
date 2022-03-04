@@ -20,6 +20,8 @@ pub struct SymbolTable {
   pub table: HashMap<Ident, (Type, Offset)>,
   /* Sum of offsets in table */
   pub size: Offset,
+  /* How many symbol tables are above us. */
+  pub prefix: String,
 }
 
 #[derive(Debug)]
@@ -36,6 +38,10 @@ pub struct ScopeMut<'a> {
 impl ScopeMut<'_> {
   /* Makes new Symbol table with initial global scope. */
   pub fn new<'a>(symbol_table: &'a mut SymbolTable) -> ScopeMut<'a> {
+    /* This is base symbol table, depth = 0. */
+    symbol_table.prefix = String::new();
+
+    /*  */
     ScopeMut {
       symbol_table,
       context: None,
@@ -53,10 +59,13 @@ impl ScopeMut<'_> {
   }
 
   /* Returns type of given ident */
-  pub fn get_type(&self, ident: &Ident) -> Option<&Type> {
+  pub fn get_type(&self, ident: &Ident) -> Option<(&Type, Ident)> {
     match self.symbol_table.table.get(ident) {
       /* Identifier declared in this scope, return. */
-      Some((t, _)) => Some(t),
+      Some((t, offset)) => {
+        let new_id = format!("{}{}", self.symbol_table.prefix, offset);
+        Some((t, new_id))
+      }
       /* Look for identifier in parent scope, recurse. */
       None => self.context?.1.get_type(ident),
     }
@@ -73,7 +82,7 @@ impl ScopeMut<'_> {
 
   /* Sets type of ident to val, if ident already exists, updates it and
   returns old value. */
-  pub fn insert(&mut self, ident: &Ident, val: Type) -> Option<()> {
+  pub fn insert(&mut self, ident: &Ident, val: Type) -> Option<Ident> {
     /* Stackframe will be increased in size by val bytes */
     self.symbol_table.size += val.size();
 
@@ -87,11 +96,14 @@ impl ScopeMut<'_> {
       Some(_) => None,
       /* No conflict, first time this identifier used in this scope, return
       unit signifiying success. */
-      None => Some(()),
+      None => Some(format!("{}{}", self.symbol_table.prefix, offset)),
     }
   }
 
   pub fn new_scope<'a>(&'a self, symbol_table: &'a mut SymbolTable) -> ScopeMut<'a> {
+    /* Every time we enter a new scope, add another _ to all the variable names. */
+    symbol_table.prefix = format!("{}_", self.symbol_table.prefix);
+
     ScopeMut {
       symbol_table,
       context: Some((ContextLocation::Scope, self)),
@@ -124,9 +136,18 @@ mod tests {
     let mut symbol_table = SymbolTable::default();
     let scope = make_scope(&mut symbol_table);
 
-    assert_eq!(scope.get_type(&String::from("x3")), Some(&Type::Bool));
-    assert_eq!(scope.get_type(&String::from("z3")), Some(&Type::String));
-    assert_ne!(scope.get_type(&String::from("v3")), Some(&Type::String));
+    assert!(matches!(
+      scope.get_type(&String::from("x3")),
+      Some((&Type::Bool, _))
+    ));
+    assert!(matches!(
+      scope.get_type(&String::from("z3")),
+      Some((&Type::String, _))
+    ));
+    assert!(!matches!(
+      scope.get_type(&String::from("v3")),
+      Some((&Type::String, _))
+    ));
 
     assert_eq!(scope.get_type(&String::from("random")), None,);
   }
@@ -136,8 +157,11 @@ mod tests {
     let mut symbol_table = SymbolTable::default();
     let mut scope = make_scope(&mut symbol_table);
 
-    assert_eq!(scope.insert(&String::from("g"), Type::Char), Some(()));
+    assert!((scope.insert(&String::from("g"), Type::Char).is_some()));
 
-    assert_ne!(scope.get_type(&String::from("g")), Some(&Type::Bool));
+    assert!(!matches!(
+      scope.get_type(&String::from("g")),
+      Some((&Type::Bool, _))
+    ));
   }
 }
