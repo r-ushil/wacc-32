@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use super::*;
 
 // #[derive(PartialEq, Debug, Clone)]
@@ -7,7 +5,7 @@ impl Generatable for Program {
   type Input = ();
   type Output = ();
 
-  fn generate(&self, _: &Scope, code: &mut GeneratedCode, regs: &[GenReg], aux: ()) {
+  fn generate(&self, _: &Scope, code: &mut GeneratedCode, regs: &[GenReg], _aux: ()) {
     /* No registers should be in use by this point. */
     assert!(regs == GENERAL_REGS);
 
@@ -49,7 +47,7 @@ impl Generatable for Func {
   type Input = ();
   type Output = ();
 
-  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], aux: ()) {
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], _aux: ()) {
     /* No registers should be in use by this point. */
     assert!(regs == GENERAL_REGS);
 
@@ -143,81 +141,4 @@ impl Generatable for Func {
     .ltorg */
     code.text.push(Asm::Directive(Directive::Assemble));
   }
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[test]
-  fn skip_func() {
-    /*
-    int foo(int x) is
-      skip
-    end */
-  }
-
-  //   #[test]
-  //   fn basic_func() {
-  //     /*
-  //     int foo(int x) is
-  //       int y = 5;
-  //       return x
-  //     end */
-
-  //     let body = Stat::sequence(
-  //       Stat::declaration(Type::Int, "y", 5),
-  //       Stat::return_(Expr::ident("x")),
-  //     );
-
-  //     let func = Func {
-  //       // int foo(int x)
-  //       ident: String::from("foo"),
-  //       signature: FuncSig {
-  //         params: vec![(Type::Int, String::from("x"))],
-  //         return_type: Type::Int,
-  //       },
-  //       // is int y = 5; return x end
-  //       body,
-  //       symbol_table: SymbolTable::default(),
-  //     };
-
-  //     let st = SymbolTable::default();
-  //     let scope = Scope::new(&st);
-
-  //     let mut actual_code = GeneratedCode::default();
-  //     func.generate(&scope, &mut actual_code, &mut 4);
-  //     assert_eq!(
-  //       format!("{}", actual_code),
-  //       format!(
-  //         ".data
-  // .text
-  // .global main
-  // f_foo:
-  //   PUSH {{lr}}{}POP {{pc}}
-  //   POP {{pc}}
-  //   .ltorg
-  // main:
-  //   PUSH {{lr}}
-  //   LDR r0, =0
-  //   POP {{pc}}
-  //   .ltorg
-  //     ",
-  //         body.generate
-  //       )
-  //     );
-
-  //     /*
-  //     f_foo:
-  //       PUSH {lr}
-  //       SUB sp, sp, #4
-  //       LDR r4, =5
-  //       STR r4, [sp]
-  //       LDR r4, [sp, #8]
-  //       MOV r0, r4
-  //       ADD sp, sp, #4
-  //       POP {pc}
-  //       POP {pc}
-  //       .ltorg */
-  //   }
 }

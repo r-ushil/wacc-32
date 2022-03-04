@@ -1,12 +1,15 @@
 use self::CondCode::*;
-use super::predef::{RequiredPredefs, PREDEF_THROW_OVERFLOW_ERR};
+use super::predef::{
+  RequiredPredefs, PREDEF_ARM_DIV, PREDEF_ARM_MOD, PREDEF_CHECK_ARRAY_BOUNDS,
+  PREDEF_DIVIDE_BY_ZERO, PREDEF_THROW_OVERFLOW_ERR,
+};
 use super::*;
 use crate::generator::asm::*;
 
 impl Generatable for Expr {
   type Input = ();
   type Output = ();
-  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], aux: ()) {
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], _aux: ()) {
     match self {
       Expr::IntLiter(val) => generate_int_liter(code, regs, val),
       Expr::BoolLiter(val) => generate_bool_liter(code, regs, val),
@@ -17,12 +20,12 @@ impl Generatable for Expr {
       Expr::PairLiter => generate_pair_liter(code, regs),
       Expr::Ident(id) => generate_ident(scope, code, regs, &id),
       Expr::ArrayElem(elem) => generate_array_elem(scope, code, regs, elem),
-      _ => generate_temp_default(self, code, regs),
     }
   }
 }
 
 fn generate_pair_liter(code: &mut GeneratedCode, regs: &[GenReg]) {
+  /* LDR reg[0] =0 */
   code.text.push(Asm::always(Instr::Load(
     DataSize::Word,
     Reg::General(regs[0]),
@@ -130,35 +133,41 @@ fn generate_binary_app(
 
   /* regs[0] = eval(expr1) */
   expr1.generate(scope, code, regs, ());
+
   if regs.len() > MIN_STACK_MACHINE_REGS {
+    /* Haven't run out of registers, evaluate normally. */
     expr2.generate(scope, code, &regs[1..], ());
+
+    /* regs[0] = regs[0] <op> regs[1] */
+    generate_binary_op(code, regs[0], regs[0], regs[1], op);
   } else {
+    /* Save regs[0] so we can use it for evaluating LHS. */
     code
       .text
       .push(Asm::always(Instr::Push(Reg::General(regs[0]))));
+
+    /* The PUSH instruction above decremented stack pointer,
+    so we need to expand symbol table to reflect this. */
     let st = SymbolTable {
       size: 4,
       ..Default::default()
     };
-    expr2.generate(&scope.new_scope(&st), code, &[regs[1], regs[0]], ());
+
+    /* Evaluate LHS using all registers. */
+    expr2.generate(&scope.new_scope(&st), code, regs, ());
+
+    /* Restore RHS into next available register. */
     code
       .text
-      .push(Asm::always(Instr::Pop(Reg::General(regs[0]))));
-  }
+      .push(Asm::always(Instr::Pop(Reg::General(regs[1]))));
 
-  /* regs[0] = regs[0] <op> regs[1] */
-  generate_binary_op(code, regs[0], regs[1], op);
+    /* regs[0] = regs[1] <op> regs[0] */
+    generate_binary_op(code, regs[0], regs[1], regs[0], op);
+  }
 }
 
 fn always_instruction(instruction: Instr) -> Asm {
   Asm::Instr(AL, instruction)
-}
-
-fn generate_temp_default(expr: &Expr, code: &mut GeneratedCode, regs: &[GenReg]) {
-  code.text.push(Asm::Directive(Directive::Label(format!(
-    "{:?}.generate(...)",
-    expr
-  ))))
 }
 
 fn generate_unary_op(code: &mut GeneratedCode, reg: Reg, unary_op: &UnaryOper) {
@@ -166,9 +175,7 @@ fn generate_unary_op(code: &mut GeneratedCode, reg: Reg, unary_op: &UnaryOper) {
   match unary_op {
     UnaryOper::Bang => generate_unary_bang(code, reg),
     UnaryOper::Neg => generate_unary_negation(code, reg),
-    // TODO: Further explanation in comment
     UnaryOper::Ord => (), //handled as char is already moved into reg in main match statement
-    // TODO: Further explanation in comment.
     UnaryOper::Chr => (), //similar logic to above
     UnaryOper::Len => generate_unary_length(code, reg),
   }
@@ -213,23 +220,17 @@ fn generate_unary_length(code: &mut GeneratedCode, reg: Reg) {
   )));
 }
 
-fn generate_unary_temp_default(code: &mut GeneratedCode, reg: Reg, unary_op: &UnaryOper) {
-  code.text.push(Asm::Directive(Directive::Label(format!(
-    "{:?}.generate(...)",
-    unary_op
-  ))))
-}
-
 fn generate_binary_op(
   code: &mut GeneratedCode,
+  gen_dst: GenReg,
   gen_reg1: GenReg,
   gen_reg2: GenReg,
   bin_op: &BinaryOper,
 ) {
-  // TODO: Briefly explain the pre-condition that you created in the caller
-  let dst = Reg::General(gen_reg1.clone());
+  let dst = Reg::General(gen_dst);
   let reg1 = Reg::General(gen_reg1);
   let reg2 = Reg::General(gen_reg2);
+
   match bin_op {
     BinaryOper::Mul => {
       /* SMULL r4, r5, r4, r5 */
@@ -251,7 +252,7 @@ fn generate_binary_op(
       /* BLNE p_throw_overflow_error */
       code.text.push(Asm::Instr(
         CondCode::NE,
-        Instr::Branch(true, predef::PREDEF_THROW_OVERFLOW_ERR.to_string()),
+        Instr::Branch(true, PREDEF_THROW_OVERFLOW_ERR.to_string()),
       ));
       RequiredPredefs::OverflowError.mark(code);
     }
@@ -343,13 +344,13 @@ fn binary_div_mod(op: BinaryOper, code: &mut GeneratedCode, gen_reg1: GenReg, ge
     RequiredPredefs::DivideByZeroError.mark(code);
     code.text.push(always_instruction(Instr::Branch(
       true,
-      predef::PREDEF_CHECK_DIVIDE_BY_ZERO.to_string(),
+      PREDEF_DIVIDE_BY_ZERO.to_string(),
     )));
 
     /* BL __aeabi_idiv */
     code.text.push(always_instruction(Instr::Branch(
       true,
-      predef::PREDEF_AEABI_IDIV.to_string(),
+      PREDEF_ARM_DIV.to_string(),
     )));
 
     /* MOV reg1, r0 */
@@ -379,13 +380,13 @@ fn binary_div_mod(op: BinaryOper, code: &mut GeneratedCode, gen_reg1: GenReg, ge
     RequiredPredefs::DivideByZeroError.mark(code);
     code.text.push(always_instruction(Instr::Branch(
       true,
-      predef::PREDEF_CHECK_DIVIDE_BY_ZERO.to_string(),
+      PREDEF_DIVIDE_BY_ZERO.to_string(),
     )));
 
     /* BL __aeabi_idivmod */
     code.text.push(always_instruction(Instr::Branch(
       true,
-      predef::PREDEF_AEABI_IDIVMOD.to_string(),
+      PREDEF_ARM_MOD.to_string(),
     )));
 
     /* MOV reg1, r1 */
@@ -438,7 +439,7 @@ impl Generatable for ArrayElem {
     scope: &Scope,
     code: &mut GeneratedCode,
     regs: &[GenReg],
-    aux: (),
+    _aux: (),
   ) -> DataSize {
     let ArrayElem(id, indexes) = self;
     let mut current_type = scope.get_type(id).unwrap();
@@ -502,7 +503,7 @@ impl Generatable for ArrayElem {
       /* BL p_check_array_bounds */
       code.text.push(Asm::always(Instr::Branch(
         true,
-        predef::PREDEF_CHECK_ARRAY_BOUNDS.to_string(),
+        PREDEF_CHECK_ARRAY_BOUNDS.to_string(),
       )));
 
       /* Move over size field.
@@ -536,6 +537,3 @@ impl Generatable for ArrayElem {
     current_type.size().into()
   }
 }
-
-#[cfg(test)]
-mod tests {}

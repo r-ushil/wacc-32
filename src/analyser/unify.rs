@@ -23,7 +23,6 @@ impl Unifiable for Type {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use Type::*;
 
   #[test]
   fn types_unify_themselves() {

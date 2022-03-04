@@ -19,9 +19,9 @@ fn generate_assign_lhs_array_elem(
   elem: &ArrayElem,
 ) -> <AssignLhs as Generatable>::Output {
   /* Store address of array element into regs[1]. */
-  let elem_size = elem.generate(scope, code, &regs[1..], ());
+  let elem_size = elem.generate(scope, code, regs, ());
 
-  (Reg::General(regs[1]), 0, elem_size)
+  (Reg::General(regs[0]), 0, elem_size)
 }
 
 fn generate_assign_lhs_pair_elem(
@@ -31,16 +31,17 @@ fn generate_assign_lhs_pair_elem(
   elem: &PairElem,
 ) -> <AssignLhs as Generatable>::Output {
   /* Stores address of elem in regs[1]. */
-  let elem_size = elem.generate(scope, code, &regs[1..], ());
+  let elem_size = elem.generate(scope, code, regs, ());
 
-  (Reg::General(regs[1]), 0, elem_size)
+  (Reg::General(regs[0]), 0, elem_size)
 }
 
 impl Generatable for AssignLhs {
   type Input = Type;
   type Output = (Reg, Offset, DataSize);
 
-  /* Writes regs[0] to value specified by AssignLhs */
+  /* Returns a (Reg, Offset) which specifies the memory address of
+  this Lhs. Also returns how much data is stored at said address. */
   fn generate(
     &self,
     scope: &Scope,
@@ -350,7 +351,7 @@ impl Generatable for PairElem {
 impl Generatable for ScopedStat {
   type Input = ();
   type Output = ();
-  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], aux: ()) {
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], _aux: ()) {
     let ScopedStat(st, statement) = self;
 
     /* Allocate space on stack for variables declared in this scope. */
@@ -417,7 +418,7 @@ fn generate_stat_assignment(
   rhs.generate(scope, code, regs, t.clone());
 
   /* stores value of regs[0] into lhs */
-  let (ptr_reg, offset, data_size) = lhs.generate(scope, code, regs, t.clone());
+  let (ptr_reg, offset, data_size) = lhs.generate(scope, code, &regs[1..], t.clone());
   code.text.push(Asm::always(Instr::Store(
     data_size,
     Reg::General(regs[0]),
@@ -435,13 +436,15 @@ fn generate_stat_read(
 ) {
   let (ptr_reg, offset, _) = lhs.generate(scope, code, regs, type_.clone());
 
-  code.text.push(Asm::always(Instr::Binary(
-    BinaryInstr::Add,
-    Reg::General(regs[0]),
-    ptr_reg,
-    Op2::Imm(offset),
-    false,
-  )));
+  if offset != 0 || Reg::General(regs[0]) != ptr_reg {
+    code.text.push(Asm::always(Instr::Binary(
+      BinaryInstr::Add,
+      Reg::General(regs[0]),
+      ptr_reg,
+      Op2::Imm(offset),
+      false,
+    )));
+  }
 
   /* MOV r0, {regs[0]} */
   code.text.push(Asm::Instr(
@@ -744,7 +747,7 @@ fn generate_stat_sequence(
 impl Generatable for Stat {
   type Input = ();
   type Output = ();
-  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], aux: ()) {
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], _aux: ()) {
     match self {
       Stat::Skip => (),
       Stat::Declaration(t, id, rhs) => generate_stat_declaration(scope, code, regs, t, id, rhs),
@@ -802,60 +805,4 @@ mod tests {
 
     assert_eq!(format!("{}", actual_code), format!("{}", expected_code));
   }
-
-  // #[test]
-  // fn if_statement() {
-  //   let cond = Expr::BoolLiter(true); // true
-  //   let true_body = Stat::Println(Expr::StrLiter(String::from("True Body"))); // println "True Body"
-  //   let false_body = Stat::Println(Expr::StrLiter(String::from("False Body"))); // println "False Body"
-
-  //   let if_statement = Stat::If(
-  //     cond.clone(),                 // if true
-  //     Box::new(true_body.clone()),  // then println "True Body"
-  //     Box::new(false_body.clone()), // else println "False Body"
-  //   ); // fi
-
-  //   let min_reg = &mut 4;
-
-  //   let actual_code = &mut GeneratedCode::default();
-  //   if_statement.generate(actual_code, min_reg);
-
-  //   let expected_code = &mut GeneratedCode::default();
-  //   let l0 = expected_code.get_label();
-  //   let l1 = expected_code.get_label();
-
-  //   /* Condition. */
-  //   cond.generate(expected_code, min_reg);
-
-  //   /* Is condition == 0? */
-  //   expected_code.text.push(Asm::always(Unary(
-  //     UnaryInstr::Cmp,
-  //     Reg::RegNum(4),
-  //     Op2::Imm(0),
-  //     false,
-  //   )));
-
-  //   /* Branch to false case if cond == 0. */
-  //   expected_code
-  //     .text
-  //     .push(Asm::always(Branch(false, l0.clone())));
-
-  //   /* True body. */
-  //   true_body.generate(expected_code, min_reg);
-  //   /* Exit if statement. */
-  //   expected_code
-  //     .text
-  //     .push(Asm::always(Branch(false, l1.clone())));
-
-  //   /* Label for false case to skip to. */
-  //   expected_code.text.push(Asm::Directive(Label(l0)));
-
-  //   /* False body. */
-  //   false_body.generate(expected_code, min_reg);
-
-  //   /* Label to exit if statement. */
-  //   expected_code.text.push(Asm::Directive(Label(l1)));
-
-  //   assert_eq!(actual_code, expected_code);
-  // }
 }
