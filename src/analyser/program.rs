@@ -1,12 +1,12 @@
 use super::{
-  context::{ContextLocation, ScopeMut, SymbolTable},
+  context::ScopeBuilder,
   stat::{ReturnBehaviour::*, *},
   unify::Unifiable,
   SemanticError,
 };
 use crate::ast::*;
 
-fn func(scope: &ScopeMut, errors: &mut Vec<SemanticError>, func: &mut Func) -> Option<()> {
+fn func(scope: &ScopeBuilder, errors: &mut Vec<SemanticError>, func: &mut Func) -> Option<()> {
   let scope = &mut scope.new_scope(&mut func.params_st);
 
   /* Add parameters to parameter scope. */
@@ -27,15 +27,15 @@ fn func(scope: &ScopeMut, errors: &mut Vec<SemanticError>, func: &mut Func) -> O
           t, func.signature.return_type
         )),
       );
-      return None;
+      None
     }
     AtEnd(_) => Some(()),
     _ => {
       scope.add_error(
         errors,
-        SemanticError::Syntax(format!("The last statement should be a return or exit.")),
+        SemanticError::Syntax("The last statement should be a return or exit.".to_string()),
       );
-      return None;
+      None
     }
   }
 }
@@ -45,7 +45,7 @@ fn func(scope: &ScopeMut, errors: &mut Vec<SemanticError>, func: &mut Func) -> O
 #[allow(dead_code)]
 pub fn program(errors: &mut Vec<SemanticError>, program: &mut Program) -> Option<()> {
   /* root, global scope. */
-  let mut scope = ScopeMut::new(&mut program.symbol_table);
+  let mut scope = ScopeBuilder::new(&mut program.symbol_table);
 
   /* Add all function signatures to global before analysing. (hoisting) */
   for func in program.funcs.iter() {
@@ -58,11 +58,11 @@ pub fn program(errors: &mut Vec<SemanticError>, program: &mut Program) -> Option
   }
 
   /* Program body must never return, but it can exit. */
-  match scoped_stat(&mut scope, errors, &mut program.statement)? {
+  match scoped_stat(&scope, errors, &mut program.statement)? {
     MidWay(t) | AtEnd(t) if t != Type::Any => {
       scope.add_error(
         errors,
-        SemanticError::Normal(format!("Cannot have 'return' statement in main")),
+        SemanticError::Normal("Cannot have 'return' statement in main".to_string()),
       );
       None
     }
@@ -72,12 +72,14 @@ pub fn program(errors: &mut Vec<SemanticError>, program: &mut Program) -> Option
 
 #[cfg(test)]
 mod tests {
+  use crate::analyser::context::SymbolTable;
+
   use super::*;
 
   #[test]
   fn func_parameters_checked() {
     let mut symbol_table = SymbolTable::default();
-    let scope = &mut ScopeMut::new(&mut symbol_table);
+    let scope = &mut ScopeBuilder::new(&mut symbol_table);
 
     /* Function */
     /* int double(int x) is return x * 2 end */
@@ -107,7 +109,7 @@ mod tests {
 
     /* Can compare parameter type with return type. */
     /* bool double(int x) is return x end */
-    let mut f2 = f.clone();
+    let mut f2 = f;
     f2.signature.return_type = Type::Bool;
     f2.body = Stat::Return(Expr::Ident(String::from("x")));
     assert!(func(scope, &mut vec![], &mut f2).is_none());
@@ -143,7 +145,7 @@ mod tests {
       ScopedStat::new(Stat::Return(Expr::IntLiter(2))),
     );
     assert!(func(
-      &mut ScopeMut::new(&mut SymbolTable::default()),
+      &mut ScopeBuilder::new(&mut SymbolTable::default()),
       &mut vec![],
       &mut f3
     )
@@ -160,7 +162,7 @@ mod tests {
     );
 
     assert!(func(
-      &mut ScopeMut::new(&mut SymbolTable::default()),
+      &mut ScopeBuilder::new(&mut SymbolTable::default()),
       &mut vec![],
       &mut f4
     )
@@ -179,7 +181,7 @@ mod tests {
       Box::new(Stat::Return(Expr::IntLiter(5))),
     );
     let x = func(
-      &mut ScopeMut::new(&mut SymbolTable::default()),
+      &mut ScopeBuilder::new(&mut SymbolTable::default()),
       &mut vec![],
       &mut f5,
     );
@@ -190,7 +192,7 @@ mod tests {
       if true then return true else skip fi;
       return 5
     end*/
-    let mut f6 = f.clone();
+    let mut f6 = f;
     f6.body = Stat::Sequence(
       Box::new(Stat::If(
         Expr::BoolLiter(true),
@@ -203,7 +205,7 @@ mod tests {
       )),
     );
     assert!(func(
-      &mut ScopeMut::new(&mut SymbolTable::default()),
+      &mut ScopeBuilder::new(&mut SymbolTable::default()),
       &mut vec![],
       &mut f6
     )

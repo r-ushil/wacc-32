@@ -14,7 +14,7 @@ ExampleNode, will have the name example_node. */
 /* If names conflict with Rust keywords, an underscore is appended. */
 /* All parsers will consume all leading whitespace before and after parsing. */
 
-pub fn parse<'a>(input: &'a str) -> Result<Program, ErrorTree<&'a str>> {
+pub fn parse(input: &str) -> Result<Program, ErrorTree<&'_ str>> {
   match program::final_program_parser(input) {
     Ok(program) => Ok(program),
     Err(e) => Err(e),

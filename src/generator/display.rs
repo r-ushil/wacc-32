@@ -61,7 +61,7 @@ impl Display for Asm {
                 }
               }
               AddressingMode::PreIndexed => write!(f, "[{}, #{}]!", src, off),
-              AddressingMode::PostIndexed => write!(f, "[{}], #{}", src, off),
+              // AddressingMode::PostIndexed => write!(f, "[{}], #{}", src, off),   unused
             }
           }
 
@@ -204,15 +204,15 @@ impl Display for CondCode {
       EQ => "EQ",
       NE => "NE",
       CS => "CS",
-      HS => "HS",
-      CC => "CC",
-      LO => "LO",
-      MI => "MI",
-      PL => "PL",
+      // HS => "HS",     unused
+      // CC => "CC",     unused
+      // LO => "LO",     unused
+      // MI => "MI",     unused
+      // PL => "PL",     unused
       VS => "VS",
-      VC => "VC",
-      HI => "HI",
-      LS => "LS",
+      // VC => "VC",     unused
+      // HI => "HI",     unused
+      // LS => "LS",     unused
       GE => "GE",
       LT => "LT",
       GT => "GT",
@@ -220,15 +220,6 @@ impl Display for CondCode {
       AL => "",
     };
     write!(f, "{}", s)
-  }
-}
-
-impl Display for Load {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      Load::Imm(val) => write!(f, "{}", val),
-      Load::Label(msg) => write!(f, "{}", msg),
-    }
   }
 }
 
@@ -266,7 +257,7 @@ impl Display for ArgReg {
       ArgReg::R0 => write!(f, "r0"),
       ArgReg::R1 => write!(f, "r1"),
       ArgReg::R2 => write!(f, "r2"),
-      ArgReg::R3 => write!(f, "r3"),
+      // ArgReg::R3 => write!(f, "r2"),        unused
     }
   }
 }

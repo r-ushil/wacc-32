@@ -11,13 +11,15 @@ mod stat;
 use asm::*;
 use scope::*;
 
+pub const WACC_PROGRAM_MAIN_LABEL: &str = "main";
+
 trait Generatable: std::fmt::Debug {
   type Input;
   type Output;
 
   fn generate(
     &self,
-    _scope: &Scope,
+    _scope: &ScopeReader,
     code: &mut GeneratedCode,
     regs: &[GenReg],
     aux: Self::Input,
@@ -30,7 +32,7 @@ pub fn generate(ast: &Program) -> GeneratedCode {
   /* This symbol table will always be empty, but it means every AST node
   is generated with the same inputs. */
   let base_symbol_table = SymbolTable::default();
-  let base_scope = Scope::new(&base_symbol_table);
+  let base_scope = ScopeReader::new(&base_symbol_table);
 
   /* Initally, all general purpose registers are free. */
   let regs = &GENERAL_REGS;
