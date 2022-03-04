@@ -616,7 +616,7 @@ fn generate_stat_while(
   /* If regs[0] == 1, jump back to loop body. */
   code
     .text
-    .push(Asm::Instr(CondCode::EQ, Branch(false, body_label.clone())));
+    .push(Asm::Instr(CondCode::EQ, Branch(false, body_label)));
 }
 
 fn generate_stat_scope(

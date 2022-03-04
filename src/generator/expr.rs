@@ -18,7 +18,7 @@ impl Generatable for Expr {
       Expr::UnaryApp(op, expr) => generate_unary_app(code, regs, scope, op, expr),
       Expr::BinaryApp(expr1, op, expr2) => generate_binary_app(code, regs, scope, expr1, op, expr2),
       Expr::PairLiter => generate_pair_liter(code, regs),
-      Expr::Ident(id) => generate_ident(scope, code, regs, &id),
+      Expr::Ident(id) => generate_ident(scope, code, regs, id),
       Expr::ArrayElem(elem) => generate_array_elem(scope, code, regs, elem),
     }
   }
@@ -43,7 +43,7 @@ fn generate_array_elem(
   /* Read from that address into regs[0]. */
   code
     .text
-    .push(Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), 0)).size(array_elem_size.into()));
+    .push(Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), 0)).size(array_elem_size));
 }
 
 /* Stores value of local variable specified by ident to regs[0]. */
@@ -63,7 +63,7 @@ fn generate_int_liter(code: &mut GeneratedCode, regs: &[GenReg], val: &i32) {
 
 fn generate_bool_liter(code: &mut GeneratedCode, regs: &[GenReg], val: &bool) {
   //set imm to 1 or 0 depending on val
-  let imm = if *val == true { 1 } else { 0 };
+  let imm = if *val { 1 } else { 0 };
   /* MOV r{min_reg}, #imm */
   code
     .text
@@ -159,16 +159,12 @@ fn generate_unary_op(code: &mut GeneratedCode, reg: Reg, unary_op: &UnaryOper) {
 
 fn generate_unary_bang(code: &mut GeneratedCode, reg: Reg) {
   /* EOR reg, reg, #1 */
-  code
-    .text
-    .push(Asm::eor(reg.clone(), reg.clone(), Op2::Imm(1)));
+  code.text.push(Asm::eor(reg, reg, Op2::Imm(1)));
 }
 
 fn generate_unary_negation(code: &mut GeneratedCode, reg: Reg) {
   /* RSBS reg, reg, #0 */
-  code
-    .text
-    .push(Asm::rev_sub(reg.clone(), reg.clone(), Op2::Imm(0)).flags());
+  code.text.push(Asm::rev_sub(reg, reg, Op2::Imm(0)).flags());
 
   /* BLVS p_throw_overflow_error */
   code
@@ -197,17 +193,10 @@ fn generate_binary_op(
   match bin_op {
     BinaryOper::Mul => {
       /* SMULL r4, r5, r4, r5 */
-      code.text.push(Asm::smull(
-        reg1.clone(),
-        reg2.clone(),
-        reg1.clone(),
-        reg2.clone(),
-      ));
+      code.text.push(Asm::smull(reg1, reg2, reg1, reg2));
 
       /* CMP r5, r4, ASR #31 */
-      code
-        .text
-        .push(Asm::cmp(reg2.clone(), Op2::Reg(reg1.clone(), 31)));
+      code.text.push(Asm::cmp(reg2, Op2::Reg(reg1, 31)));
 
       /* BLNE p_throw_overflow_error */
       code
@@ -320,9 +309,7 @@ fn binary_comp_ops(
   reg2: Reg,
 ) {
   /* CMP r4, r5 */
-  code
-    .text
-    .push(Asm::cmp(reg1.clone(), Op2::Reg(reg2.clone(), 0)));
+  code.text.push(Asm::cmp(reg1, Op2::Reg(reg2, 0)));
 
   /* MOV{cond1} reg1, #1 */
   code.text.push(Asm::mov(reg1, Op2::Imm(1)).cond(cond1));
