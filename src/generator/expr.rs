@@ -204,8 +204,8 @@ fn generate_binary_op(
         .push(Asm::b(PREDEF_THROW_OVERFLOW_ERR).link().ne());
       RequiredPredefs::OverflowError.mark(code);
     }
-    BinaryOper::Div => binary_div_mod(BinaryOper::Div, code, gen_reg1, gen_reg2),
-    BinaryOper::Mod => binary_div_mod(BinaryOper::Mod, code, gen_reg1, gen_reg2),
+    BinaryOper::Div => binary_div(code, gen_reg1, gen_reg2),
+    BinaryOper::Mod => binary_mod(code, gen_reg1, gen_reg2),
     BinaryOper::Add => {
       /* ADDS r4, r4, r5 */
       code
@@ -251,54 +251,53 @@ fn generate_binary_op(
   }
 }
 
-fn binary_div_mod(op: BinaryOper, code: &mut GeneratedCode, gen_reg1: GenReg, gen_reg2: GenReg) {
+fn binary_div(code: &mut GeneratedCode, gen_reg1: GenReg, gen_reg2: GenReg) {
+  let reg1 = Reg::General(gen_reg1);
+  let reg2 = Reg::General(gen_reg2); /* MOV r0, reg1 */
+  code
+    .text
+    .push(Asm::mov(Reg::Arg(ArgReg::R0), Op2::Reg(reg1, 0)));
+  /* MOV r1, reg2 */
+  code
+    .text
+    .push(Asm::mov(Reg::Arg(ArgReg::R1), Op2::Reg(reg2, 0)));
+
+  /* BL p_check_divide_by_zero */
+  RequiredPredefs::DivideByZeroError.mark(code);
+  code.text.push(Asm::b(PREDEF_CHECK_DIVIDE_BY_ZERO).link());
+
+  /* BL __aeabi_idiv */
+  code.text.push(Asm::b(PREDEF_AEABI_IDIV).link());
+
+  /* MOV reg1, r0 */
+  code
+    .text
+    .push(Asm::mov(reg1, Op2::Reg(Reg::Arg(ArgReg::R0), 0)));
+}
+
+fn binary_mod(code: &mut GeneratedCode, gen_reg1: GenReg, gen_reg2: GenReg) {
   let reg1 = Reg::General(gen_reg1);
   let reg2 = Reg::General(gen_reg2);
-  if op == BinaryOper::Div {
-    /* MOV r0, reg1 */
-    code
-      .text
-      .push(Asm::mov(Reg::Arg(ArgReg::R0), Op2::Reg(reg1, 0)));
-    /* MOV r1, reg2 */
-    code
-      .text
-      .push(Asm::mov(Reg::Arg(ArgReg::R1), Op2::Reg(reg2, 0)));
+  /* MOV r0, reg1 */
+  code
+    .text
+    .push(Asm::mov(Reg::Arg(ArgReg::R0), Op2::Reg(reg1, 0)));
+  /* MOV r1, reg2 */
+  code
+    .text
+    .push(Asm::mov(Reg::Arg(ArgReg::R1), Op2::Reg(reg2, 0)));
 
-    /* BL p_check_divide_by_zero */
-    RequiredPredefs::DivideByZeroError.mark(code);
-    code.text.push(Asm::b(PREDEF_CHECK_DIVIDE_BY_ZERO).link());
+  /* BL p_check_divide_by_zero */
+  RequiredPredefs::DivideByZeroError.mark(code);
+  code.text.push(Asm::b(PREDEF_CHECK_DIVIDE_BY_ZERO).link());
 
-    /* BL __aeabi_idiv */
-    code.text.push(Asm::b(PREDEF_AEABI_IDIV).link());
+  /* BL __aeabi_idivmod */
+  code.text.push(Asm::b(PREDEF_AEABI_IDIVMOD).link());
 
-    /* MOV reg1, r0 */
-    code
-      .text
-      .push(Asm::mov(reg1, Op2::Reg(Reg::Arg(ArgReg::R0), 0)));
-  } else if op == BinaryOper::Mod {
-    /* MOV r0, reg1 */
-    code
-      .text
-      .push(Asm::mov(Reg::Arg(ArgReg::R0), Op2::Reg(reg1, 0)));
-    /* MOV r1, reg2 */
-    code
-      .text
-      .push(Asm::mov(Reg::Arg(ArgReg::R1), Op2::Reg(reg2, 0)));
-
-    /* BL p_check_divide_by_zero */
-    RequiredPredefs::DivideByZeroError.mark(code);
-    code.text.push(Asm::b(PREDEF_CHECK_DIVIDE_BY_ZERO).link());
-
-    /* BL __aeabi_idivmod */
-    code.text.push(Asm::b(PREDEF_AEABI_IDIVMOD).link());
-
-    /* MOV reg1, r1 */
-    code
-      .text
-      .push(Asm::mov(reg1, Op2::Reg(Reg::Arg(ArgReg::R1), 0)));
-  } else {
-    unreachable!("undefined!");
-  }
+  /* MOV reg1, r1 */
+  code
+    .text
+    .push(Asm::mov(reg1, Op2::Reg(Reg::Arg(ArgReg::R1), 0)));
 }
 
 fn binary_comp_ops(
