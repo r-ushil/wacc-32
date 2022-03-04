@@ -72,6 +72,8 @@ pub fn program(errors: &mut Vec<SemanticError>, program: &mut Program) -> Option
 
 #[cfg(test)]
 mod tests {
+  use crate::analyser::context::SymbolTable;
+
   use super::*;
 
   #[test]

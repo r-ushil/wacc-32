@@ -354,6 +354,8 @@ pub fn stat(
 
 #[cfg(test)]
 mod tests {
+  use crate::analyser::context::SymbolTable;
+
   use super::*;
 
   #[test]
