@@ -231,46 +231,6 @@ impl Generatable for AssignRhs {
   }
 }
 
-fn generate_print(t: &Type, expr: &Expr, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg]) {
-  expr.generate(scope, code, regs, ());
-
-  code.text.push(Asm::always(Unary(
-    UnaryInstr::Mov,
-    Reg::RegNum(0),
-    Op2::Reg(regs[0], 0),
-    false,
-  )));
-
-  match t {
-    Type::Int => RequiredPredefs::PrintInt.mark(code),
-    Type::Bool => RequiredPredefs::PrintBool.mark(code),
-    Type::String => RequiredPredefs::PrintString.mark(code),
-    Type::Array(elem_type) => match **elem_type {
-      Type::Char => RequiredPredefs::PrintString.mark(code),
-      _ => RequiredPredefs::PrintRefs.mark(code),
-    },
-    Type::Pair(_, _) => RequiredPredefs::PrintRefs.mark(code),
-    _ => (),
-  };
-
-  let print_label = match t {
-    Type::Int => predef::PREDEF_PRINT_INT,
-    Type::Bool => predef::PREDEF_PRINT_BOOL,
-    Type::String => predef::PREDEF_PRINT_STRING,
-    Type::Char => predef::PREDEF_PRINT_CHAR,
-    Type::Array(elem_type) => match **elem_type {
-      Type::Char => predef::PREDEF_PRINT_STRING,
-      _ => predef::PREDEF_PRINT_REFS,
-    },
-    Type::Pair(_, _) => predef::PREDEF_PRINT_REFS,
-    _ => unreachable!(),
-  };
-
-  code
-    .text
-    .push(Asm::always(Branch(true, print_label.to_string())));
-}
-
 impl Generatable for PairElem {
   type Input = ();
   type Output = DataSize;
@@ -350,238 +310,351 @@ impl Generatable for ScopedStat {
   }
 }
 
+fn generate_stat_declaration(
+  scope: &Scope,
+  code: &mut GeneratedCode,
+  regs: &[Reg],
+  t: &Type,
+  id: &str,
+  rhs: &AssignRhs,
+) {
+  Stat::Assignment(AssignLhs::Ident(id.to_string()), t.clone(), rhs.clone()).generate(
+    scope,
+    code,
+    regs,
+    (),
+  );
+}
+
+fn generate_stat_assignment(
+  scope: &Scope,
+  code: &mut GeneratedCode,
+  regs: &[Reg],
+  lhs: &AssignLhs,
+  t: &Type,
+  rhs: &AssignRhs,
+) {
+  /* regs[0] = eval(rhs) */
+  rhs.generate(scope, code, regs, t.clone());
+
+  /* stores value of regs[0] into lhs */
+  let (ptr_reg, offset, data_size) = lhs.generate(scope, code, regs, t.clone());
+  code.text.push(Asm::always(Instr::Store(
+    data_size,
+    regs[0],
+    (ptr_reg, offset),
+    AddressingMode::Default,
+  )));
+}
+
+fn generate_stat_read(
+  scope: &Scope,
+  code: &mut GeneratedCode,
+  regs: &[Reg],
+  type_: &Type,
+  lhs: &AssignLhs,
+) {
+  let (ptr_reg, offset, _) = lhs.generate(scope, code, regs, type_.clone());
+
+  code.text.push(Asm::always(Instr::Binary(
+    BinaryInstr::Add,
+    regs[0],
+    ptr_reg,
+    Op2::Imm(offset),
+    false,
+  )));
+
+  /* MOV r0, {regs[0]} */
+  code.text.push(Asm::Instr(
+    CondCode::AL,
+    Instr::Unary(UnaryInstr::Mov, Reg::RegNum(0), Op2::Reg(regs[0], 0), false),
+  ));
+  //expr.get_type //todo!() get type of ident
+  let read_type = if *type_ == Type::Char {
+    RequiredPredefs::ReadChar.mark(code);
+    ReadFmt::Char
+  } else if *type_ == Type::Int {
+    RequiredPredefs::ReadInt.mark(code);
+    ReadFmt::Int
+  } else {
+    unreachable!("CAN'T GET THIS TYPE!");
+  };
+
+  /* BL p_read_{read_type} */
+  code.text.push(Asm::always(Instr::Branch(
+    true,
+    format!("p_read_{}", read_type),
+  )))
+}
+
+fn generate_stat_free(
+  scope: &Scope,
+  code: &mut GeneratedCode,
+  regs: &[Reg],
+  t: &Type,
+  expr: &Expr,
+) {
+  expr.generate(scope, code, regs, ());
+
+  /* MOV r0, {min_reg}        //move heap address into r0 */
+  code.text.push(Asm::Instr(
+    CondCode::AL,
+    Instr::Unary(UnaryInstr::Mov, Reg::RegNum(0), Op2::Reg(regs[0], 0), false),
+  ));
+  match *t {
+    Type::Array(_) => {
+      RequiredPredefs::FreeArray.mark(code);
+
+      /* BL p_free_array */
+      code.text.push(Asm::always(Instr::Branch(
+        true,
+        String::from("p_free_array"),
+      )));
+    }
+    Type::Pair(_, _) => {
+      RequiredPredefs::FreePair.mark(code);
+
+      /* BL p_free_pair */
+      code.text.push(Asm::always(Instr::Branch(
+        true,
+        String::from("p_free_pair"),
+      )));
+    }
+    _ => unreachable!("Can't free this type!"),
+  }
+}
+
+fn generate_stat_return(scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], expr: &Expr) {
+  /* regs[0] = eval(expr) */
+  expr.generate(scope, code, regs, ());
+
+  /* r0 = regs[0] */
+  code.text.push(Asm::Instr(
+    CondCode::AL,
+    Instr::Unary(UnaryInstr::Mov, Reg::RegNum(0), Op2::Reg(regs[0], 0), false),
+  ));
+
+  let total_offset = scope.get_total_offset();
+
+  /* ADD sp, sp, #{total_offset} */
+  if total_offset != 0 {
+    code.text.push(Asm::Instr(
+      CondCode::AL,
+      Instr::Binary(
+        BinaryInstr::Add,
+        Reg::StackPointer,
+        Reg::StackPointer,
+        Op2::Imm(total_offset),
+        false,
+      ),
+    ));
+  }
+
+  /* POP {pc} */
+  code
+    .text
+    .push(Asm::Instr(CondCode::AL, Instr::Pop(Reg::PC)));
+}
+
+fn generate_stat_exit(scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], expr: &Expr) {
+  /* regs[0] = eval(expr) */
+  expr.generate(scope, code, regs, ());
+
+  /* r0 = regs[0] */
+  code.text.push(Asm::Instr(
+    CondCode::AL,
+    Instr::Unary(UnaryInstr::Mov, Reg::RegNum(0), Op2::Reg(regs[0], 0), false),
+  ));
+
+  /* B exit */
+  code.text.push(Asm::Instr(
+    CondCode::AL,
+    Instr::Branch(true, String::from("exit")),
+  ));
+}
+
+fn generate_stat_print(
+  scope: &Scope,
+  code: &mut GeneratedCode,
+  regs: &[Reg],
+  t: &Type,
+  expr: &Expr,
+) {
+  expr.generate(scope, code, regs, ());
+
+  code.text.push(Asm::always(Unary(
+    UnaryInstr::Mov,
+    Reg::RegNum(0),
+    Op2::Reg(regs[0], 0),
+    false,
+  )));
+
+  match t {
+    Type::Int => RequiredPredefs::PrintInt.mark(code),
+    Type::Bool => RequiredPredefs::PrintBool.mark(code),
+    Type::String => RequiredPredefs::PrintString.mark(code),
+    Type::Array(elem_type) => match **elem_type {
+      Type::Char => RequiredPredefs::PrintString.mark(code),
+      _ => RequiredPredefs::PrintRefs.mark(code),
+    },
+    Type::Pair(_, _) => RequiredPredefs::PrintRefs.mark(code),
+    _ => (),
+  };
+
+  let print_label = match t {
+    Type::Int => predef::PREDEF_PRINT_INT,
+    Type::Bool => predef::PREDEF_PRINT_BOOL,
+    Type::String => predef::PREDEF_PRINT_STRING,
+    Type::Char => predef::PREDEF_PRINT_CHAR,
+    Type::Array(elem_type) => match **elem_type {
+      Type::Char => predef::PREDEF_PRINT_STRING,
+      _ => predef::PREDEF_PRINT_REFS,
+    },
+    Type::Pair(_, _) => predef::PREDEF_PRINT_REFS,
+    _ => unreachable!(),
+  };
+
+  code
+    .text
+    .push(Asm::always(Branch(true, print_label.to_string())));
+}
+
+fn generate_stat_println(
+  scope: &Scope,
+  code: &mut GeneratedCode,
+  regs: &[Reg],
+  t: &Type,
+  expr: &Expr,
+) {
+  generate_stat_print(scope, code, regs, t, expr);
+
+  /* BL println */
+  RequiredPredefs::PrintLn.mark(code);
+  code.text.push(Asm::always(Instr::Branch(
+    true,
+    predef::PREDEF_PRINTLN.to_string(),
+  )));
+}
+
+fn generate_stat_if(
+  scope: &Scope,
+  code: &mut GeneratedCode,
+  regs: &[Reg],
+  cond: &Expr,
+  true_body: &ScopedStat,
+  false_body: &ScopedStat,
+) {
+  let false_label = code.get_label();
+  let exit_label = code.get_label();
+
+  /* regs[0] = eval(cond) */
+  cond.generate(scope, code, regs, ());
+
+  /* cmp(regs[0], 0) */
+  code.text.push(Asm::always(Unary(
+    UnaryInstr::Cmp,
+    regs[0],
+    Op2::Imm(0),
+    false,
+  )));
+
+  /* Branch to false case if cond == 0. */
+  code
+    .text
+    .push(Asm::Instr(CondCode::EQ, Branch(false, false_label.clone())));
+
+  /* True body. */
+  true_body.generate(scope, code, regs, ());
+
+  /* Exit if statement. */
+  code
+    .text
+    .push(Asm::always(Branch(false, exit_label.clone())));
+
+  /* Label for false case to skip to. */
+  code.text.push(Asm::Directive(Label(false_label)));
+
+  /* False body. */
+  false_body.generate(scope, code, regs, ());
+
+  /* Label to exit if statement. */
+  code.text.push(Asm::Directive(Label(exit_label)));
+}
+
+fn generate_stat_while(
+  scope: &Scope,
+  code: &mut GeneratedCode,
+  regs: &[Reg],
+  cond: &Expr,
+  body: &ScopedStat,
+) {
+  let cond_label = code.get_label();
+  let body_label = code.get_label();
+
+  /* Jump to condition evaluation. */
+  code
+    .text
+    .push(Asm::always(Instr::Branch(false, cond_label.clone())));
+
+  /* Loop body label. */
+  code.text.push(Asm::Directive(Label(body_label.clone())));
+
+  /* Loop body. */
+  body.generate(scope, code, regs, ());
+
+  /* Cond label */
+  code.text.push(Asm::Directive(Label(cond_label)));
+
+  /* regs[0] = eval(cond) */
+  cond.generate(scope, code, regs, ());
+
+  /* cmp(regs[0], 1) */
+  code.text.push(Asm::always(Unary(
+    UnaryInstr::Cmp,
+    regs[0],
+    Op2::Imm(1),
+    false,
+  )));
+
+  /* If regs[0] == 1, jump back to loop body. */
+  code
+    .text
+    .push(Asm::Instr(CondCode::EQ, Branch(false, body_label.clone())));
+}
+
+fn generate_stat_scope(scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], stat: &ScopedStat) {
+  stat.generate(scope, code, regs, ())
+}
+
+fn generate_stat_sequence(
+  scope: &Scope,
+  code: &mut GeneratedCode,
+  regs: &[Reg],
+  head: &Stat,
+  tail: &Stat,
+) {
+  head.generate(scope, code, regs, ());
+  tail.generate(scope, code, regs, ());
+}
+
 impl Generatable for Stat {
   type Input = ();
   type Output = ();
   fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], aux: ()) {
     match self {
       Stat::Skip => (),
-      Stat::Declaration(t, id, rhs) => {
-        Stat::Assignment(AssignLhs::Ident(id.clone()), t.clone(), rhs.clone()).generate(
-          scope,
-          code,
-          regs,
-          (),
-        );
-      }
-      Stat::Assignment(lhs, t, rhs) => {
-        /* regs[0] = eval(rhs) */
-        rhs.generate(scope, code, regs, t.clone());
-
-        /* stores value of regs[0] into lhs */
-        let (ptr_reg, offset, data_size) = lhs.generate(scope, code, regs, t.clone());
-        code.text.push(Asm::always(Instr::Store(
-          data_size,
-          regs[0],
-          (ptr_reg, offset),
-          AddressingMode::Default,
-        )));
-      }
-      Stat::Read(type_, lhs) => {
-        let (ptr_reg, offset, _) = lhs.generate(scope, code, regs, type_.clone());
-
-        code.text.push(Asm::always(Instr::Binary(
-          BinaryInstr::Add,
-          regs[0],
-          ptr_reg,
-          Op2::Imm(offset),
-          false,
-        )));
-
-        /* MOV r0, {regs[0]} */
-        code.text.push(Asm::Instr(
-          CondCode::AL,
-          Instr::Unary(UnaryInstr::Mov, Reg::RegNum(0), Op2::Reg(regs[0], 0), false),
-        ));
-        //expr.get_type //todo!() get type of ident
-        let read_type = if *type_ == Type::Char {
-          RequiredPredefs::ReadChar.mark(code);
-          ReadFmt::Char
-        } else if *type_ == Type::Int {
-          RequiredPredefs::ReadInt.mark(code);
-          ReadFmt::Int
-        } else {
-          unreachable!("CAN'T GET THIS TYPE!");
-        };
-
-        /* BL p_read_{read_type} */
-        code.text.push(Asm::always(Instr::Branch(
-          true,
-          format!("p_read_{}", read_type),
-        )))
-      }
-      Stat::Free(t, expr) => {
-        expr.generate(scope, code, regs, ());
-
-        /* MOV r0, {min_reg}        //move heap address into r0 */
-        code.text.push(Asm::Instr(
-          CondCode::AL,
-          Instr::Unary(UnaryInstr::Mov, Reg::RegNum(0), Op2::Reg(regs[0], 0), false),
-        ));
-        match *t {
-          Type::Array(_) => {
-            RequiredPredefs::FreeArray.mark(code);
-
-            /* BL p_free_array */
-            code.text.push(Asm::always(Instr::Branch(
-              true,
-              String::from("p_free_array"),
-            )));
-          }
-          Type::Pair(_, _) => {
-            RequiredPredefs::FreePair.mark(code);
-
-            /* BL p_free_pair */
-            code.text.push(Asm::always(Instr::Branch(
-              true,
-              String::from("p_free_pair"),
-            )));
-          }
-          _ => unreachable!("Can't free this type!"),
-        }
-      }
-      Stat::Return(expr) => {
-        /* regs[0] = eval(expr) */
-        expr.generate(scope, code, regs, ());
-
-        /* r0 = regs[0] */
-        code.text.push(Asm::Instr(
-          CondCode::AL,
-          Instr::Unary(UnaryInstr::Mov, Reg::RegNum(0), Op2::Reg(regs[0], 0), false),
-        ));
-
-        let total_offset = scope.get_total_offset();
-
-        /* ADD sp, sp, #{total_offset} */
-        if total_offset != 0 {
-          code.text.push(Asm::Instr(
-            CondCode::AL,
-            Instr::Binary(
-              BinaryInstr::Add,
-              Reg::StackPointer,
-              Reg::StackPointer,
-              Op2::Imm(total_offset),
-              false,
-            ),
-          ));
-        }
-
-        /* POP {pc} */
-        code
-          .text
-          .push(Asm::Instr(CondCode::AL, Instr::Pop(Reg::PC)));
-      }
-      Stat::Exit(expr) => {
-        /* regs[0] = eval(expr) */
-        expr.generate(scope, code, regs, ());
-
-        /* r0 = regs[0] */
-        code.text.push(Asm::Instr(
-          CondCode::AL,
-          Instr::Unary(UnaryInstr::Mov, Reg::RegNum(0), Op2::Reg(regs[0], 0), false),
-        ));
-
-        /* B exit */
-        code.text.push(Asm::Instr(
-          CondCode::AL,
-          Instr::Branch(true, String::from("exit")),
-        ));
-      }
-
-      Stat::Print(t, expr) => {
-        generate_print(t, expr, scope, code, regs);
-      }
-
-      Stat::Println(t, expr) => {
-        generate_print(t, expr, scope, code, regs);
-
-        /* BL println */
-        RequiredPredefs::PrintLn.mark(code);
-        code.text.push(Asm::always(Instr::Branch(
-          true,
-          predef::PREDEF_PRINTLN.to_string(),
-        )));
-      }
-      Stat::If(cond, true_body, false_body) => {
-        let false_label = code.get_label();
-        let exit_label = code.get_label();
-
-        /* regs[0] = eval(cond) */
-        cond.generate(scope, code, regs, ());
-
-        /* cmp(regs[0], 0) */
-        code.text.push(Asm::always(Unary(
-          UnaryInstr::Cmp,
-          regs[0],
-          Op2::Imm(0),
-          false,
-        )));
-
-        /* Branch to false case if cond == 0. */
-        code
-          .text
-          .push(Asm::Instr(CondCode::EQ, Branch(false, false_label.clone())));
-
-        /* True body. */
-        true_body.generate(scope, code, regs, ());
-
-        /* Exit if statement. */
-        code
-          .text
-          .push(Asm::always(Branch(false, exit_label.clone())));
-
-        /* Label for false case to skip to. */
-        code.text.push(Asm::Directive(Label(false_label)));
-
-        /* False body. */
-        false_body.generate(scope, code, regs, ());
-
-        /* Label to exit if statement. */
-        code.text.push(Asm::Directive(Label(exit_label)));
-      }
-      Stat::While(cond, body) => {
-        let cond_label = code.get_label();
-        let body_label = code.get_label();
-
-        /* Jump to condition evaluation. */
-        code
-          .text
-          .push(Asm::always(Instr::Branch(false, cond_label.clone())));
-
-        /* Loop body label. */
-        code.text.push(Asm::Directive(Label(body_label.clone())));
-
-        /* Loop body. */
-        body.generate(scope, code, regs, ());
-
-        /* Cond label */
-        code.text.push(Asm::Directive(Label(cond_label)));
-
-        /* regs[0] = eval(cond) */
-        cond.generate(scope, code, regs, ());
-
-        /* cmp(regs[0], 1) */
-        code.text.push(Asm::always(Unary(
-          UnaryInstr::Cmp,
-          regs[0],
-          Op2::Imm(1),
-          false,
-        )));
-
-        /* If regs[0] == 1, jump back to loop body. */
-        code
-          .text
-          .push(Asm::Instr(CondCode::EQ, Branch(false, body_label.clone())));
-      }
-      Stat::Scope(stat) => stat.generate(scope, code, regs, ()),
-      Stat::Sequence(head, tail) => {
-        head.generate(scope, code, regs, ());
-        tail.generate(scope, code, regs, ());
-      }
-      _ => code.text.push(Asm::Directive(Directive::Label(format!(
-        "{:?}.generate(...)",
-        self
-      )))),
+      Stat::Declaration(t, id, rhs) => generate_stat_declaration(scope, code, regs, t, id, rhs),
+      Stat::Assignment(lhs, t, rhs) => generate_stat_assignment(scope, code, regs, lhs, t, rhs),
+      Stat::Read(type_, lhs) => generate_stat_read(scope, code, regs, type_, lhs),
+      Stat::Free(t, expr) => generate_stat_free(scope, code, regs, t, expr),
+      Stat::Return(expr) => generate_stat_return(scope, code, regs, expr),
+      Stat::Exit(expr) => generate_stat_exit(scope, code, regs, expr),
+      Stat::Print(t, expr) => generate_stat_print(scope, code, regs, t, expr),
+      Stat::Println(t, expr) => generate_stat_println(scope, code, regs, t, expr),
+      Stat::If(cond, body_t, body_f) => generate_stat_if(scope, code, regs, cond, body_t, body_f),
+      Stat::While(cond, body) => generate_stat_while(scope, code, regs, cond, body),
+      Stat::Scope(stat) => generate_stat_scope(scope, code, regs, stat),
+      Stat::Sequence(head, tail) => generate_stat_sequence(scope, code, regs, head, tail),
     }
   }
 }
