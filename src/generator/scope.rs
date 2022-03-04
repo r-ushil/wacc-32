@@ -8,7 +8,7 @@ use crate::ast::*;
 
 pub use context::SymbolTable;
 
-use super::asm::{DataSize, ARM_DSIZE_WORD};
+use super::asm::ARM_DSIZE_WORD;
 
 #[derive(Debug)]
 pub struct ScopeReader<'a> {

@@ -96,6 +96,9 @@ pub enum Asm {
 
 /* ======= SHORTCUTS ======== */
 
+/* In the future, the unused shortcuts might become useful,
+so we're allowing unused functions in this case. */
+#[allow(dead_code)]
 impl Asm {
   /* ==== MODIFIERS ==== */
   /* These modify already existing Asm instructions. */
