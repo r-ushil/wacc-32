@@ -107,28 +107,7 @@ impl Asm {
   pub fn always(i: Instr) -> Asm {
     Asm::Instr(CondCode::AL, i)
   }
-
-  // pub fn binary() {}
-
-  // pub fn add(a: i32, b: i32, c: i32) -> Asm {
-  //   Asm::always(Instr::Pop(Reg::PC))
-  // }
-
-  // pub fn flags()
-
-  // pub fn eq(cond: CondCode, mut asm: Asm) -> Asm {
-  //   match &mut asm {
-  //     Asm::Instr(c, _) => *c = cond,
-  //     _ => panic!("Incorrect shortcut usage."),
-  //   }
-
-  //   asm
-  // }
 }
-
-// fn main() {
-//   let x = Asm::eq(Asm::add(1, 2, 3));
-// }
 
 impl<I> From<I> for Asm
 where
