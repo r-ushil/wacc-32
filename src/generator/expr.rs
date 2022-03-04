@@ -136,26 +136,35 @@ fn generate_binary_app(
 
   //if more than two registers are left
   if regs.len() > MIN_STACK_MACHINE_REGS {
+    /* Haven't run out of registers, evaluate normally. */
     expr2.generate(scope, code, &regs[1..], ());
+
+    /* regs[0] = regs[0] <op> regs[1] */
+    generate_binary_op(code, regs[0], regs[0], regs[1], op);
   } else {
-    /* PUSH {reg[0]} */
+    /* Save regs[0] so we can use it for evaluating LHS. */
     code
       .text
       .push(Asm::always(Instr::Push(Reg::General(regs[0]))));
-    /* Create new scope */
+
+    /* The PUSH instruction above decremented stack pointer,
+    so we need to expand symbol table to reflect this. */
     let st = SymbolTable {
       size: 4,
       ..Default::default()
     };
-    /* POP {reg[0]} */
-    expr2.generate(&scope.new_scope(&st), code, &[regs[1], regs[0]], ());
+
+    /* Evaluate LHS using all registers. */
+    expr2.generate(&scope.new_scope(&st), code, regs, ());
+
+    /* Restore RHS into next available register. */
     code
       .text
-      .push(Asm::always(Instr::Pop(Reg::General(regs[0]))));
-  }
+      .push(Asm::always(Instr::Pop(Reg::General(regs[1]))));
 
-  /* regs[0] = regs[0] <op> regs[1] */
-  generate_binary_op(code, regs[0], regs[1], op);
+    /* regs[0] = regs[1] <op> regs[0] */
+    generate_binary_op(code, regs[0], regs[1], regs[0], op);
+  }
 }
 
 fn always_instruction(instruction: Instr) -> Asm {
@@ -214,6 +223,7 @@ fn generate_unary_length(code: &mut GeneratedCode, reg: Reg) {
 
 fn generate_binary_op(
   code: &mut GeneratedCode,
+  gen_dst: GenReg,
   gen_reg1: GenReg,
   gen_reg2: GenReg,
   bin_op: &BinaryOper,
