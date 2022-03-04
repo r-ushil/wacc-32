@@ -286,22 +286,23 @@ mod tests {
 
   #[test]
   fn test_expr_binary_app_sum_mult() {
+    let x = expr("w + x * y + z");
     assert!(matches!(
-      expr("w + x * y + z"),
+      x,
       Ok((
         "",
         ast)) if ast == Expr::BinaryApp(
-          Box::new(Expr::Ident("w".to_string())),
-          BinaryOper::Add,
           Box::new(Expr::BinaryApp(
+            Box::new(Expr::Ident("w".to_string())),
+            BinaryOper::Add,
             Box::new(Expr::BinaryApp(
               Box::new(Expr::Ident("x".to_string())),
               BinaryOper::Mul,
               Box::new(Expr::Ident("y".to_string()))
             )),
-            BinaryOper::Add,
-            Box::new(Expr::Ident("z".to_string())),
           )),
+          BinaryOper::Add,
+          Box::new(Expr::Ident("z".to_string())),
         )
     ))
   }
@@ -357,17 +358,17 @@ mod tests {
       Ok((
         "",
         ast)) if ast == Expr::BinaryApp(
-          Box::new(Expr::Ident("w".to_string())),
-          BinaryOper::Mul,
           Box::new(Expr::BinaryApp(
+            Box::new(Expr::Ident("w".to_string())),
+            BinaryOper::Mul,
             Box::new(Expr::BinaryApp(
               Box::new(Expr::Ident("x".to_string())),
               BinaryOper::Eq,
               Box::new(Expr::Ident("y".to_string()))
             )),
-            BinaryOper::Mul,
-            Box::new(Expr::Ident("z".to_string())),
           )),
+          BinaryOper::Mul,
+          Box::new(Expr::Ident("z".to_string())),
         )
     ))
   }
