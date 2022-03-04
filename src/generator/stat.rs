@@ -188,11 +188,11 @@ impl Generatable for AssignRhs {
           unreachable!();
         };
 
-        let mut offset = 0;
+        let mut args_offset = 0;
 
         for (expr, (arg_type, _arg_ident)) in exprs.iter().zip(args).rev() {
           let symbol_table = SymbolTable {
-            size: offset,
+            size: args_offset,
             ..Default::default()
           };
 
@@ -208,7 +208,7 @@ impl Generatable for AssignRhs {
           )));
 
           /* Make symbol table bigger. */
-          offset += arg_type.size();
+          args_offset += arg_type.size();
         }
 
         code.text.push(Asm::always(Branch(
@@ -218,15 +218,18 @@ impl Generatable for AssignRhs {
 
         /* Stack space was given to parameter to call function.
         We've finished calling so we can deallocate this space now. */
-        if offset != 0 {
-          code.text.push(Asm::always(Binary(
-            BinaryInstr::Add,
-            Reg::StackPointer,
-            Reg::StackPointer,
-            Op2::Imm(offset),
-            false,
-          )));
-        }
+        code.text.append(&mut Op2::imm_unroll(
+          |offset| {
+            Asm::always(Binary(
+              BinaryInstr::Add,
+              Reg::StackPointer,
+              Reg::StackPointer,
+              Op2::Imm(offset),
+              false,
+            ))
+          },
+          args_offset,
+        ));
 
         code.text.push(Asm::always(Unary(
           UnaryInstr::Mov,
@@ -291,19 +294,19 @@ impl Generatable for ScopedStat {
   fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], aux: ()) {
     let ScopedStat(st, statement) = self;
 
-    /* No need to decrement stack pointer if no vars declared. */
-    let skip_decrement = st.size == 0;
-
     /* Allocate space on stack for variables declared in this scope. */
-    if !skip_decrement {
-      code.text.push(Asm::always(Instr::Binary(
-        BinaryInstr::Sub,
-        Reg::StackPointer,
-        Reg::StackPointer,
-        Op2::Imm(st.size),
-        false,
-      )));
-    }
+    code.text.append(&mut Op2::imm_unroll(
+      |offset| {
+        Asm::always(Instr::Binary(
+          BinaryInstr::Sub,
+          Reg::StackPointer,
+          Reg::StackPointer,
+          Op2::Imm(offset),
+          false,
+        ))
+      },
+      st.size,
+    ));
 
     /* Enter new scope. */
     let scope = scope.new_scope(st);
@@ -312,15 +315,18 @@ impl Generatable for ScopedStat {
     statement.generate(&scope, code, regs, ());
 
     /* Increment stack pointer to old position. */
-    if !skip_decrement {
-      code.text.push(Asm::always(Instr::Binary(
-        BinaryInstr::Add,
-        Reg::StackPointer,
-        Reg::StackPointer,
-        Op2::Imm(st.size),
-        false,
-      )));
-    }
+    code.text.append(&mut Op2::imm_unroll(
+      |offset| {
+        Asm::always(Instr::Binary(
+          BinaryInstr::Add,
+          Reg::StackPointer,
+          Reg::StackPointer,
+          Op2::Imm(offset),
+          false,
+        ))
+      },
+      st.size,
+    ));
   }
 }
 
@@ -466,18 +472,18 @@ fn generate_stat_return(scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg]
   let total_offset = scope.get_total_offset();
 
   /* ADD sp, sp, #{total_offset} */
-  if total_offset != 0 {
-    code.text.push(Asm::Instr(
-      CondCode::AL,
-      Instr::Binary(
+  code.text.append(&mut Op2::imm_unroll(
+    |offset| {
+      Asm::always(Instr::Binary(
         BinaryInstr::Add,
         Reg::StackPointer,
         Reg::StackPointer,
-        Op2::Imm(total_offset),
+        Op2::Imm(offset),
         false,
-      ),
-    ));
-  }
+      ))
+    },
+    total_offset,
+  ));
 
   /* POP {pc} */
   code
