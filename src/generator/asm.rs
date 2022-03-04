@@ -320,8 +320,6 @@ pub enum GenReg {
   R11,
 }
 
-pub const ARGUMENT_REGS: [ArgReg; 4] = [ArgReg::R0, ArgReg::R1, ArgReg::R2, ArgReg::R3];
-
 /* General purpose registers usable for expression evaluation. */
 pub const GENERAL_REGS: [GenReg; 8] = [
   GenReg::R4,
@@ -353,10 +351,4 @@ pub enum CondCode {
   GT,
   LE,
   AL,
-}
-
-#[derive(PartialEq, Eq, Debug, Clone)]
-pub enum Load {
-  Imm(Imm),
-  Label(Label),
 }

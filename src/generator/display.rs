@@ -222,15 +222,6 @@ impl Display for CondCode {
   }
 }
 
-impl Display for Load {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      Load::Imm(val) => write!(f, "{}", val),
-      Load::Label(msg) => write!(f, "{}", msg),
-    }
-  }
-}
-
 impl Display for Reg {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     use Reg::*;
