@@ -179,7 +179,7 @@ fn generate_unary_negation(code: &mut GeneratedCode, reg: Reg) {
     reg.clone(),
     reg.clone(),
     Op2::Imm(0),
-    false,
+    true,
   )));
 }
 
