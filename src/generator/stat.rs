@@ -212,13 +212,17 @@ impl Generatable for AssignRhs {
           generate_function_name(ident.to_string()),
         )));
 
-        code.text.push(Asm::always(Binary(
-          BinaryInstr::Add,
-          Reg::StackPointer,
-          Reg::StackPointer,
-          Op2::Imm(offset),
-          false,
-        )));
+        /* Stack space was given to parameter to call function.
+        We've finished calling so we can deallocate this space now. */
+        if offset != 0 {
+          code.text.push(Asm::always(Binary(
+            BinaryInstr::Add,
+            Reg::StackPointer,
+            Reg::StackPointer,
+            Op2::Imm(offset),
+            false,
+          )));
+        }
 
         code.text.push(Asm::always(Unary(
           UnaryInstr::Mov,
