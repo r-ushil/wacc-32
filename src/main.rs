@@ -117,7 +117,7 @@ fn print_semantic_errors(errors: &Vec<SemanticError>) {
 
 fn contains_syntax_errors(errors: &Vec<SemanticError>) -> bool {
   for error in errors {
-    if is_syntax(&error) {
+    if let SemanticError::Syntax(_) = error {
       return true;
     }
   }
@@ -151,14 +151,6 @@ fn pretty_print_err_tree(program: &str, err_tree: &ErrorTree<&str>) {
         pretty_print_err_tree(program, error);
       }
     }
-  }
-}
-
-fn is_syntax(error: &SemanticError) -> bool {
-  match error {
-    SemanticError::Syntax(_) => true,
-    SemanticError::Normal(_) => false,
-    SemanticError::Nested(_, b) => is_syntax(&*b),
   }
 }
 

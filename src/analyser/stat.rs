@@ -1,8 +1,5 @@
 use super::{
-  context::{ContextLocation, ScopeMut, SymbolTable},
-  equal_types, expected_type,
-  unify::Unifiable,
-  HasType, SemanticError,
+  context::ScopeBuilder, equal_types, expected_type, unify::Unifiable, HasType, SemanticError,
 };
 use crate::ast::*;
 
@@ -21,7 +18,7 @@ impl ReturnBehaviour {
 }
 
 impl HasType for AssignLhs {
-  fn get_type(&mut self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&mut self, scope: &ScopeBuilder, errors: &mut Vec<SemanticError>) -> Option<Type> {
     match self {
       AssignLhs::Ident(id) => id.get_type(scope, errors),
       AssignLhs::ArrayElem(elem) => elem.get_type(scope, errors),
@@ -32,7 +29,7 @@ impl HasType for AssignLhs {
 
 #[allow(unused_variables)]
 impl HasType for AssignRhs {
-  fn get_type(&mut self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&mut self, scope: &ScopeBuilder, errors: &mut Vec<SemanticError>) -> Option<Type> {
     match self {
       AssignRhs::Expr(exp) => exp.get_type(scope, errors),
       AssignRhs::ArrayLiter(lit) => lit.get_type(scope, errors),
@@ -112,7 +109,7 @@ impl HasType for AssignRhs {
 }
 
 impl HasType for PairElem {
-  fn get_type(&mut self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&mut self, scope: &ScopeBuilder, errors: &mut Vec<SemanticError>) -> Option<Type> {
     match self {
       PairElem::Fst(t, p) => match p.get_type(scope, errors)? {
         Type::Pair(left, _) => match *left {
@@ -163,7 +160,7 @@ impl HasType for PairElem {
 }
 
 impl HasType for ArrayLiter {
-  fn get_type(&mut self, scope: &ScopeMut, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&mut self, scope: &ScopeBuilder, errors: &mut Vec<SemanticError>) -> Option<Type> {
     let ArrayLiter(exprs) = self;
 
     /* Take first element as source of truth. */
@@ -183,7 +180,7 @@ impl HasType for ArrayLiter {
 }
 
 pub fn scoped_stat(
-  scope: &ScopeMut,
+  scope: &ScopeBuilder,
   errors: &mut Vec<SemanticError>,
   ScopedStat(new_symbol_table, statement): &mut ScopedStat,
 ) -> Option<ReturnBehaviour> {
@@ -201,7 +198,7 @@ Scopes will make a new scope within the symbol table.
 If the statment ALWAYS returns with the same type, returns that type. */
 #[allow(dead_code)]
 pub fn stat(
-  scope: &mut ScopeMut,
+  scope: &mut ScopeBuilder,
   errors: &mut Vec<SemanticError>,
   statement: &mut Stat,
 ) -> Option<ReturnBehaviour> {
@@ -357,12 +354,14 @@ pub fn stat(
 
 #[cfg(test)]
 mod tests {
+  use crate::analyser::context::SymbolTable;
+
   use super::*;
 
   #[test]
   fn assign_lhs() {
     let mut symbol_table = SymbolTable::default();
-    let scope = &mut ScopeMut::new(&mut symbol_table);
+    let scope = &mut ScopeBuilder::new(&mut symbol_table);
 
     /* Identifiers cause */
     let x_id = String::from("x");
@@ -401,7 +400,7 @@ mod tests {
     let mut intx5 = Stat::Declaration(Type::Int, x(), AssignRhs::Expr(Expr::IntLiter(5)));
 
     let mut outer_symbol_table = SymbolTable::default();
-    let mut outer_scope = ScopeMut::new(&mut outer_symbol_table);
+    let mut outer_scope = ScopeBuilder::new(&mut outer_symbol_table);
 
     stat(&mut outer_scope, &mut vec![], &mut intx5);
 
@@ -437,7 +436,7 @@ mod tests {
     )));
 
     let mut outer_symbol_table = SymbolTable::default();
-    let mut global_scope = ScopeMut::new(&mut outer_symbol_table);
+    let mut global_scope = ScopeBuilder::new(&mut outer_symbol_table);
 
     stat(&mut global_scope, &mut vec![], &mut statement);
     /* x and z should now be in outer scope */
@@ -462,7 +461,7 @@ mod tests {
     };
 
     /* When in outer scope, x and z should be ints. */
-    let outer_scope = ScopeMut::new(&mut st);
+    let outer_scope = ScopeBuilder::new(&mut st);
     assert!(matches!(outer_scope.get_type(&x()), Some((&Type::Int, _))));
     assert!(matches!(outer_scope.get_type(&z()), Some((&Type::Int, _))));
 

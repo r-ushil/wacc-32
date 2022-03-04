@@ -9,7 +9,7 @@ use crate::generator::asm::*;
 impl Generatable for Expr {
   type Input = ();
   type Output = ();
-  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], _aux: ()) {
+  fn generate(&self, scope: &ScopeReader, code: &mut GeneratedCode, regs: &[GenReg], _aux: ()) {
     match self {
       Expr::IntLiter(val) => generate_int_liter(code, regs, val),
       Expr::BoolLiter(val) => generate_bool_liter(code, regs, val),
@@ -33,7 +33,12 @@ fn generate_pair_liter(code: &mut GeneratedCode, regs: &[GenReg]) {
   )));
 }
 
-fn generate_array_elem(scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], elem: &ArrayElem) {
+fn generate_array_elem(
+  scope: &ScopeReader,
+  code: &mut GeneratedCode,
+  regs: &[GenReg],
+  elem: &ArrayElem,
+) {
   /* Get address of array elem and store in regs[0]. */
   let array_elem_size = elem.generate(scope, code, regs, ());
 
@@ -46,7 +51,7 @@ fn generate_array_elem(scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg],
 }
 
 /* Stores value of local variable specified by ident to regs[0]. */
-fn generate_ident(scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], id: &Ident) {
+fn generate_ident(scope: &ScopeReader, code: &mut GeneratedCode, regs: &[GenReg], id: &Ident) {
   let offset = scope.get_offset(id).unwrap();
 
   code.text.push(Asm::always(Instr::Load(
@@ -110,7 +115,7 @@ fn generate_string_liter(code: &mut GeneratedCode, regs: &[GenReg], val: &String
 fn generate_unary_app(
   code: &mut GeneratedCode,
   regs: &[GenReg],
-  scope: &Scope,
+  scope: &ScopeReader,
   op: &UnaryOper,
   expr: &Box<Expr>,
 ) {
@@ -124,7 +129,7 @@ fn generate_unary_app(
 fn generate_binary_app(
   code: &mut GeneratedCode,
   regs: &[GenReg],
-  scope: &Scope,
+  scope: &ScopeReader,
   expr1: &Box<Expr>,
   op: &BinaryOper,
   expr2: &Box<Expr>,
@@ -436,7 +441,7 @@ impl Generatable for ArrayElem {
   returns size of element. */
   fn generate(
     &self,
-    scope: &Scope,
+    scope: &ScopeReader,
     code: &mut GeneratedCode,
     regs: &[GenReg],
     _aux: (),

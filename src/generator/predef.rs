@@ -58,7 +58,7 @@ impl RequiredPredefs {
 impl Generatable for RequiredPredefs {
   type Input = ();
   type Output = ();
-  fn generate(&self, _scope: &Scope, code: &mut GeneratedCode, _regs: &[GenReg], _aux: ()) {
+  fn generate(&self, _scope: &ScopeReader, code: &mut GeneratedCode, _regs: &[GenReg], _aux: ()) {
     match *self {
       RequiredPredefs::PrintInt => print_int_or_ref(code, PrintFmt::Int),
       RequiredPredefs::PrintString => print_string(code),
