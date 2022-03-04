@@ -334,6 +334,14 @@ fn binary_div_mod(op: BinaryOper, code: &mut GeneratedCode, reg1: Reg, reg2: Reg
       true,
       String::from("__aeabi_idivmod"),
     )));
+
+    /* MOV reg1, r0 */
+    code.text.push(always_instruction(Instr::Unary(
+      UnaryInstr::Mov,
+      reg1,
+      Op2::Reg(Reg::RegNum(0), 0),
+      false,
+    )));
   } else {
     unreachable!("undefined!");
   }
