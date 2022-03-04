@@ -19,7 +19,7 @@ trait Generatable: std::fmt::Debug {
     &self,
     _scope: &Scope,
     code: &mut GeneratedCode,
-    regs: &[Reg],
+    regs: &[GenReg],
     aux: Self::Input,
   ) -> Self::Output;
 }

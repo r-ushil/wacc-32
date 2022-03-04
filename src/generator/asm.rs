@@ -1,4 +1,4 @@
-use super::{display::unescape_char, predef::RequiredPredefs};
+use super::{display::unescape_char, predef::RequiredPredefs, Generatable};
 use std::fs::File;
 
 /* ======== Type aliases. ======== */
@@ -17,6 +17,8 @@ pub type Offset = i32;
 pub type Shift = i32;
 
 /* ======== Represents entire program. ======== */
+
+pub const MIN_STACK_MACHINE_REGS: usize = 2;
 
 #[derive(PartialEq, Debug)]
 pub struct GeneratedCode {
@@ -216,7 +218,6 @@ impl From<i32> for DataSize {
   }
 }
 
-/*  */
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum UnaryInstr {
   Mov, // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289878994.htm
@@ -253,22 +254,45 @@ impl From<Imm> for Op2 {
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum Reg {
-  RegNum(RegNum),
+  Arg(ArgReg),
+  General(GenReg),
   StackPointer,
   Link,
   PC,
 }
 
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum ArgReg {
+  R0,
+  R1,
+  R2,
+  R3,
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum GenReg {
+  R4,
+  R5,
+  R6,
+  R7,
+  R8,
+  R9,
+  R10,
+  R11,
+}
+
+pub const ARGUMENT_REGS: [ArgReg; 4] = [ArgReg::R0, ArgReg::R1, ArgReg::R2, ArgReg::R3];
+
 /* General purpose registers usable for expression evaluation. */
-pub const GENERAL_REGS: [Reg; 8] = [
-  Reg::RegNum(4),
-  Reg::RegNum(5),
-  Reg::RegNum(6),
-  Reg::RegNum(7),
-  Reg::RegNum(8),
-  Reg::RegNum(9),
-  Reg::RegNum(10),
-  Reg::RegNum(11),
+pub const GENERAL_REGS: [GenReg; 8] = [
+  GenReg::R4,
+  GenReg::R5,
+  GenReg::R6,
+  GenReg::R7,
+  GenReg::R8,
+  GenReg::R9,
+  GenReg::R10,
+  GenReg::R11,
 ];
 
 #[derive(PartialEq, Eq, Debug, Clone)]

@@ -236,10 +236,37 @@ impl Display for Reg {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     use Reg::*;
     match self {
-      RegNum(num) => write!(f, "r{}", num),
       StackPointer => write!(f, "sp"),
       Link => write!(f, "lr"),
       PC => write!(f, "pc"),
+      Arg(arg_reg) => write!(f, "{}", arg_reg),
+      General(gen_reg) => write!(f, "{}", gen_reg),
+    }
+  }
+}
+
+impl Display for GenReg {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      GenReg::R4 => write!(f, "r4"),
+      GenReg::R5 => write!(f, "r5"),
+      GenReg::R6 => write!(f, "r6"),
+      GenReg::R7 => write!(f, "r7"),
+      GenReg::R8 => write!(f, "r8"),
+      GenReg::R9 => write!(f, "r9"),
+      GenReg::R10 => write!(f, "r10"),
+      GenReg::R11 => write!(f, "r11"),
+    }
+  }
+}
+
+impl Display for ArgReg {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      ArgReg::R0 => write!(f, "r0"),
+      ArgReg::R1 => write!(f, "r1"),
+      ArgReg::R2 => write!(f, "r2"),
+      ArgReg::R3 => write!(f, "r3"),
     }
   }
 }

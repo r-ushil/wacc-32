@@ -1,4 +1,4 @@
-/* This is code gen's version of context.rs, cannot re-use context.rs
+/* This is code General's version of context.rs, cannot re-use context.rs
 because that's mutable. */
 
 use std::collections::HashMap;
@@ -46,7 +46,7 @@ impl Scope<'_> {
   pub fn new<'a>(st: &'a SymbolTable) -> Scope<'a> {
     /* When symbol tables are used in the analyser, they're used by callers
     who only have the origional idents the programmer gave to them, now we're
-    in code gen, the global rename has been done to the whole AST.
+    in code General, the global rename has been done to the whole AST.
     This means .generate(...) is being called on AST nodes which have the
     renamed identifiers, so the symbol table needs to be changed to be indexed
     by these new values. */
