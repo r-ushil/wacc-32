@@ -4,6 +4,7 @@ use std::fmt::Display;
 pub const PREDEF_SYS_EXIT: &str = "exit";
 pub const PREDEF_SYS_FFLUSH: &str = "fflush";
 pub const PREDEF_SYS_FREE: &str = "free";
+pub const PREDEF_SYS_MALLOC: &str = "malloc";
 pub const PREDEF_SYS_PRINTF: &str = "printf";
 pub const PREDEF_SYS_PUTCHAR: &str = "putchar";
 pub const PREDEF_SYS_SCANF: &str = "scanf";
