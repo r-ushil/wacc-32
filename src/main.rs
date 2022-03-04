@@ -109,13 +109,13 @@ fn incorrect_usage(reason: &str) {
   exit(-1);
 }
 
-fn print_semantic_errors(errors: &Vec<SemanticError>) {
+fn print_semantic_errors(errors: &[SemanticError]) {
   for error in errors {
     println!("ERROR: {}", error);
   }
 }
 
-fn contains_syntax_errors(errors: &Vec<SemanticError>) -> bool {
+fn contains_syntax_errors(errors: &[SemanticError]) -> bool {
   for error in errors {
     if let SemanticError::Syntax(_) = error {
       return true;

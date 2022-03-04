@@ -84,8 +84,10 @@ impl Generatable for Func {
     let scope = &scope.new_scope(&self.params_st);
 
     /* Make new 4 byte scope to reserve space for link register. */
-    let mut lr_table = SymbolTable::default();
-    lr_table.size = ARM_DSIZE_WORD;
+    let lr_table = SymbolTable {
+      size: ARM_DSIZE_WORD,
+      ..Default::default()
+    };
     let scope = &scope.new_scope(&lr_table);
 
     /* Move into function body scope. */

@@ -58,7 +58,7 @@ pub fn program(errors: &mut Vec<SemanticError>, program: &mut Program) -> Option
   }
 
   /* Program body must never return, but it can exit. */
-  match scoped_stat(&mut scope, errors, &mut program.statement)? {
+  match scoped_stat(&scope, errors, &mut program.statement)? {
     MidWay(t) | AtEnd(t) if t != Type::Any => {
       scope.add_error(
         errors,

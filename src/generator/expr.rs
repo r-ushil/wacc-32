@@ -82,7 +82,7 @@ fn generate_char_liter(code: &mut GeneratedCode, regs: &[GenReg], val: &char) {
   code.text.push(Asm::mov(Reg::General(regs[0]), ch_op2))
 }
 
-fn generate_string_liter(code: &mut GeneratedCode, regs: &[GenReg], val: &String) {
+fn generate_string_liter(code: &mut GeneratedCode, regs: &[GenReg], val: &str) {
   /* Create a label msg_{msg_no} to display the text */
   /* msg_{msg_no}: */
   let msg_label = code.get_msg(val);
@@ -96,7 +96,7 @@ fn generate_unary_app(
   regs: &[GenReg],
   scope: &ScopeReader,
   op: &UnaryOper,
-  expr: &Box<Expr>,
+  expr: &Expr,
 ) {
   /* Stores expression's value in regs[0]. */
   expr.generate(scope, code, regs, ());
@@ -109,9 +109,9 @@ fn generate_binary_app(
   code: &mut GeneratedCode,
   regs: &[GenReg],
   scope: &ScopeReader,
-  expr1: &Box<Expr>,
+  expr1: &Expr,
   op: &BinaryOper,
-  expr2: &Box<Expr>,
+  expr2: &Expr,
 ) {
   assert!(regs.len() >= 2);
 
