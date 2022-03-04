@@ -1,4 +1,4 @@
-use super::predef::RequiredPredefs;
+use super::{display::unescape_char, predef::RequiredPredefs};
 use std::fs::File;
 
 /* ======== Type aliases. ======== */
@@ -34,20 +34,12 @@ pub struct GeneratedCode {
 fn unescaped_string(str: &str) -> String {
   let mut s = String::with_capacity(str.len());
 
-  for c in str.chars() {
-    match c {
-      '\0' => s.push_str("\\0"),
-      '\u{8}' => s.push_str("\\b"),
-      '\t' => s.push_str("\\t"),
-      '\n' => s.push_str("\\n"),
-      '\u{c}' => s.push_str("\\f"),
-      '\r' => s.push_str("\\r"),
-      '\"' => s.push_str("\\\""),
-      '\'' => s.push_str("\\\'"),
-      '\\' => s.push_str("\\\\"),
-      '\n' => s.push_str("\\n"),
-      _ => s.push(c),
-    };
+  for ch in str.chars() {
+    if let Some(escaped) = unescape_char(ch) {
+      s.push_str(escaped);
+    } else {
+      s.push(ch);
+    }
   }
 
   s

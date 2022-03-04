@@ -192,7 +192,7 @@
 ../wacc_examples/valid/variables/zeroIntDeclaration.wacc,./wacc_examples_assembled_ours/valid/variables/zeroIntDeclaration.s,./wacc_examples_assembled/valid/variables/zeroIntDeclaration.s,pass
 ../wacc_examples/valid/while/fibonacciFullIt.wacc,./wacc_examples_assembled_ours/valid/while/fibonacciFullIt.s,./wacc_examples_assembled/valid/while/fibonacciFullIt.s,pass
 ../wacc_examples/valid/while/fibonacciIterative.wacc,./wacc_examples_assembled_ours/valid/while/fibonacciIterative.s,./wacc_examples_assembled/valid/while/fibonacciIterative.s,pass
-../wacc_examples/valid/while/loopCharCondition.wacc,./wacc_examples_assembled_ours/valid/while/loopCharCondition.s,./wacc_examples_assembled/valid/while/loopCharCondition.s,fail
+../wacc_examples/valid/while/loopCharCondition.wacc,./wacc_examples_assembled_ours/valid/while/loopCharCondition.s,./wacc_examples_assembled/valid/while/loopCharCondition.s,pass
 ../wacc_examples/valid/while/loopIntCondition.wacc,./wacc_examples_assembled_ours/valid/while/loopIntCondition.s,./wacc_examples_assembled/valid/while/loopIntCondition.s,pass
 ../wacc_examples/valid/while/max.wacc,./wacc_examples_assembled_ours/valid/while/max.s,./wacc_examples_assembled/valid/while/max.s,fail
 ../wacc_examples/valid/while/min.wacc,./wacc_examples_assembled_ours/valid/while/min.s,./wacc_examples_assembled/valid/while/min.s,fail

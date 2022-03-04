@@ -1,4 +1,5 @@
 use self::CondCode::*;
+use super::display::unescape_char;
 use super::predef::{RequiredPredefs, PREDEF_THROW_OVERFLOW_ERR};
 use super::*;
 use crate::generator::asm::*;
@@ -75,11 +76,18 @@ fn generate_bool_liter(code: &mut GeneratedCode, regs: &[Reg], val: &bool) {
 }
 
 fn generate_char_liter(code: &mut GeneratedCode, regs: &[Reg], val: &char) {
+  let ch = *val;
+  let ch_op2 = if ch == '\0' {
+    Op2::Imm(0)
+  } else {
+    Op2::Char(ch)
+  };
+
   /* MOV r{min_reg}, #'val' */
   code.text.push(always_instruction(Instr::Unary(
     UnaryInstr::Mov,
     regs[0],
-    Op2::Char(*val),
+    ch_op2,
     false,
   )))
 }

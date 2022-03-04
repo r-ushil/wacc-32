@@ -243,3 +243,18 @@ impl Display for Reg {
     }
   }
 }
+
+pub fn unescape_char(ch: char) -> Option<&'static str> {
+  match ch {
+    '\0' => Some("\\0"),
+    '\u{8}' => Some("\\b"),
+    '\t' => Some("\\t"),
+    '\n' => Some("\\n"),
+    '\u{c}' => Some("\\f"),
+    '\r' => Some("\\r"),
+    '\"' => Some("\\\""),
+    '\'' => Some("\\\'"),
+    '\\' => Some("\\\\"),
+    _ => None,
+  }
+}
