@@ -1,0 +1,14 @@
+--------- stdout ---------
+( [1, 2, 3] , [a, b, c] )
+[ 0x75c60 = (a, true), 0x75c90 = (b, false) ]
+1, 2
+array, of, strings
+true, false, true
+xyz
+1, 2, 3
+this is a string
+true
+x
+5
+--------------------------
+Exit code: 0
