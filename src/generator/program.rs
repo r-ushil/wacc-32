@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use super::*;
 
 // #[derive(PartialEq, Debug, Clone)]
@@ -7,7 +5,7 @@ impl Generatable for Program {
   type Input = ();
   type Output = ();
 
-  fn generate(&self, _: &Scope, code: &mut GeneratedCode, regs: &[GenReg], aux: ()) {
+  fn generate(&self, _: &Scope, code: &mut GeneratedCode, regs: &[GenReg], _aux: ()) {
     /* No registers should be in use by this point. */
     assert!(regs == GENERAL_REGS);
 
@@ -49,7 +47,7 @@ impl Generatable for Func {
   type Input = ();
   type Output = ();
 
-  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], aux: ()) {
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], _aux: ()) {
     /* No registers should be in use by this point. */
     assert!(regs == GENERAL_REGS);
 

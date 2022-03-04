@@ -43,20 +43,6 @@ pub enum Stat {
   Scope(ScopedStat),
 }
 
-impl Stat {
-  pub fn sequence(s1: Stat, s2: Stat) -> Stat {
-    Stat::Sequence(Box::new(s1), Box::new(s2))
-  }
-
-  pub fn declaration(t: Type, i: impl Into<Ident>, r: impl Into<AssignRhs>) -> Stat {
-    Stat::Declaration(t, i.into(), r.into())
-  }
-
-  pub fn return_(e: impl Into<Expr>) -> Stat {
-    Stat::Return(e.into())
-  }
-}
-
 #[derive(PartialEq, Debug, Clone)]
 pub struct ScopedStat(pub SymbolTable, pub Box<Stat>);
 
@@ -142,12 +128,6 @@ pub enum Expr {
   ArrayElem(ArrayElem),
   UnaryApp(UnaryOper, Box<Expr>),
   BinaryApp(Box<Expr>, BinaryOper, Box<Expr>),
-}
-
-impl Expr {
-  pub fn ident(s: impl Into<String>) -> Expr {
-    Expr::Ident(s.into())
-  }
 }
 
 impl From<i32> for Expr {
