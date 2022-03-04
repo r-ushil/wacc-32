@@ -1,6 +1,6 @@
 use super::{
-  predef::RequiredPredefs,
   predef::{ReadFmt, PREDEF_CHECK_NULL_POINTER, PREDEF_FREE_ARRAY, PREDEF_FREE_PAIR},
+  predef::{RequiredPredefs, PREDEF_SYS_MALLOC},
   *,
 };
 use Directive::*;
@@ -64,26 +64,16 @@ impl Generatable for AssignLhs {
 /* Mallocs {bytes} bytes and leaves the address in {reg}. */
 fn generate_malloc(bytes: i32, code: &mut GeneratedCode, reg: Reg) {
   /* LDR r0, ={bytes} */
-  code.text.push(Asm::always(Instr::Load(
-    DataSize::Word,
-    Reg::Arg(ArgReg::R0),
-    LoadArg::Imm(bytes),
-  )));
+  code.text.push(Asm::ldr(Reg::Arg(ArgReg::R0), bytes));
 
   /* BL malloc */
-  code.text.push(Asm::always(Instr::Branch(
-    true,
-    predef::PREDEF_SYS_MALLOC.to_string(),
-  )));
+  code.text.push(Asm::b(PREDEF_SYS_MALLOC).link());
 
   /* MOV {regs[0]}, r0 */
   if reg != Reg::Arg(ArgReg::R0) {
-    code.text.push(Asm::always(Instr::Unary(
-      UnaryInstr::Mov,
-      reg,
-      Op2::Reg(Reg::Arg(ArgReg::R0), 0),
-      false,
-    )));
+    code
+      .text
+      .push(Asm::mov(reg, Op2::Reg(Reg::Arg(ArgReg::R0), 0)));
   }
 }
 
@@ -123,31 +113,27 @@ fn generate_assign_rhs_array_liter(
     expr.generate(scope, code, &regs[1..], ());
 
     /* Write r5 array. */
-    code.text.push(Asm::always(Instr::Store(
-      elem_size.into(),
-      Reg::General(regs[1]),
-      (
-        Reg::General(regs[0]),
-        ARM_DSIZE_WORD + (i as i32) * elem_size,
-      ),
-      AddressingMode::Default,
-    )));
+    code.text.push(
+      Asm::str(
+        Reg::General(regs[1]),
+        (
+          Reg::General(regs[0]),
+          ARM_DSIZE_WORD + (i as i32) * elem_size,
+        ),
+      )
+      .size(elem_size.into()),
+    );
   }
 
   /* Write length to first byte.
   LDR r5, =3
   STR r5, [r4] */
-  code.text.push(Asm::always(Instr::Load(
-    DataSize::Word,
-    Reg::General(regs[1]),
-    LoadArg::Imm(exprs.len() as i32),
-  )));
-  code.text.push(Asm::always(Instr::Store(
-    DataSize::Word,
-    Reg::General(regs[1]),
-    (Reg::General(regs[0]), 0),
-    AddressingMode::Default,
-  )));
+  code
+    .text
+    .push(Asm::ldr(Reg::General(regs[1]), exprs.len() as i32));
+  code
+    .text
+    .push(Asm::str(Reg::General(regs[1]), (Reg::General(regs[0]), 0)));
 }
 
 fn generate_assign_rhs_pair(
@@ -177,20 +163,14 @@ fn generate_assign_rhs_pair(
   generate_malloc(e1_size, code, Reg::Arg(ArgReg::R0));
 
   /* Write e1 to malloced space. */
-  code.text.push(Asm::always(Instr::Store(
-    e1_size.into(),
-    Reg::General(regs[1]),
-    (Reg::Arg(ArgReg::R0), 0),
-    AddressingMode::Default,
-  )));
+  code
+    .text
+    .push(Asm::str(Reg::General(regs[1]), (Reg::Arg(ArgReg::R0), 0)).size(e1_size.into()));
 
   /* Write pointer to e1 to pair. */
-  code.text.push(Asm::always(Instr::Store(
-    DataSize::Word,
-    Reg::Arg(ArgReg::R0),
-    (Reg::General(regs[0]), 0),
-    AddressingMode::Default,
-  )));
+  code
+    .text
+    .push(Asm::str(Reg::Arg(ArgReg::R0), (Reg::General(regs[0]), 0)));
 
   /* Evaluate e2.
   regs[1] = eval(e2) */
@@ -201,43 +181,38 @@ fn generate_assign_rhs_pair(
   generate_malloc(e2_size, code, Reg::Arg(ArgReg::R0));
 
   /* Write e2 to malloced space. */
-  code.text.push(Asm::always(Instr::store(
-    e2_size.into(),
-    Reg::General(regs[1]),
-    (Reg::Arg(ArgReg::R0), 0),
-  )));
+  code
+    .text
+    .push(Asm::str(Reg::General(regs[1]), (Reg::Arg(ArgReg::R0), 0)).size(e2_size.into()));
 
   /* Write pointer to e2 to pair. */
-  code.text.push(Asm::always(Instr::store(
-    DataSize::Word,
+  code.text.push(Asm::str(
     Reg::Arg(ArgReg::R0),
     (Reg::General(regs[0]), ARM_DSIZE_WORD),
-  )));
+  ))
 }
 
 fn generate_assign_rhs_pair_elem(
   scope: &ScopeReader,
   code: &mut GeneratedCode,
   regs: &[GenReg],
-  t: Type,
+  _t: Type,
   elem: &PairElem,
 ) {
   /* Puts element address in regs[0]. */
   let elem_size = elem.generate(scope, code, regs, ());
 
   /* Dereference. */
-  code.text.push(Asm::always(Instr::Load(
-    elem_size,
-    Reg::General(regs[0]),
-    LoadArg::MemAddress(Reg::General(regs[0]), 0),
-  )));
+  code
+    .text
+    .push(Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), 0)).size(elem_size));
 }
 
 fn generate_assign_rhs_call(
   scope: &ScopeReader,
   code: &mut GeneratedCode,
   regs: &[GenReg],
-  t: Type,
+  _t: Type,
   ident: &Ident,
   exprs: &[Expr],
 ) {
@@ -259,43 +234,31 @@ fn generate_assign_rhs_call(
 
     expr.generate(&arg_offset_scope, code, regs, ());
 
-    code.text.push(Asm::always(Instr::store_with_mode(
-      arg_type.size().into(),
-      Reg::General(regs[0]),
-      (Reg::StackPointer, -arg_type.size()),
-      AddressingMode::PreIndexed,
-    )));
+    code.text.push(
+      Asm::str(Reg::General(regs[0]), (Reg::StackPointer, -arg_type.size()))
+        .size(arg_type.size().into())
+        .pre_indexed(),
+    );
 
     /* Make symbol table bigger. */
     args_offset += arg_type.size();
   }
 
-  code.text.push(Asm::always(Branch(
-    true,
-    generate_function_name(ident.to_string()),
-  )));
+  code
+    .text
+    .push(Asm::b(generate_function_name(ident.to_string())).link());
 
   /* Stack space was given to parameter to call function.
   We've finished calling so we can deallocate this space now. */
   code.text.append(&mut Op2::imm_unroll(
-    |offset| {
-      Asm::always(Binary(
-        BinaryInstr::Add,
-        Reg::StackPointer,
-        Reg::StackPointer,
-        Op2::Imm(offset),
-        false,
-      ))
-    },
+    |offset| Asm::add(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset)),
     args_offset,
   ));
 
-  code.text.push(Asm::always(Unary(
-    UnaryInstr::Mov,
+  code.text.push(Asm::mov(
     Reg::General(regs[0]),
     Op2::Reg(Reg::Arg(ArgReg::R0), 0),
-    false,
-  )));
+  ));
 }
 
 impl Generatable for AssignRhs {
@@ -337,24 +300,18 @@ impl Generatable for PairElem {
     pair.generate(scope, code, regs, ());
 
     /* CHECK: regs[0] != NULL */
-    code.text.push(Asm::always(Instr::Unary(
-      UnaryInstr::Mov,
+    code.text.push(Asm::mov(
       Reg::Arg(ArgReg::R0),
       Op2::Reg(Reg::General(regs[0]), 0),
-      false,
-    )));
-    code.text.push(Asm::always(Instr::Branch(
-      true,
-      PREDEF_CHECK_NULL_POINTER.to_string(),
-    )));
+    ));
+    code.text.push(Asm::b(PREDEF_CHECK_NULL_POINTER).link());
     RequiredPredefs::CheckNullPointer.mark(code);
 
     /* Dereference. */
-    code.text.push(Asm::always(Instr::Load(
-      DataSize::Word,
+    code.text.push(Asm::ldr(
       Reg::General(regs[0]),
-      LoadArg::MemAddress(Reg::General(regs[0]), offset),
-    )));
+      (Reg::General(regs[0]), offset),
+    ));
 
     /* Return how much data needs to be read from regs[0]. */
     t.size().into()
@@ -369,15 +326,7 @@ impl Generatable for ScopedStat {
 
     /* Allocate space on stack for variables declared in this scope. */
     code.text.append(&mut Op2::imm_unroll(
-      |offset| {
-        Asm::always(Instr::Binary(
-          BinaryInstr::Sub,
-          Reg::StackPointer,
-          Reg::StackPointer,
-          Op2::Imm(offset),
-          false,
-        ))
-      },
+      |offset| Asm::sub(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset)),
       st.size,
     ));
 
@@ -389,15 +338,7 @@ impl Generatable for ScopedStat {
 
     /* Increment stack pointer to old position. */
     code.text.append(&mut Op2::imm_unroll(
-      |offset| {
-        Asm::always(Instr::Binary(
-          BinaryInstr::Add,
-          Reg::StackPointer,
-          Reg::StackPointer,
-          Op2::Imm(offset),
-          false,
-        ))
-      },
+      |offset| Asm::add(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset)),
       st.size,
     ));
   }
@@ -432,12 +373,9 @@ fn generate_stat_assignment(
 
   /* stores value of regs[0] into lhs */
   let (ptr_reg, offset, data_size) = lhs.generate(scope, code, &regs[1..], t.clone());
-  code.text.push(Asm::always(Instr::Store(
-    data_size,
-    Reg::General(regs[0]),
-    (ptr_reg, offset),
-    AddressingMode::Default,
-  )));
+  code
+    .text
+    .push(Asm::str(Reg::General(regs[0]), (ptr_reg, offset)).size(data_size));
 }
 
 fn generate_stat_read(
@@ -450,24 +388,15 @@ fn generate_stat_read(
   let (ptr_reg, offset, _) = lhs.generate(scope, code, regs, type_.clone());
 
   if offset != 0 || Reg::General(regs[0]) != ptr_reg {
-    code.text.push(Asm::always(Instr::Binary(
-      BinaryInstr::Add,
-      Reg::General(regs[0]),
-      ptr_reg,
-      Op2::Imm(offset),
-      false,
-    )));
+    code
+      .text
+      .push(Asm::add(Reg::General(regs[0]), ptr_reg, Op2::Imm(offset)));
   }
 
   /* MOV r0, {regs[0]} */
-  code.text.push(Asm::Instr(
-    CondCode::AL,
-    Instr::Unary(
-      UnaryInstr::Mov,
-      Reg::Arg(ArgReg::R0),
-      Op2::Reg(Reg::General(regs[0]), 0),
-      false,
-    ),
+  code.text.push(Asm::mov(
+    Reg::Arg(ArgReg::R0),
+    Op2::Reg(Reg::General(regs[0]), 0),
   ));
   //expr.get_type //todo!() get type of ident
   let read_type = if *type_ == Type::Char {
@@ -481,10 +410,9 @@ fn generate_stat_read(
   };
 
   /* BL p_read_{read_type} */
-  code.text.push(Asm::always(Instr::Branch(
-    true,
-    format!("p_read_{}", read_type),
-  )))
+  code
+    .text
+    .push(Asm::b(format!("p_read_{}", read_type)).link())
 }
 
 fn generate_stat_free(
@@ -497,33 +425,22 @@ fn generate_stat_free(
   expr.generate(scope, code, regs, ());
 
   /* MOV r0, {min_reg}        //move heap address into r0 */
-  code.text.push(Asm::Instr(
-    CondCode::AL,
-    Instr::Unary(
-      UnaryInstr::Mov,
-      Reg::Arg(ArgReg::R0),
-      Op2::Reg(Reg::General(regs[0]), 0),
-      false,
-    ),
+  code.text.push(Asm::mov(
+    Reg::Arg(ArgReg::R0),
+    Op2::Reg(Reg::General(regs[0]), 0),
   ));
   match *t {
     Type::Array(_) => {
       RequiredPredefs::FreeArray.mark(code);
 
       /* BL p_free_array */
-      code.text.push(Asm::always(Instr::Branch(
-        true,
-        PREDEF_FREE_ARRAY.to_string(),
-      )));
+      code.text.push(Asm::b(PREDEF_FREE_ARRAY).link());
     }
     Type::Pair(_, _) => {
       RequiredPredefs::FreePair.mark(code);
 
       /* BL p_free_pair */
-      code.text.push(Asm::always(Instr::Branch(
-        true,
-        PREDEF_FREE_PAIR.to_string(),
-      )));
+      code.text.push(Asm::b(PREDEF_FREE_PAIR).link());
     }
     _ => unreachable!("Can't free this type!"),
   }
@@ -539,36 +456,21 @@ fn generate_stat_return(
   expr.generate(scope, code, regs, ());
 
   /* r0 = regs[0] */
-  code.text.push(Asm::Instr(
-    CondCode::AL,
-    Instr::Unary(
-      UnaryInstr::Mov,
-      Reg::Arg(ArgReg::R0),
-      Op2::Reg(Reg::General(regs[0]), 0),
-      false,
-    ),
+  code.text.push(Asm::mov(
+    Reg::Arg(ArgReg::R0),
+    Op2::Reg(Reg::General(regs[0]), 0),
   ));
 
   let total_offset = scope.get_total_offset();
 
   /* ADD sp, sp, #{total_offset} */
   code.text.append(&mut Op2::imm_unroll(
-    |offset| {
-      Asm::always(Instr::Binary(
-        BinaryInstr::Add,
-        Reg::StackPointer,
-        Reg::StackPointer,
-        Op2::Imm(offset),
-        false,
-      ))
-    },
+    |offset| Asm::add(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset)),
     total_offset,
   ));
 
   /* POP {pc} */
-  code
-    .text
-    .push(Asm::Instr(CondCode::AL, Instr::Pop(Reg::PC)));
+  code.text.push(Asm::pop(Reg::PC));
 }
 
 fn generate_stat_exit(scope: &ScopeReader, code: &mut GeneratedCode, regs: &[GenReg], expr: &Expr) {
@@ -576,21 +478,13 @@ fn generate_stat_exit(scope: &ScopeReader, code: &mut GeneratedCode, regs: &[Gen
   expr.generate(scope, code, regs, ());
 
   /* r0 = regs[0] */
-  code.text.push(Asm::Instr(
-    CondCode::AL,
-    Instr::Unary(
-      UnaryInstr::Mov,
-      Reg::Arg(ArgReg::R0),
-      Op2::Reg(Reg::General(regs[0]), 0),
-      false,
-    ),
+  code.text.push(Asm::mov(
+    Reg::Arg(ArgReg::R0),
+    Op2::Reg(Reg::General(regs[0]), 0),
   ));
 
-  /* B exit */
-  code.text.push(Asm::Instr(
-    CondCode::AL,
-    Instr::Branch(true, predef::PREDEF_SYS_EXIT.to_string()),
-  ));
+  /* BL exit */
+  code.text.push(Asm::b(predef::PREDEF_SYS_EXIT).link());
 }
 
 fn generate_stat_print(
@@ -602,12 +496,10 @@ fn generate_stat_print(
 ) {
   expr.generate(scope, code, regs, ());
 
-  code.text.push(Asm::always(Unary(
-    UnaryInstr::Mov,
+  code.text.push(Asm::mov(
     Reg::Arg(ArgReg::R0),
     Op2::Reg(Reg::General(regs[0]), 0),
-    false,
-  )));
+  ));
 
   match t {
     Type::Int => RequiredPredefs::PrintInt.mark(code),
@@ -636,7 +528,7 @@ fn generate_stat_print(
 
   code
     .text
-    .push(Asm::always(Branch(true, print_label.to_string())));
+    .push(Asm::instr(Branch(true, print_label.to_string())));
 }
 
 fn generate_stat_println(
@@ -650,10 +542,7 @@ fn generate_stat_println(
 
   /* BL println */
   RequiredPredefs::PrintLn.mark(code);
-  code.text.push(Asm::always(Instr::Branch(
-    true,
-    predef::PREDEF_PRINTLN.to_string(),
-  )));
+  code.text.push(Asm::b(predef::PREDEF_PRINTLN).link());
 }
 
 fn generate_stat_if(
@@ -671,12 +560,7 @@ fn generate_stat_if(
   cond.generate(scope, code, regs, ());
 
   /* cmp(regs[0], 0) */
-  code.text.push(Asm::always(Unary(
-    UnaryInstr::Cmp,
-    Reg::General(regs[0]),
-    Op2::Imm(0),
-    false,
-  )));
+  code.text.push(Asm::cmp(Reg::General(regs[0]), Op2::Imm(0)));
 
   /* Branch to false case if cond == 0. */
   code
@@ -689,7 +573,7 @@ fn generate_stat_if(
   /* Exit if statement. */
   code
     .text
-    .push(Asm::always(Branch(false, exit_label.clone())));
+    .push(Asm::instr(Branch(false, exit_label.clone())));
 
   /* Label for false case to skip to. */
   code.text.push(Asm::Directive(Label(false_label)));
@@ -712,9 +596,7 @@ fn generate_stat_while(
   let body_label = code.get_label();
 
   /* Jump to condition evaluation. */
-  code
-    .text
-    .push(Asm::always(Instr::Branch(false, cond_label.clone())));
+  code.text.push(Asm::b(cond_label.clone()));
 
   /* Loop body label. */
   code.text.push(Asm::Directive(Label(body_label.clone())));
@@ -729,12 +611,7 @@ fn generate_stat_while(
   cond.generate(scope, code, regs, ());
 
   /* cmp(regs[0], 1) */
-  code.text.push(Asm::always(Unary(
-    UnaryInstr::Cmp,
-    Reg::General(regs[0]),
-    Op2::Imm(1),
-    false,
-  )));
+  code.text.push(Asm::cmp(Reg::General(regs[0]), Op2::Imm(1)));
 
   /* If regs[0] == 1, jump back to loop body. */
   code
@@ -805,21 +682,15 @@ mod tests {
     expr.generate(scope, &mut expected_code, regs, ());
 
     /* MOV r0, r4 */
-    expected_code.text.push(Asm::Instr(
-      CondCode::AL,
-      Instr::Unary(
-        UnaryInstr::Mov,
-        Reg::Arg(ArgReg::R0),
-        Op2::Reg(Reg::General(GenReg::R4), 0),
-        false,
-      ),
+    expected_code.text.push(Asm::mov(
+      Reg::Arg(ArgReg::R0),
+      Op2::Reg(Reg::General(GenReg::R4), 0),
     ));
 
-    /* B exit */
-    expected_code.text.push(Asm::Instr(
-      CondCode::AL,
-      Instr::Branch(true, predef::PREDEF_SYS_EXIT.to_string()),
-    ));
+    /* BL exit */
+    expected_code
+      .text
+      .push(Asm::b(predef::PREDEF_SYS_EXIT).link());
 
     assert_eq!(format!("{}", actual_code), format!("{}", expected_code));
   }

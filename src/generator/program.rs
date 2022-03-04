@@ -70,21 +70,13 @@ impl Generatable for Func {
 
     /* Save link register.
     PUSH {lr} */
-    code.text.push(Asm::always(Instr::Push(Reg::Link)));
+    code.text.push(Asm::push(Reg::Link));
 
     let body_st_size = self.body_st.size;
 
     /* Allocate space on stack for local vars. */
     code.text.append(&mut Op2::imm_unroll(
-      |offset| {
-        Asm::always(Instr::Binary(
-          BinaryInstr::Sub,
-          Reg::StackPointer,
-          Reg::StackPointer,
-          Op2::Imm(offset),
-          false,
-        ))
-      },
+      |offset| Asm::sub(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset)),
       body_st_size,
     ));
 
@@ -114,28 +106,16 @@ impl Generatable for Func {
       let body_st_size = scope.get_total_offset();
 
       code.text.append(&mut Op2::imm_unroll(
-        |offset: i32| {
-          Asm::always(Instr::Binary(
-            BinaryInstr::Add,
-            Reg::StackPointer,
-            Reg::StackPointer,
-            Op2::Imm(offset),
-            false,
-          ))
-        },
+        |offset: i32| Asm::add(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset)),
         body_st_size,
       ));
 
-      code.text.push(Asm::always(Instr::Load(
-        DataSize::Word,
-        Reg::Arg(ArgReg::R0),
-        LoadArg::Imm(0),
-      )))
+      code.text.push(Asm::ldr(Reg::Arg(ArgReg::R0), 0))
     }
 
     /* Jump back to caller.
     POP {pc} */
-    code.text.push(Asm::always(Instr::Pop(Reg::PC)));
+    code.text.push(Asm::pop(Reg::PC));
 
     /* Mark block for compilations.
     .ltorg */
