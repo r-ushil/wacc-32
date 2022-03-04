@@ -262,36 +262,36 @@ pub enum Reg {
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum ArgReg {
-  r0,
-  r1,
-  r2,
-  r3,
+  R0,
+  R1,
+  R2,
+  R3,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum GenReg {
-  r4,
-  r5,
-  r6,
-  r7,
-  r8,
-  r9,
-  r10,
-  r11,
+  R4,
+  R5,
+  R6,
+  R7,
+  R8,
+  R9,
+  R10,
+  R11,
 }
 
-pub const ARGUMENT_REGS: [ArgReg; 4] = [ArgReg::r0, ArgReg::r1, ArgReg::r2, ArgReg::r3];
+pub const ARGUMENT_REGS: [ArgReg; 4] = [ArgReg::R0, ArgReg::R1, ArgReg::R2, ArgReg::R3];
 
 /* General purpose registers usable for expression evaluation. */
 pub const GENERAL_REGS: [GenReg; 8] = [
-  GenReg::r4,
-  GenReg::r5,
-  GenReg::r6,
-  GenReg::r7,
-  GenReg::r8,
-  GenReg::r9,
-  GenReg::r10,
-  GenReg::r11,
+  GenReg::R4,
+  GenReg::R5,
+  GenReg::R6,
+  GenReg::R7,
+  GenReg::R8,
+  GenReg::R9,
+  GenReg::R10,
+  GenReg::R11,
 ];
 
 #[derive(PartialEq, Eq, Debug, Clone)]

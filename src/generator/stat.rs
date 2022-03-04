@@ -41,7 +41,7 @@ fn generate_malloc(bytes: i32, code: &mut GeneratedCode, reg: Reg) {
   /* LDR r0, ={bytes} */
   code.text.push(Asm::always(Instr::Load(
     DataSize::Word,
-    Reg::Arg(ArgReg::r0),
+    Reg::Arg(ArgReg::R0),
     LoadArg::Imm(bytes),
   )));
 
@@ -51,11 +51,11 @@ fn generate_malloc(bytes: i32, code: &mut GeneratedCode, reg: Reg) {
     .push(Asm::always(Instr::Branch(true, String::from("malloc"))));
 
   /* MOV {regs[0]}, r0 */
-  if reg != Reg::Arg(ArgReg::r0) {
+  if reg != Reg::Arg(ArgReg::R0) {
     code.text.push(Asm::always(Instr::Unary(
       UnaryInstr::Mov,
       reg,
-      Op2::Reg(Reg::Arg(ArgReg::r0), 0),
+      Op2::Reg(Reg::Arg(ArgReg::R0), 0),
       false,
     )));
   }
@@ -129,20 +129,20 @@ impl Generatable for AssignRhs {
 
         /* Malloc for e1.
         r0 = malloc(e1_size) */
-        generate_malloc(e1_size, code, Reg::Arg(ArgReg::r0));
+        generate_malloc(e1_size, code, Reg::Arg(ArgReg::R0));
 
         /* Write e1 to malloced space. */
         code.text.push(Asm::always(Instr::Store(
           e1_size.into(),
           Reg::General(regs[1]),
-          (Reg::Arg(ArgReg::r0), 0),
+          (Reg::Arg(ArgReg::R0), 0),
           AddressingMode::Default,
         )));
 
         /* Write pointer to e1 to pair. */
         code.text.push(Asm::always(Instr::Store(
           DataSize::Word,
-          Reg::Arg(ArgReg::r0),
+          Reg::Arg(ArgReg::R0),
           (Reg::General(regs[0]), 0),
           AddressingMode::Default,
         )));
@@ -153,19 +153,19 @@ impl Generatable for AssignRhs {
 
         /* Malloc for e2.
         r0 = malloc(e2_size) */
-        generate_malloc(e2_size, code, Reg::Arg(ArgReg::r0));
+        generate_malloc(e2_size, code, Reg::Arg(ArgReg::R0));
 
         /* Write e2 to malloced space. */
         code.text.push(Asm::always(Instr::store(
           e2_size.into(),
           Reg::General(regs[1]),
-          (Reg::Arg(ArgReg::r0), 0),
+          (Reg::Arg(ArgReg::R0), 0),
         )));
 
         /* Write pointer to e2 to pair. */
         code.text.push(Asm::always(Instr::store(
           DataSize::Word,
-          Reg::Arg(ArgReg::r0),
+          Reg::Arg(ArgReg::R0),
           (Reg::General(regs[0]), 4),
         )));
       }
@@ -231,7 +231,7 @@ impl Generatable for AssignRhs {
         code.text.push(Asm::always(Unary(
           UnaryInstr::Mov,
           Reg::General(regs[0]),
-          Op2::Reg(Reg::Arg(ArgReg::r0), 0),
+          Op2::Reg(Reg::Arg(ArgReg::R0), 0),
           false,
         )));
       }
@@ -263,7 +263,7 @@ impl Generatable for PairElem {
     /* CHECK: regs[0] != NULL */
     code.text.push(Asm::always(Instr::Unary(
       UnaryInstr::Mov,
-      Reg::Arg(ArgReg::r0),
+      Reg::Arg(ArgReg::R0),
       Op2::Reg(Reg::General(regs[0]), 0),
       false,
     )));
@@ -383,7 +383,7 @@ fn generate_stat_read(
     CondCode::AL,
     Instr::Unary(
       UnaryInstr::Mov,
-      Reg::Arg(ArgReg::r0),
+      Reg::Arg(ArgReg::R0),
       Op2::Reg(Reg::General(regs[0]), 0),
       false,
     ),
@@ -420,7 +420,7 @@ fn generate_stat_free(
     CondCode::AL,
     Instr::Unary(
       UnaryInstr::Mov,
-      Reg::Arg(ArgReg::r0),
+      Reg::Arg(ArgReg::R0),
       Op2::Reg(Reg::General(regs[0]), 0),
       false,
     ),
@@ -457,7 +457,7 @@ fn generate_stat_return(scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg]
     CondCode::AL,
     Instr::Unary(
       UnaryInstr::Mov,
-      Reg::Arg(ArgReg::r0),
+      Reg::Arg(ArgReg::R0),
       Op2::Reg(Reg::General(regs[0]), 0),
       false,
     ),
@@ -494,7 +494,7 @@ fn generate_stat_exit(scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], 
     CondCode::AL,
     Instr::Unary(
       UnaryInstr::Mov,
-      Reg::Arg(ArgReg::r0),
+      Reg::Arg(ArgReg::R0),
       Op2::Reg(Reg::General(regs[0]), 0),
       false,
     ),
@@ -518,7 +518,7 @@ fn generate_stat_print(
 
   code.text.push(Asm::always(Unary(
     UnaryInstr::Mov,
-    Reg::Arg(ArgReg::r0),
+    Reg::Arg(ArgReg::R0),
     Op2::Reg(Reg::General(regs[0]), 0),
     false,
   )));
@@ -723,8 +723,8 @@ mod tests {
       CondCode::AL,
       Instr::Unary(
         UnaryInstr::Mov,
-        Reg::Arg(ArgReg::r0),
-        Op2::Reg(Reg::General(GenReg::r4), 0),
+        Reg::Arg(ArgReg::R0),
+        Op2::Reg(Reg::General(GenReg::R4), 0),
         false,
       ),
     ));
