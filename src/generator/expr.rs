@@ -189,8 +189,6 @@ fn generate_unary_negation(code: &mut GeneratedCode, reg: Reg) {
   ));
 
   RequiredPredefs::OverflowError.mark(code);
-
-
 }
 
 fn generate_unary_length(code: &mut GeneratedCode, reg: Reg) {
