@@ -1,5 +1,5 @@
 use super::{
-  context::{ScopeBuilder, SymbolTable},
+  context::ScopeBuilder,
   stat::{ReturnBehaviour::*, *},
   unify::Unifiable,
   SemanticError,

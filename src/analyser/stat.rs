@@ -1,8 +1,5 @@
 use super::{
-  context::{ScopeBuilder, SymbolTable},
-  equal_types, expected_type,
-  unify::Unifiable,
-  HasType, SemanticError,
+  context::ScopeBuilder, equal_types, expected_type, unify::Unifiable, HasType, SemanticError,
 };
 use crate::ast::*;
 
