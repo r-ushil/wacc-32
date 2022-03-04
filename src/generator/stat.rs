@@ -607,7 +607,7 @@ fn generate_stat_print(
     Type::Int => predef::PREDEF_PRINT_INT,
     Type::Bool => predef::PREDEF_PRINT_BOOL,
     Type::String => predef::PREDEF_PRINT_STRING,
-    Type::Char => predef::PREDEF_PRINT_CHAR,
+    Type::Char => predef::PREDEF_SYS_PUTCHAR,
     Type::Array(elem_type) => match **elem_type {
       Type::Char => predef::PREDEF_PRINT_STRING,
       _ => predef::PREDEF_PRINT_REFS,
