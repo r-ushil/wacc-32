@@ -343,7 +343,7 @@ fn binary_div_mod(op: BinaryOper, code: &mut GeneratedCode, gen_reg1: GenReg, ge
     RequiredPredefs::DivideByZeroError.mark(code);
     code.text.push(always_instruction(Instr::Branch(
       true,
-      String::from("p_check_divide_by_zero"),
+      predef::PREDEF_CHECK_DIVIDE_BY_ZERO.to_string(),
     )));
 
     /* BL __aeabi_idiv */
@@ -379,7 +379,7 @@ fn binary_div_mod(op: BinaryOper, code: &mut GeneratedCode, gen_reg1: GenReg, ge
     RequiredPredefs::DivideByZeroError.mark(code);
     code.text.push(always_instruction(Instr::Branch(
       true,
-      String::from("p_check_divide_by_zero"),
+      predef::PREDEF_CHECK_DIVIDE_BY_ZERO.to_string(),
     )));
 
     /* BL __aeabi_idivmod */

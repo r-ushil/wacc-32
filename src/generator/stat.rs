@@ -568,7 +568,7 @@ fn generate_stat_exit(scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], 
   /* B exit */
   code.text.push(Asm::Instr(
     CondCode::AL,
-    Instr::Branch(true, String::from("exit")),
+    Instr::Branch(true, predef::PREDEF_SYS_EXIT.to_string()),
   ));
 }
 
@@ -797,7 +797,7 @@ mod tests {
     /* B exit */
     expected_code.text.push(Asm::Instr(
       CondCode::AL,
-      Instr::Branch(true, String::from("exit")),
+      Instr::Branch(true, predef::PREDEF_SYS_EXIT.to_string()),
     ));
 
     assert_eq!(format!("{}", actual_code), format!("{}", expected_code));
