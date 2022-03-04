@@ -6,7 +6,7 @@ mod unify;
 
 use std::fmt::Display;
 
-use context::{ContextLocation, ScopeMut};
+use context::ScopeMut;
 use unify::Unifiable;
 
 use crate::ast::*;
@@ -16,16 +16,12 @@ use crate::ast::*;
 pub enum SemanticError {
   Normal(String),
   Syntax(String),
-  Nested(ContextLocation, Box<SemanticError>),
 }
 
 impl Display for SemanticError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       SemanticError::Normal(s) | SemanticError::Syntax(s) => s.fmt(f),
-      SemanticError::Nested(location, err) => {
-        write!(f, "{:?} in {:?}", err, location)
-      }
     }
   }
 }

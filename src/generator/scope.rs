@@ -15,7 +15,7 @@ pub struct Scope<'a> {
   /* The scope this scope is inside of,
   and where abouts within that scope it is. */
   /* context: None means this is the global scope. */
-  context: Option<(ContextLocation, &'a Scope<'a>)>,
+  context: Option<&'a Scope<'a>>,
 }
 
 impl Scope<'_> {
@@ -60,7 +60,7 @@ impl Scope<'_> {
       /* Identifier declared in this scope, return. */
       Some((t, _)) => Some(t),
       /* Look for identifier in parent scope, recurse. */
-      None => self.context?.1.get_type(ident),
+      None => self.context?.get_type(ident),
     }
   }
 
@@ -69,14 +69,14 @@ impl Scope<'_> {
       /* Identifier declared in this scope, return. */
       Some((_, base_offset)) => Some(self.symbol_table.size - base_offset),
       /* Look for identifier in parent scope, recurse. */
-      None => Some(self.context?.1.get_offset(ident)? + self.symbol_table.size),
+      None => Some(self.context?.get_offset(ident)? + self.symbol_table.size),
     }
   }
 
   /* Same as get_type, but only checks the bottom most table. */
   pub fn get_bottom(&self, ident: &Ident) -> Option<&Type> {
     match self.context {
-      Some((_, parent)) => parent.get_bottom(ident),
+      Some(parent) => parent.get_bottom(ident),
       None => Some(&self.symbol_table.table.get(ident)?.0),
     }
   }
@@ -88,7 +88,7 @@ impl Scope<'_> {
       0
     } else {
       /* Otherwise, add the size of this scope and all the above scopes. */
-      self.symbol_table.size + self.context.unwrap().1.get_total_offset()
+      self.symbol_table.size + self.context.unwrap().get_total_offset()
     }
   }
 
@@ -96,7 +96,7 @@ impl Scope<'_> {
     let mut st = Scope::new(symbol_table);
 
     /* The parent of the returned scope is the caller. */
-    st.context = Some((ContextLocation::Scope, self));
+    st.context = Some(self);
 
     st
   }

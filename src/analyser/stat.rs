@@ -1,5 +1,5 @@
 use super::{
-  context::{ContextLocation, ScopeMut, SymbolTable},
+  context::{ScopeMut, SymbolTable},
   equal_types, expected_type,
   unify::Unifiable,
   HasType, SemanticError,

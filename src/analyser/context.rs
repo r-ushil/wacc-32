@@ -3,15 +3,6 @@ use std::collections::HashMap;
 use super::SemanticError;
 use crate::ast::*;
 
-#[derive(Debug, Clone, Eq, PartialEq, Copy)]
-pub enum ContextLocation {
-  ProgramBody,
-  Function,
-  Scope,
-  While,
-  If,
-}
-
 pub type Offset = i32;
 /* Associates each ident with an offset from the TOP of this stack frame,
 also stores the total size of this stack frame. */
@@ -31,7 +22,7 @@ pub struct ScopeMut<'a> {
   /* The scope this scope is inside of,
   and where abouts within that scope it is. */
   /* context: None means this is the global scope. */
-  context: Option<(ContextLocation, &'a ScopeMut<'a>)>,
+  context: Option<&'a ScopeMut<'a>>,
 }
 
 #[allow(dead_code)]
@@ -49,9 +40,9 @@ impl ScopeMut<'_> {
   }
 
   pub fn add_error(&self, errors: &mut Vec<SemanticError>, error: SemanticError) {
-    if let Some((location, parent)) = self.context {
+    if let Some(parent) = self.context {
       /* Scope has parent, wrap error in nested. */
-      parent.add_error(errors, SemanticError::Nested(location, Box::new(error)))
+      parent.add_error(errors, error)
     } else {
       /* Global scope, no more nesting to do. */
       errors.push(error);
@@ -67,7 +58,7 @@ impl ScopeMut<'_> {
         Some((t, new_id))
       }
       /* Look for identifier in parent scope, recurse. */
-      None => self.context?.1.get_type(ident),
+      None => self.context?.get_type(ident),
     }
   }
 
@@ -76,7 +67,7 @@ impl ScopeMut<'_> {
       /* Identifier declared in this scope, return. */
       Some((_, base_offset)) => Some(self.symbol_table.size - base_offset),
       /* Look for identifier in parent scope, recurse. */
-      None => Some(self.context?.1.get_offset(ident)? + self.symbol_table.size),
+      None => Some(self.context?.get_offset(ident)? + self.symbol_table.size),
     }
   }
 
@@ -106,7 +97,7 @@ impl ScopeMut<'_> {
 
     ScopeMut {
       symbol_table,
-      context: Some((ContextLocation::Scope, self)),
+      context: Some(self),
     }
   }
 }

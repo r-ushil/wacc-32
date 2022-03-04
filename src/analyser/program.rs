@@ -1,5 +1,5 @@
 use super::{
-  context::{ContextLocation, ScopeMut, SymbolTable},
+  context::{ScopeMut, SymbolTable},
   stat::{ReturnBehaviour::*, *},
   unify::Unifiable,
   SemanticError,
