@@ -47,11 +47,11 @@
 ../wacc_examples/valid/expressions/modExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/modExpr.s,./wacc_examples_assembled/valid/expressions/modExpr.s,fail
 ../wacc_examples/valid/expressions/multExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/multExpr.s,./wacc_examples_assembled/valid/expressions/multExpr.s,fail
 ../wacc_examples/valid/expressions/multNoWhitespaceExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/multNoWhitespaceExpr.s,./wacc_examples_assembled/valid/expressions/multNoWhitespaceExpr.s,fail
-../wacc_examples/valid/expressions/negBothDiv.wacc,./wacc_examples_assembled_ours/valid/expressions/negBothDiv.s,./wacc_examples_assembled/valid/expressions/negBothDiv.s,fail
+../wacc_examples/valid/expressions/negBothDiv.wacc,./wacc_examples_assembled_ours/valid/expressions/negBothDiv.s,./wacc_examples_assembled/valid/expressions/negBothDiv.s,pass
 ../wacc_examples/valid/expressions/negBothMod.wacc,./wacc_examples_assembled_ours/valid/expressions/negBothMod.s,./wacc_examples_assembled/valid/expressions/negBothMod.s,fail
-../wacc_examples/valid/expressions/negDividendDiv.wacc,./wacc_examples_assembled_ours/valid/expressions/negDividendDiv.s,./wacc_examples_assembled/valid/expressions/negDividendDiv.s,fail
+../wacc_examples/valid/expressions/negDividendDiv.wacc,./wacc_examples_assembled_ours/valid/expressions/negDividendDiv.s,./wacc_examples_assembled/valid/expressions/negDividendDiv.s,pass
 ../wacc_examples/valid/expressions/negDividendMod.wacc,./wacc_examples_assembled_ours/valid/expressions/negDividendMod.s,./wacc_examples_assembled/valid/expressions/negDividendMod.s,fail
-../wacc_examples/valid/expressions/negDivisorDiv.wacc,./wacc_examples_assembled_ours/valid/expressions/negDivisorDiv.s,./wacc_examples_assembled/valid/expressions/negDivisorDiv.s,fail
+../wacc_examples/valid/expressions/negDivisorDiv.wacc,./wacc_examples_assembled_ours/valid/expressions/negDivisorDiv.s,./wacc_examples_assembled/valid/expressions/negDivisorDiv.s,pass
 ../wacc_examples/valid/expressions/negDivisorMod.wacc,./wacc_examples_assembled_ours/valid/expressions/negDivisorMod.s,./wacc_examples_assembled/valid/expressions/negDivisorMod.s,fail
 ../wacc_examples/valid/expressions/negExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/negExpr.s,./wacc_examples_assembled/valid/expressions/negExpr.s,fail
 ../wacc_examples/valid/expressions/notequalsExpr.wacc,./wacc_examples_assembled_ours/valid/expressions/notequalsExpr.s,./wacc_examples_assembled/valid/expressions/notequalsExpr.s,pass
@@ -137,8 +137,8 @@
 ../wacc_examples/valid/runtimeErr/arrayOutOfBounds/arrayNegBounds.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/arrayOutOfBounds/arrayNegBounds.s,./wacc_examples_assembled/valid/runtimeErr/arrayOutOfBounds/arrayNegBounds.s,pass
 ../wacc_examples/valid/runtimeErr/arrayOutOfBounds/arrayOutOfBounds.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/arrayOutOfBounds/arrayOutOfBounds.s,./wacc_examples_assembled/valid/runtimeErr/arrayOutOfBounds/arrayOutOfBounds.s,pass
 ../wacc_examples/valid/runtimeErr/arrayOutOfBounds/arrayOutOfBoundsWrite.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/arrayOutOfBounds/arrayOutOfBoundsWrite.s,./wacc_examples_assembled/valid/runtimeErr/arrayOutOfBounds/arrayOutOfBoundsWrite.s,fail
-../wacc_examples/valid/runtimeErr/divideByZero/divideByZero.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/divideByZero/divideByZero.s,./wacc_examples_assembled/valid/runtimeErr/divideByZero/divideByZero.s,fail
-../wacc_examples/valid/runtimeErr/divideByZero/divZero.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/divideByZero/divZero.s,./wacc_examples_assembled/valid/runtimeErr/divideByZero/divZero.s,fail
+../wacc_examples/valid/runtimeErr/divideByZero/divideByZero.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/divideByZero/divideByZero.s,./wacc_examples_assembled/valid/runtimeErr/divideByZero/divideByZero.s,pass
+../wacc_examples/valid/runtimeErr/divideByZero/divZero.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/divideByZero/divZero.s,./wacc_examples_assembled/valid/runtimeErr/divideByZero/divZero.s,pass
 ../wacc_examples/valid/runtimeErr/divideByZero/modByZero.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/divideByZero/modByZero.s,./wacc_examples_assembled/valid/runtimeErr/divideByZero/modByZero.s,fail
 ../wacc_examples/valid/runtimeErr/integerOverflow/intJustOverflow.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/integerOverflow/intJustOverflow.s,./wacc_examples_assembled/valid/runtimeErr/integerOverflow/intJustOverflow.s,pass
 ../wacc_examples/valid/runtimeErr/integerOverflow/intmultOverflow.wacc,./wacc_examples_assembled_ours/valid/runtimeErr/integerOverflow/intmultOverflow.s,./wacc_examples_assembled/valid/runtimeErr/integerOverflow/intmultOverflow.s,fail
