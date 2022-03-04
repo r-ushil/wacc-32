@@ -27,7 +27,6 @@ pub enum RequiredPredefs {
   PrintInt,
   PrintString,
   PrintBool,
-  PrintChar,
   PrintRefs,
   PrintLn,
   ReadChar,
@@ -54,12 +53,11 @@ impl RequiredPredefs {
 impl Generatable for RequiredPredefs {
   type Input = ();
   type Output = ();
-  fn generate(&self, _scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], aux: ()) {
+  fn generate(&self, _scope: &Scope, code: &mut GeneratedCode, _regs: &[GenReg], _aux: ()) {
     match *self {
       RequiredPredefs::PrintInt => print_int_or_ref(code, PrintFmt::Int),
       RequiredPredefs::PrintString => print_string(code),
       RequiredPredefs::PrintBool => print_bool(code),
-      RequiredPredefs::PrintChar => todo!(), // TODO: Implement
       RequiredPredefs::PrintRefs => print_int_or_ref(code, PrintFmt::Ref),
       RequiredPredefs::PrintLn => println(code),
       RequiredPredefs::ReadChar => read(code, ReadFmt::Char),
