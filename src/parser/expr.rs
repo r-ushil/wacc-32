@@ -71,14 +71,17 @@ fn expr_binary_app(prec: u8, input: &str) -> IResult<&str, Expr, ErrorTree<&str>
     return expr_atom(input);
   }
 
-  let (input, lhs) = expr_binary_app(prec - 1, input)?;
-  let (input, op) = match binary_oper_prec(prec)(input) {
-    Ok(op) => op,
-    _ => return Ok((input, lhs)),
-  };
-  let (input, rhs) = expr_binary_app(prec, input)?;
+  let term = |i| expr_binary_app(prec - 1, i);
 
-  Ok((input, Expr::BinaryApp(Box::new(lhs), op, Box::new(rhs))))
+  let (input, mut lhs) = term(input)?;
+
+  let (input, terms) = many0(pair(binary_oper_prec(prec), term))(input)?;
+
+  for (op, rhs) in terms {
+    lhs = Expr::BinaryApp(Box::new(lhs), op, Box::new(rhs));
+  }
+
+  Ok((input, lhs))
 }
 
 //〈int-liter〉::= (‘+’ | ‘-’) ? (‘0’-‘9’)
@@ -118,7 +121,9 @@ fn unary_oper(input: &str) -> IResult<&str, UnaryOper, ErrorTree<&str>> {
   ))(input)
 }
 
-fn binary_oper_prec<'a>(prec: u8) -> impl FnMut(&'a str) -> IResult<&'a str, BinaryOper> {
+fn binary_oper_prec<'a>(
+  prec: u8,
+) -> impl FnMut(&'a str) -> IResult<&'a str, BinaryOper, ErrorTree<&str>> {
   use BinaryOper::*;
 
   move |input| match prec {
