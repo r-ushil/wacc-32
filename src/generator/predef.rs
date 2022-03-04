@@ -1,12 +1,20 @@
 use super::*;
 use std::fmt::Display;
 
+pub const PREDEF_SYS_EXIT: &str = "exit";
+pub const PREDEF_SYS_FFLUSH: &str = "fflush";
+pub const PREDEF_SYS_FREE: &str = "free";
+pub const PREDEF_SYS_PRINTF: &str = "printf";
+pub const PREDEF_SYS_PUTCHAR: &str = "putchar";
+pub const PREDEF_SYS_SCANF: &str = "scanf";
+
+pub const PREDEF_AEABI_IDIV: &str = "__aeabi_idiv";
+pub const PREDEF_AEABI_IDIVMOD: &str = "__aeabi_idivmod";
+
 pub const PREDEF_PRINT_INT: &str = "p_print_int";
 pub const PREDEF_PRINT_STRING: &str = "p_print_string";
 pub const PREDEF_PRINT_BOOL: &str = "p_print_bool";
 pub const PREDEF_PRINT_REFS: &str = "p_print_reference";
-
-pub const PREDEF_PRINT_CHAR: &str = "putchar";
 
 pub const PREDEF_PRINTLN: &str = "p_print_ln";
 pub const PREDEF_FREE_PAIR: &str = "p_free_pair";
@@ -15,12 +23,9 @@ pub const PREDEF_FREE_ARRAY: &str = "p_free_array";
 pub const PREDEF_THROW_RUNTIME_ERR: &str = "p_throw_runtime_error";
 pub const PREDEF_THROW_OVERFLOW_ERR: &str = "p_throw_overflow_error";
 pub const PREDEF_CHECK_NULL_POINTER: &str = "p_check_null_pointer";
+pub const PREDEF_CHECK_DIVIDE_BY_ZERO: &str = "p_check_divide_by_zero";
 
 pub const PREDEF_CHECK_ARRAY_BOUNDS: &str = "p_check_array_bounds";
-pub const PREDEF_DIVIDE_BY_ZERO: &str = "p_check_divide_by_zero";
-
-pub const PREDEF_ARM_DIV: &str = "__aeabi_idiv";
-pub const PREDEF_ARM_MOD: &str = "__aeabi_idivmod";
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum RequiredPredefs {
@@ -202,7 +207,7 @@ fn read(code: &mut GeneratedCode, fmt: ReadFmt) {
   /*  BL scanf             //branch to scanf */
   code
     .text
-    .push(Instr(AL, Branch(true, String::from("scanf"))));
+    .push(Instr(AL, Branch(true, PREDEF_SYS_SCANF.to_string())));
 
   /*  POP {pc}              //pop the pc register */
   code.text.push(Instr(AL, Pop(Reg::PC)));
@@ -256,7 +261,7 @@ fn println(code: &mut GeneratedCode) {
   /*  BL fflush             //branch to fflush */
   code
     .text
-    .push(Instr(AL, Branch(true, String::from("fflush"))));
+    .push(Instr(AL, Branch(true, PREDEF_SYS_FFLUSH.to_string())));
   /*  POP {pc}              //pop the pc register */
   code.text.push(Instr(AL, Pop(Reg::PC)));
 }
@@ -319,7 +324,7 @@ fn check_divide_by_zero(code: &mut GeneratedCode) {
   /* p_check_divide_by_zero: */
   code
     .text
-    .push(Directive(Label(String::from("p_check_divide_by_zero"))));
+    .push(Directive(Label(PREDEF_CHECK_DIVIDE_BY_ZERO.to_string())));
 
   /*  PUSH {lr}            //push link reg */
   code.text.push(Instr(AL, Push(Reg::Link)));
@@ -423,7 +428,9 @@ fn free_array(code: &mut GeneratedCode) {
   RequiredPredefs::RuntimeError.mark(code);
 
   /* BL free                      //branch to free */
-  code.text.push(Instr(EQ, Branch(false, "free".to_string())));
+  code
+    .text
+    .push(Instr(EQ, Branch(false, PREDEF_SYS_FREE.to_string())));
 
   /*  POP {pc}            //pop pc register */
   code.text.push(Instr(AL, Pop(Reg::PC)));
@@ -484,7 +491,7 @@ fn free_pair(code: &mut GeneratedCode) {
 
   code
     .text
-    .push(Instr(AL, Branch(true, String::from("free"))));
+    .push(Instr(AL, Branch(true, PREDEF_SYS_FREE.to_string())));
 
   /*  LDR r0, [sp]        //load stack pointer address into r0 */
   code.text.push(Instr(
@@ -507,13 +514,13 @@ fn free_pair(code: &mut GeneratedCode) {
   /*  BL free             //branch to free */
   code
     .text
-    .push(Instr(AL, Branch(true, String::from("free"))));
+    .push(Instr(AL, Branch(true, PREDEF_SYS_FREE.to_string())));
   /*  POP {r0}            //pop r0 register */
   code.text.push(Instr(AL, Pop(Reg::Arg(ArgReg::R0))));
   /*  BL free             //branch to free */
   code
     .text
-    .push(Instr(AL, Branch(true, String::from("free"))));
+    .push(Instr(AL, Branch(true, PREDEF_SYS_FREE.to_string())));
   /*  POP {pc}            //pop pc register */
   code.text.push(Instr(AL, Pop(Reg::PC)));
 }
@@ -542,7 +549,7 @@ fn throw_runtime_error(code: &mut GeneratedCode) {
   /* BL exit                  //exit with status code -1  */
   code
     .text
-    .push(Instr(AL, Branch(true, String::from("exit"))));
+    .push(Instr(AL, Branch(true, PREDEF_SYS_EXIT.to_string())));
 }
 
 fn print_bool(code: &mut GeneratedCode) {
@@ -606,7 +613,7 @@ fn print_bool(code: &mut GeneratedCode) {
   /*  BL printf             //branch to printf */
   code
     .text
-    .push(Instr(AL, Branch(true, String::from("printf"))));
+    .push(Instr(AL, Branch(true, PREDEF_SYS_PRINTF.to_string())));
   /*  MOV r0, #0            //move 0 to r0 */
   code.text.push(Instr(
     AL,
@@ -615,7 +622,7 @@ fn print_bool(code: &mut GeneratedCode) {
   /*  BL fflush             //branch to fflush */
   code
     .text
-    .push(Instr(AL, Branch(true, String::from("fflush"))));
+    .push(Instr(AL, Branch(true, PREDEF_SYS_FFLUSH.to_string())));
   /*  POP {pc}              //pop the pc register */
   code.text.push(Instr(AL, Pop(Reg::PC)));
 }
@@ -683,7 +690,7 @@ fn print_string(code: &mut GeneratedCode) {
   /*  BL printf             //branch to printf */
   code
     .text
-    .push(Instr(AL, Branch(true, String::from("printf"))));
+    .push(Instr(AL, Branch(true, PREDEF_SYS_PRINTF.to_string())));
   /*  MOV r0, #0            //move 0 to r0 */
   code.text.push(Instr(
     AL,
@@ -692,7 +699,7 @@ fn print_string(code: &mut GeneratedCode) {
   /*  BL fflush             //branch to fflush */
   code
     .text
-    .push(Instr(AL, Branch(true, String::from("fflush"))));
+    .push(Instr(AL, Branch(true, PREDEF_SYS_FFLUSH.to_string())));
   /*  POP {pc}              //pop the pc register */
   code.text.push(Instr(AL, Pop(Reg::PC)));
 }
@@ -774,7 +781,7 @@ fn print_int_or_ref(code: &mut GeneratedCode, opt: PrintFmt) {
   /*  BL printf             //branch to printf */
   code
     .text
-    .push(Instr(AL, Branch(true, String::from("printf"))));
+    .push(Instr(AL, Branch(true, PREDEF_SYS_PRINTF.to_string())));
   /*  MOV r0, #0            //move 0 to r0 */
   code.text.push(Instr(
     AL,
@@ -783,7 +790,7 @@ fn print_int_or_ref(code: &mut GeneratedCode, opt: PrintFmt) {
   /*  BL fflush             //branch to fflush */
   code
     .text
-    .push(Instr(AL, Branch(true, String::from("fflush"))));
+    .push(Instr(AL, Branch(true, PREDEF_SYS_FFLUSH.to_string())));
   /*  POP {pc}              //pop the pc register */
   code.text.push(Instr(AL, Pop(Reg::PC)));
 }

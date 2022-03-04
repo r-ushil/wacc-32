@@ -1,7 +1,7 @@
 use self::CondCode::*;
 use super::predef::{
-  RequiredPredefs, PREDEF_ARM_DIV, PREDEF_ARM_MOD, PREDEF_CHECK_ARRAY_BOUNDS,
-  PREDEF_DIVIDE_BY_ZERO, PREDEF_THROW_OVERFLOW_ERR,
+  RequiredPredefs, PREDEF_AEABI_IDIV, PREDEF_AEABI_IDIVMOD, PREDEF_CHECK_ARRAY_BOUNDS,
+  PREDEF_CHECK_DIVIDE_BY_ZERO, PREDEF_THROW_OVERFLOW_ERR,
 };
 use super::*;
 use crate::generator::asm::*;
@@ -344,13 +344,13 @@ fn binary_div_mod(op: BinaryOper, code: &mut GeneratedCode, gen_reg1: GenReg, ge
     RequiredPredefs::DivideByZeroError.mark(code);
     code.text.push(always_instruction(Instr::Branch(
       true,
-      PREDEF_DIVIDE_BY_ZERO.to_string(),
+      PREDEF_CHECK_DIVIDE_BY_ZERO.to_string(),
     )));
 
     /* BL __aeabi_idiv */
     code.text.push(always_instruction(Instr::Branch(
       true,
-      PREDEF_ARM_DIV.to_string(),
+      PREDEF_AEABI_IDIV.to_string(),
     )));
 
     /* MOV reg1, r0 */
@@ -380,13 +380,13 @@ fn binary_div_mod(op: BinaryOper, code: &mut GeneratedCode, gen_reg1: GenReg, ge
     RequiredPredefs::DivideByZeroError.mark(code);
     code.text.push(always_instruction(Instr::Branch(
       true,
-      PREDEF_DIVIDE_BY_ZERO.to_string(),
+      PREDEF_CHECK_DIVIDE_BY_ZERO.to_string(),
     )));
 
     /* BL __aeabi_idivmod */
     code.text.push(always_instruction(Instr::Branch(
       true,
-      PREDEF_ARM_MOD.to_string(),
+      PREDEF_AEABI_IDIVMOD.to_string(),
     )));
 
     /* MOV reg1, r1 */

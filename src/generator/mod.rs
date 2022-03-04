@@ -11,6 +11,8 @@ mod stat;
 use asm::*;
 use scope::*;
 
+pub const WACC_PROGRAM_MAIN_LABEL: &str = "main";
+
 trait Generatable: std::fmt::Debug {
   type Input;
   type Output;
