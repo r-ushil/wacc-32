@@ -6,7 +6,7 @@ use crate::generator::asm::*;
 impl Generatable for Expr {
   type Input = ();
   type Output = ();
-  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], aux: ()) {
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], _aux: ()) {
     match self {
       Expr::IntLiter(val) => generate_int_liter(code, regs, val),
       Expr::BoolLiter(val) => generate_bool_liter(code, regs, val),
@@ -17,7 +17,6 @@ impl Generatable for Expr {
       Expr::PairLiter => generate_pair_liter(code, regs),
       Expr::Ident(id) => generate_ident(scope, code, regs, &id),
       Expr::ArrayElem(elem) => generate_array_elem(scope, code, regs, elem),
-      _ => generate_temp_default(self, code, regs),
     }
   }
 }
@@ -154,13 +153,6 @@ fn always_instruction(instruction: Instr) -> Asm {
   Asm::Instr(AL, instruction)
 }
 
-fn generate_temp_default(expr: &Expr, code: &mut GeneratedCode, regs: &[GenReg]) {
-  code.text.push(Asm::Directive(Directive::Label(format!(
-    "{:?}.generate(...)",
-    expr
-  ))))
-}
-
 fn generate_unary_op(code: &mut GeneratedCode, reg: Reg, unary_op: &UnaryOper) {
   // TODO: Briefly explain the pre-condition that you created in the caller
   match unary_op {
@@ -211,13 +203,6 @@ fn generate_unary_length(code: &mut GeneratedCode, reg: Reg) {
     reg,
     LoadArg::MemAddress(reg, 0),
   )));
-}
-
-fn generate_unary_temp_default(code: &mut GeneratedCode, reg: Reg, unary_op: &UnaryOper) {
-  code.text.push(Asm::Directive(Directive::Label(format!(
-    "{:?}.generate(...)",
-    unary_op
-  ))))
 }
 
 fn generate_binary_op(
@@ -438,7 +423,7 @@ impl Generatable for ArrayElem {
     scope: &Scope,
     code: &mut GeneratedCode,
     regs: &[GenReg],
-    aux: (),
+    _aux: (),
   ) -> DataSize {
     let ArrayElem(id, indexes) = self;
     let mut current_type = scope.get_type(id).unwrap();
@@ -536,6 +521,3 @@ impl Generatable for ArrayElem {
     current_type.size().into()
   }
 }
-
-#[cfg(test)]
-mod tests {}
