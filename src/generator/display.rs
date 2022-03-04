@@ -239,8 +239,8 @@ impl Display for Reg {
       StackPointer => write!(f, "sp"),
       Link => write!(f, "lr"),
       PC => write!(f, "pc"),
-      Argument(_) => todo!(),
-      GeneralPurpose(_) => todo!(),
+      Arg(_) => todo!(),
+      Gen(_) => todo!(),
     }
   }
 }

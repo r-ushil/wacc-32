@@ -50,7 +50,7 @@ impl RequiredPredefs {
 impl Generatable for RequiredPredefs {
   type Input = ();
   type Output = ();
-  fn generate(&self, _scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], aux: ()) {
+  fn generate(&self, _scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], aux: ()) {
     match *self {
       RequiredPredefs::PrintInt => print_int_or_ref(code, PrintFmt::Int),
       RequiredPredefs::PrintString => print_string(code),
@@ -107,21 +107,12 @@ fn check_array_bounds(code: &mut GeneratedCode) {
   /* CMP r0, #0                     //compare r0 to 0 */
   code.text.push(Instr(
     AL,
-    Unary(
-      UnaryInstr::Cmp,
-      Reg::Argument(ArgReg::r0),
-      Op2::Imm(0),
-      false,
-    ),
+    Unary(UnaryInstr::Cmp, Reg::Arg(ArgReg::r0), Op2::Imm(0), false),
   ));
   /* LDRLT r0, =msg_0               //load msg_0 if less than flag set into r0 */
   code.text.push(Instr(
     LT,
-    Load(
-      DataSize::Word,
-      Reg::Argument(ArgReg::r0),
-      LoadArg::Label(msg_0),
-    ),
+    Load(DataSize::Word, Reg::Arg(ArgReg::r0), LoadArg::Label(msg_0)),
   ));
   /* BLLT p_throw_runtime_error     //branch to runtime error as a result */
   RequiredPredefs::RuntimeError.mark(code);
@@ -134,8 +125,8 @@ fn check_array_bounds(code: &mut GeneratedCode) {
     AL,
     Load(
       DataSize::Word,
-      Reg::Argument(ArgReg::r1),
-      LoadArg::MemAddress(Reg::Argument(ArgReg::r1), 0),
+      Reg::Arg(ArgReg::r1),
+      LoadArg::MemAddress(Reg::Arg(ArgReg::r1), 0),
     ),
   ));
   /* CMP r0, r1                     //compare r0 and r1 */
@@ -143,19 +134,15 @@ fn check_array_bounds(code: &mut GeneratedCode) {
     AL,
     Unary(
       UnaryInstr::Cmp,
-      Reg::Argument(ArgReg::r0),
-      Op2::Reg(Reg::Argument(ArgReg::r1), 0),
+      Reg::Arg(ArgReg::r0),
+      Op2::Reg(Reg::Arg(ArgReg::r1), 0),
       false,
     ),
   ));
   /* LDRCS r0, =msg_1               //load msg_1 into r0 if carry flag is set */
   code.text.push(Instr(
     CS,
-    Load(
-      DataSize::Word,
-      Reg::Argument(ArgReg::r0),
-      LoadArg::Label(msg_1),
-    ),
+    Load(DataSize::Word, Reg::Arg(ArgReg::r0), LoadArg::Label(msg_1)),
   ));
   /* BLCS p_throw_runtime_error     //branch to runtime error as a result */
   code.text.push(Instr(
@@ -187,8 +174,8 @@ fn read(code: &mut GeneratedCode, fmt: ReadFmt) {
     AL,
     Unary(
       UnaryInstr::Mov,
-      Reg::Argument(ArgReg::r1),
-      Op2::Reg(Reg::Argument(ArgReg::r0), 0),
+      Reg::Arg(ArgReg::r1),
+      Op2::Reg(Reg::Arg(ArgReg::r0), 0),
       false,
     ),
   ));
@@ -196,11 +183,7 @@ fn read(code: &mut GeneratedCode, fmt: ReadFmt) {
   /*  LDR r0, =msg_read_{fmt}   //load the result of msg_read_{fmt} */
   code.text.push(Instr(
     AL,
-    Load(
-      DataSize::Word,
-      Reg::Argument(ArgReg::r0),
-      LoadArg::Label(msg),
-    ),
+    Load(DataSize::Word, Reg::Arg(ArgReg::r0), LoadArg::Label(msg)),
   ));
 
   /*  ADD r0, r0, #4        //add 4 to r0 and store in r0 */
@@ -208,8 +191,8 @@ fn read(code: &mut GeneratedCode, fmt: ReadFmt) {
     AL,
     Binary(
       BinaryInstr::Add,
-      Reg::Argument(ArgReg::r0),
-      Reg::Argument(ArgReg::r0),
+      Reg::Arg(ArgReg::r0),
+      Reg::Arg(ArgReg::r0),
       Op2::Imm(4),
       false,
     ),
@@ -244,7 +227,7 @@ fn println(code: &mut GeneratedCode) {
     AL,
     Load(
       DataSize::Word,
-      Reg::Argument(ArgReg::r0),
+      Reg::Arg(ArgReg::r0),
       LoadArg::Label(msg_label),
     ),
   ));
@@ -253,8 +236,8 @@ fn println(code: &mut GeneratedCode) {
     AL,
     Binary(
       BinaryInstr::Add,
-      Reg::Argument(ArgReg::r0),
-      Reg::Argument(ArgReg::r0),
+      Reg::Arg(ArgReg::r0),
+      Reg::Arg(ArgReg::r0),
       Op2::Imm(4),
       false,
     ),
@@ -266,12 +249,7 @@ fn println(code: &mut GeneratedCode) {
   /*  MOV r0, #0            //move 0 to r0 */
   code.text.push(Instr(
     AL,
-    Unary(
-      UnaryInstr::Mov,
-      Reg::Argument(ArgReg::r0),
-      Op2::Imm(0),
-      false,
-    ),
+    Unary(UnaryInstr::Mov, Reg::Arg(ArgReg::r0), Op2::Imm(0), false),
   ));
   /*  BL fflush             //branch to fflush */
   code
@@ -301,19 +279,14 @@ fn check_null_pointer(code: &mut GeneratedCode) {
   /*  CMP r0, #0           //compare the contents of r0 to 0 and set flags */
   code.text.push(Instr(
     AL,
-    Unary(
-      UnaryInstr::Cmp,
-      Reg::Argument(ArgReg::r0),
-      Op2::Imm(0),
-      false,
-    ),
+    Unary(UnaryInstr::Cmp, Reg::Arg(ArgReg::r0), Op2::Imm(0), false),
   ));
   /*  LDREQ r0, =msg_label   //load error msg if r0 equals 0 */
   code.text.push(Instr(
     EQ,
     Load(
       DataSize::Word,
-      Reg::Argument(ArgReg::r0),
+      Reg::Arg(ArgReg::r0),
       LoadArg::Label(msg_label),
     ),
   ));
@@ -351,19 +324,14 @@ fn check_divide_by_zero(code: &mut GeneratedCode) {
   /*  CMP r1, #0           //compare the contents of r1 to 0 and set flags */
   code.text.push(Instr(
     AL,
-    Unary(
-      UnaryInstr::Cmp,
-      Reg::Argument(ArgReg::r1),
-      Op2::Imm(0),
-      false,
-    ),
+    Unary(UnaryInstr::Cmp, Reg::Arg(ArgReg::r1), Op2::Imm(0), false),
   ));
   /*  LDREQ r0, =msg_divide_by_zero   //load error msg if r0 equals 0 */
   code.text.push(Instr(
     EQ,
     Load(
       DataSize::Word,
-      Reg::Argument(ArgReg::r0),
+      Reg::Arg(ArgReg::r0),
       LoadArg::Label(msg_label),
     ),
   ));
@@ -403,7 +371,7 @@ fn throw_overflow_error(code: &mut GeneratedCode) {
     AL,
     Load(
       DataSize::Word,
-      Reg::Argument(ArgReg::r0),
+      Reg::Arg(ArgReg::r0),
       LoadArg::Label(msg_label),
     ),
   ));
@@ -432,19 +400,14 @@ fn free_array(code: &mut GeneratedCode) {
   /*  CMP r0, #0           //compare the contents of r0 to 0 and set flags */
   code.text.push(Instr(
     AL,
-    Unary(
-      UnaryInstr::Cmp,
-      Reg::Argument(ArgReg::r0),
-      Op2::Imm(0),
-      false,
-    ),
+    Unary(UnaryInstr::Cmp, Reg::Arg(ArgReg::r0), Op2::Imm(0), false),
   ));
   /*  LDREQ r0, =msg_null_deref   //load deref msg if r0 equals 0 */
   code.text.push(Instr(
     EQ,
     Load(
       DataSize::Word,
-      Reg::Argument(ArgReg::r0),
+      Reg::Arg(ArgReg::r0),
       LoadArg::Label(msg_label),
     ),
   ));
@@ -485,19 +448,14 @@ fn free_pair(code: &mut GeneratedCode) {
   /*  CMP r0, #0           //compare the contents of r0 to 0 and set flags */
   code.text.push(Instr(
     AL,
-    Unary(
-      UnaryInstr::Cmp,
-      Reg::Argument(ArgReg::r0),
-      Op2::Imm(0),
-      false,
-    ),
+    Unary(UnaryInstr::Cmp, Reg::Arg(ArgReg::r0), Op2::Imm(0), false),
   ));
   /*  LDREQ r0, =msg_null_deref   //load deref msg if r0 equals 0 */
   code.text.push(Instr(
     EQ,
     Load(
       DataSize::Word,
-      Reg::Argument(ArgReg::r0),
+      Reg::Arg(ArgReg::r0),
       LoadArg::Label(msg_label),
     ),
   ));
@@ -511,14 +469,14 @@ fn free_pair(code: &mut GeneratedCode) {
   RequiredPredefs::RuntimeError.mark(code);
 
   /*  PUSH {r0}           //push r0 */
-  code.text.push(Instr(AL, Push(Reg::RegNum(0))));
+  code.text.push(Instr(AL, Push(Reg::Arg(ArgReg::r0))));
 
   code.text.push(Instr(
     AL,
     Load(
       DataSize::Word,
-      Reg::RegNum(0),
-      LoadArg::MemAddress(Reg::RegNum(0), 0),
+      Reg::Arg(ArgReg::r0),
+      LoadArg::MemAddress(Reg::Arg(ArgReg::r0), 0),
     ),
   ));
 
@@ -531,7 +489,7 @@ fn free_pair(code: &mut GeneratedCode) {
     AL,
     Load(
       DataSize::Word,
-      Reg::Argument(ArgReg::r0),
+      Reg::Arg(ArgReg::r0),
       LoadArg::MemAddress(Reg::StackPointer, 0),
     ),
   ));
@@ -540,8 +498,8 @@ fn free_pair(code: &mut GeneratedCode) {
     AL,
     Load(
       DataSize::Word,
-      Reg::Argument(ArgReg::r0),
-      LoadArg::MemAddress(Reg::Argument(ArgReg::r0), 4),
+      Reg::Arg(ArgReg::r0),
+      LoadArg::MemAddress(Reg::Arg(ArgReg::r0), 4),
     ),
   ));
   /*  BL free             //branch to free */
@@ -549,7 +507,7 @@ fn free_pair(code: &mut GeneratedCode) {
     .text
     .push(Instr(AL, Branch(true, String::from("free"))));
   /*  POP {r0}            //pop r0 register */
-  code.text.push(Instr(AL, Pop(Reg::Argument(ArgReg::r0))));
+  code.text.push(Instr(AL, Pop(Reg::Arg(ArgReg::r0))));
   /*  BL free             //branch to free */
   code
     .text
@@ -577,12 +535,7 @@ fn throw_runtime_error(code: &mut GeneratedCode) {
   RequiredPredefs::PrintString.mark(code);
   code.text.push(Instr(
     AL,
-    Unary(
-      UnaryInstr::Mov,
-      Reg::Argument(ArgReg::r0),
-      Op2::Imm(-1),
-      false,
-    ),
+    Unary(UnaryInstr::Mov, Reg::Arg(ArgReg::r0), Op2::Imm(-1), false),
   ));
   /* BL exit                  //exit with status code -1  */
   code
@@ -617,19 +570,14 @@ fn print_bool(code: &mut GeneratedCode) {
   /*  CMP r0, #0            //compare the contents of r0 to 0 and set flags */
   code.text.push(Instr(
     AL,
-    Unary(
-      UnaryInstr::Cmp,
-      Reg::Argument(ArgReg::r0),
-      Op2::Imm(0),
-      false,
-    ),
+    Unary(UnaryInstr::Cmp, Reg::Arg(ArgReg::r0), Op2::Imm(0), false),
   ));
   /*  LDRNE r0, =msg_true   //load result of msg_true if not equal to r0  */
   code.text.push(Instr(
     NE,
     Load(
       DataSize::Word,
-      Reg::Argument(ArgReg::r0),
+      Reg::Arg(ArgReg::r0),
       LoadArg::Label(msg_label_true),
     ),
   ));
@@ -638,7 +586,7 @@ fn print_bool(code: &mut GeneratedCode) {
     EQ,
     Load(
       DataSize::Word,
-      Reg::Argument(ArgReg::r0),
+      Reg::Arg(ArgReg::r0),
       LoadArg::Label(msg_label_false),
     ),
   ));
@@ -647,8 +595,8 @@ fn print_bool(code: &mut GeneratedCode) {
     AL,
     Binary(
       BinaryInstr::Add,
-      Reg::Argument(ArgReg::r0),
-      Reg::Argument(ArgReg::r0),
+      Reg::Arg(ArgReg::r0),
+      Reg::Arg(ArgReg::r0),
       Op2::Imm(4),
       false,
     ),
@@ -660,12 +608,7 @@ fn print_bool(code: &mut GeneratedCode) {
   /*  MOV r0, #0            //move 0 to r0 */
   code.text.push(Instr(
     AL,
-    Unary(
-      UnaryInstr::Mov,
-      Reg::Argument(ArgReg::r0),
-      Op2::Imm(0),
-      false,
-    ),
+    Unary(UnaryInstr::Mov, Reg::Arg(ArgReg::r0), Op2::Imm(0), false),
   ));
   /*  BL fflush             //branch to fflush */
   code
@@ -700,8 +643,8 @@ fn print_string(code: &mut GeneratedCode) {
     AL,
     Load(
       DataSize::Word,
-      Reg::Argument(ArgReg::r1),
-      LoadArg::MemAddress(Reg::Argument(ArgReg::r0), 0),
+      Reg::Arg(ArgReg::r1),
+      LoadArg::MemAddress(Reg::Arg(ArgReg::r0), 0),
     ),
   ));
   /*  ADD r2, r0, #4        //add 4 to r0 and store in r2 */
@@ -709,8 +652,8 @@ fn print_string(code: &mut GeneratedCode) {
     AL,
     Binary(
       BinaryInstr::Add,
-      Reg::Argument(ArgReg::r2),
-      Reg::Argument(ArgReg::r0),
+      Reg::Arg(ArgReg::r2),
+      Reg::Arg(ArgReg::r0),
       Op2::Imm(4),
       false,
     ),
@@ -720,7 +663,7 @@ fn print_string(code: &mut GeneratedCode) {
     AL,
     Load(
       DataSize::Word,
-      Reg::Argument(ArgReg::r0),
+      Reg::Arg(ArgReg::r0),
       LoadArg::Label(msg_label),
     ),
   ));
@@ -729,8 +672,8 @@ fn print_string(code: &mut GeneratedCode) {
     AL,
     Binary(
       BinaryInstr::Add,
-      Reg::Argument(ArgReg::r0),
-      Reg::Argument(ArgReg::r0),
+      Reg::Arg(ArgReg::r0),
+      Reg::Arg(ArgReg::r0),
       Op2::Imm(4),
       false,
     ),
@@ -742,12 +685,7 @@ fn print_string(code: &mut GeneratedCode) {
   /*  MOV r0, #0            //move 0 to r0 */
   code.text.push(Instr(
     AL,
-    Unary(
-      UnaryInstr::Mov,
-      Reg::Argument(ArgReg::r0),
-      Op2::Imm(0),
-      false,
-    ),
+    Unary(UnaryInstr::Mov, Reg::Arg(ArgReg::r0), Op2::Imm(0), false),
   ));
   /*  BL fflush             //branch to fflush */
   code
@@ -805,8 +743,8 @@ fn print_int_or_ref(code: &mut GeneratedCode, opt: PrintFmt) {
     AL,
     Unary(
       UnaryInstr::Mov,
-      Reg::Argument(ArgReg::r1),
-      Op2::Reg(Reg::Argument(ArgReg::r0), 0),
+      Reg::Arg(ArgReg::r1),
+      Op2::Reg(Reg::Arg(ArgReg::r0), 0),
       false,
     ),
   ));
@@ -816,7 +754,7 @@ fn print_int_or_ref(code: &mut GeneratedCode, opt: PrintFmt) {
     AL,
     Load(
       DataSize::Word,
-      Reg::Argument(ArgReg::r0),
+      Reg::Arg(ArgReg::r0),
       LoadArg::Label(msg_label),
     ),
   ));
@@ -825,8 +763,8 @@ fn print_int_or_ref(code: &mut GeneratedCode, opt: PrintFmt) {
     AL,
     Binary(
       BinaryInstr::Add,
-      Reg::Argument(ArgReg::r0),
-      Reg::Argument(ArgReg::r0),
+      Reg::Arg(ArgReg::r0),
+      Reg::Arg(ArgReg::r0),
       Op2::Imm(4),
       false,
     ),
@@ -838,12 +776,7 @@ fn print_int_or_ref(code: &mut GeneratedCode, opt: PrintFmt) {
   /*  MOV r0, #0            //move 0 to r0 */
   code.text.push(Instr(
     AL,
-    Unary(
-      UnaryInstr::Mov,
-      Reg::Argument(ArgReg::r0),
-      Op2::Imm(0),
-      false,
-    ),
+    Unary(UnaryInstr::Mov, Reg::Arg(ArgReg::r0), Op2::Imm(0), false),
   ));
   /*  BL fflush             //branch to fflush */
   code

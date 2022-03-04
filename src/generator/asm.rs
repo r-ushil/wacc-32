@@ -253,8 +253,8 @@ impl From<Imm> for Op2 {
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum Reg {
-  Argument(ArgReg),
-  GeneralPurpose(GenReg),
+  Arg(ArgReg),
+  Gen(GenReg),
   StackPointer,
   Link,
   PC,
@@ -280,23 +280,18 @@ pub enum GenReg {
   r11,
 }
 
-pub const ARGUMENT_REGS: [Reg; 4] = [
-  Reg::Argument(ArgReg::r0),
-  Reg::Argument(ArgReg::r1),
-  Reg::Argument(ArgReg::r2),
-  Reg::Argument(ArgReg::r3),
-];
+pub const ARGUMENT_REGS: [ArgReg; 4] = [ArgReg::r0, ArgReg::r1, ArgReg::r2, ArgReg::r3];
 
 /* General purpose registers usable for expression evaluation. */
-pub const GENERAL_REGS: [Reg; 8] = [
-  Reg::GeneralPurpose(GenReg::r4),
-  Reg::GeneralPurpose(GenReg::r5),
-  Reg::GeneralPurpose(GenReg::r6),
-  Reg::GeneralPurpose(GenReg::r7),
-  Reg::GeneralPurpose(GenReg::r8),
-  Reg::GeneralPurpose(GenReg::r9),
-  Reg::GeneralPurpose(GenReg::r10),
-  Reg::GeneralPurpose(GenReg::r11),
+pub const GENERAL_REGS: [GenReg; 8] = [
+  GenReg::r4,
+  GenReg::r5,
+  GenReg::r6,
+  GenReg::r7,
+  GenReg::r8,
+  GenReg::r9,
+  GenReg::r10,
+  GenReg::r11,
 ];
 
 #[derive(PartialEq, Eq, Debug, Clone)]

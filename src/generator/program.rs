@@ -7,7 +7,7 @@ impl Generatable for Program {
   type Input = ();
   type Output = ();
 
-  fn generate(&self, _: &Scope, code: &mut GeneratedCode, regs: &[Reg], aux: ()) {
+  fn generate(&self, _: &Scope, code: &mut GeneratedCode, regs: &[GenReg], aux: ()) {
     /* No registers should be in use by this point. */
     assert!(regs == GENERAL_REGS);
 
@@ -51,7 +51,7 @@ impl Generatable for Func {
   type Input = ();
   type Output = ();
 
-  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[Reg], aux: ()) {
+  fn generate(&self, scope: &Scope, code: &mut GeneratedCode, regs: &[GenReg], aux: ()) {
     /* No registers should be in use by this point. */
     assert!(regs == GENERAL_REGS);
 
@@ -130,7 +130,7 @@ impl Generatable for Func {
 
       code.text.push(Asm::always(Instr::Load(
         DataSize::Word,
-        Reg::Argument(ArgReg::r0),
+        Reg::Arg(ArgReg::r0),
         LoadArg::Imm(0),
       )))
     }
