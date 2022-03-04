@@ -130,7 +130,7 @@ fn generate_binary_app(
 
   /* regs[0] = eval(expr1) */
   expr1.generate(scope, code, regs, ());
-  if regs.len() > 2 {
+  if regs.len() > MIN_STACK_MACHINE_REGS {
     expr2.generate(scope, code, &regs[1..], ());
   } else {
     code

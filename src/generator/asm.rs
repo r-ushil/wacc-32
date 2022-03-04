@@ -18,6 +18,8 @@ pub type Shift = i32;
 
 /* ======== Represents entire program. ======== */
 
+pub const MIN_STACK_MACHINE_REGS: usize = 2;
+
 #[derive(PartialEq, Debug)]
 pub struct GeneratedCode {
   pub data: Vec<Asm>,
@@ -216,7 +218,6 @@ impl From<i32> for DataSize {
   }
 }
 
-/*  */
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum UnaryInstr {
   Mov, // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289878994.htm
