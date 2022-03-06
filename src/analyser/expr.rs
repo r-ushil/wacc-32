@@ -17,13 +17,10 @@ impl HasType for Expr {
         UnaryOper::Len => match exp.get_type(scope, errors)? {
           Type::Array(_) => Type::Int,
           t => {
-            scope.add_error(
-              errors,
-              SemanticError::Normal(format!(
+            errors.push(SemanticError::Normal(format!(
               "TYPE ERROR: Attempt to find length of non array\n\tExpected: Array\n\tActual: {:?}",
               t
-            )),
-            );
+            )));
             return None;
           }
         },
@@ -50,13 +47,10 @@ impl HasType for Expr {
           | BinaryOper::Sub => match expr_type {
             Type::Int => Type::Int,
             t => {
-              scope.add_error(
-                errors,
-                SemanticError::Normal(format!(
-                  "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
-                  op, t
-                )),
-              );
+              errors.push(SemanticError::Normal(format!(
+                "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
+                op, t
+              )));
               return None;
             }
           },
@@ -64,13 +58,10 @@ impl HasType for Expr {
           BinaryOper::Gt | BinaryOper::Gte | BinaryOper::Lt | BinaryOper::Lte => match expr_type {
             Type::Int | Type::Char => Type::Bool,
             t => {
-              scope.add_error(
-                errors,
-                SemanticError::Normal(format!(
-                  "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
-                  op, t
-                )),
-              );
+              errors.push(SemanticError::Normal(format!(
+                "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
+                op, t
+              )));
               return None;
             }
           },
@@ -79,13 +70,10 @@ impl HasType for Expr {
           BinaryOper::And | BinaryOper::Or => match expr_type {
             Type::Bool => Type::Bool,
             t => {
-              scope.add_error(
-                errors,
-                SemanticError::Normal(format!(
-                  "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
-                  op, t
-                )),
-              );
+              errors.push(SemanticError::Normal(format!(
+                "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
+                op, t
+              )));
               return None;
             }
           },

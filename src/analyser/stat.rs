@@ -61,12 +61,9 @@ impl HasType for AssignRhs {
 
             /* Must be same amount of args as parameters */
             if params.len() != args.len() {
-              scope.add_error(
-                errors,
-                SemanticError::Normal(
-                  "Function called with wrong amount of arguments.".to_string(),
-                ),
-              );
+              errors.push(SemanticError::Normal(
+                "Function called with wrong amount of arguments.".to_string(),
+              ));
               errored = true;
             }
 
@@ -77,10 +74,9 @@ impl HasType for AssignRhs {
                 .unify(param_type.clone())
                 .is_none()
               {
-                scope.add_error(
-                  errors,
-                  SemanticError::Normal("Incorrect type passed to function.".to_string()),
-                );
+                errors.push(SemanticError::Normal(
+                  "Incorrect type passed to function.".to_string(),
+                ));
                 errored = true;
               }
             }
@@ -92,13 +88,10 @@ impl HasType for AssignRhs {
             }
           }
           t => {
-            scope.add_error(
-              errors,
-              SemanticError::Normal(format!(
-                "TYPE ERROR:\n\tExpected: Function\n\tActual: {:?}",
-                t
-              )),
-            );
+            errors.push(SemanticError::Normal(format!(
+              "TYPE ERROR:\n\tExpected: Function\n\tActual: {:?}",
+              t
+            )));
             None
           }
         }
@@ -113,12 +106,9 @@ impl HasType for PairElem {
       PairElem::Fst(t, p) => match p.get_type(scope, errors)? {
         Type::Pair(left, _) => match *left {
           Type::Any => {
-            scope.add_error(
-              errors,
-              SemanticError::Normal(
-                "TYPE ERROR:\n\tExpected: BaseType\n\tActual: Null".to_string(),
-              ),
-            );
+            errors.push(SemanticError::Normal(
+              "TYPE ERROR:\n\tExpected: BaseType\n\tActual: Null".to_string(),
+            ));
             None
           }
           new_t => {
@@ -127,22 +117,19 @@ impl HasType for PairElem {
           }
         },
         t => {
-          scope.add_error(
-            errors,
-            SemanticError::Normal(format!("TYPE ERROR:\n\tExpected: Pair\n\tActual:{:?}", t)),
-          );
+          errors.push(SemanticError::Normal(format!(
+            "TYPE ERROR:\n\tExpected: Pair\n\tActual:{:?}",
+            t
+          )));
           None
         }
       },
       PairElem::Snd(t, p) => match p.get_type(scope, errors)? {
         Type::Pair(_, right) => match *right {
           Type::Any => {
-            scope.add_error(
-              errors,
-              SemanticError::Normal(
-                "TYPE ERROR:\n\tExpected: BaseType\n\tActual: Null".to_string(),
-              ),
-            );
+            errors.push(SemanticError::Normal(
+              "TYPE ERROR:\n\tExpected: BaseType\n\tActual: Null".to_string(),
+            ));
             None
           }
           new_t => {
@@ -151,10 +138,10 @@ impl HasType for PairElem {
           }
         },
         t => {
-          scope.add_error(
-            errors,
-            SemanticError::Normal(format!("TYPE ERROR:\n\tExpected: Pair\n\tActual:{:?}", t)),
-          );
+          errors.push(SemanticError::Normal(format!(
+            "TYPE ERROR:\n\tExpected: Pair\n\tActual:{:?}",
+            t
+          )));
           None
         }
       },
@@ -236,10 +223,9 @@ pub fn stat(
           Some(Never)
         }
         _ => {
-          scope.add_error(
-            errors,
-            SemanticError::Normal("Read statements must read char or int.".to_string()),
-          );
+          errors.push(SemanticError::Normal(
+            "Read statements must read char or int.".to_string(),
+          ));
           None
         } /*  */
       }
@@ -250,13 +236,10 @@ pub fn stat(
         Some(Never)
       } /* Frees never return. */
       actual_type => {
-        scope.add_error(
-          errors,
-          SemanticError::Normal(format!(
-            "TYPE ERROR: Expected Type\n\tExpected: Pair or Array\n\tActual:{:?}",
-            actual_type
-          )),
-        );
+        errors.push(SemanticError::Normal(format!(
+          "TYPE ERROR: Expected Type\n\tExpected: Pair or Array\n\tActual:{:?}",
+          actual_type
+        )));
         None
       }
     },
@@ -291,12 +274,9 @@ pub fn stat(
 
         /* If branches return with different types, if statement is error. */
         if !true_behaviour.same_return(&false_behaviour) {
-          scope.add_error(
-            errors,
-            SemanticError::Normal(
-              "Branches of if statement return values of different types.".to_string(),
-            ),
-          );
+          errors.push(SemanticError::Normal(
+            "Branches of if statement return values of different types.".to_string(),
+          ));
           return None;
         }
 

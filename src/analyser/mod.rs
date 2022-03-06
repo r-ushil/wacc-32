@@ -87,13 +87,10 @@ fn equal_types<L: HasType, R: HasType>(
     if let Some(t) = lhs_type.clone().unify(rhs_type.clone()) {
       Some(t)
     } else {
-      scope.add_error(
-        errors,
-        SemanticError::Normal(format!(
-          "TYPE ERROR: Type mismatch between.\n\tType 1: {:?}Type 2:\n\t{:?}",
-          lhs_type, rhs_type
-        )),
-      );
+      errors.push(SemanticError::Normal(format!(
+        "TYPE ERROR: Type mismatch between.\n\tType 1: {:?}Type 2:\n\t{:?}",
+        lhs_type, rhs_type
+      )));
 
       None
     }
@@ -114,13 +111,10 @@ fn expected_type<'a, A: HasType>(
   if expected_type.clone().unify(actual_type.clone()).is_some() {
     Some(expected_type)
   } else {
-    scope.add_error(
-      errors,
-      SemanticError::Normal(format!(
-        "TYPE ERROR: Unexpected type.\n\tExpected: {:?}\n\tActual: {:?}",
-        expected_type, actual_type
-      )),
-    );
+    errors.push(SemanticError::Normal(format!(
+      "TYPE ERROR: Unexpected type.\n\tExpected: {:?}\n\tActual: {:?}",
+      expected_type, actual_type
+    )));
 
     None
   }
@@ -158,10 +152,10 @@ impl HasType for Ident {
         Some(t.clone())
       }
       None => {
-        scope.add_error(
-          errors,
-          SemanticError::Normal(format!("Use of undeclared variable: {:?}", self)),
-        );
+        errors.push(SemanticError::Normal(format!(
+          "Use of undeclared variable: {:?}",
+          self
+        )));
         None
       }
     }
@@ -192,10 +186,10 @@ impl HasType for ArrayElem {
       curr_type = match curr_type {
         Type::Array(t) => *t,
         t => {
-          scope.add_error(
-            errors,
-            SemanticError::Normal(format!("Expected array, found {:?}", t)),
-          );
+          errors.push(SemanticError::Normal(format!(
+            "Expected array, found {:?}",
+            t
+          )));
           return None;
         }
       };

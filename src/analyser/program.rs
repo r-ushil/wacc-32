@@ -20,21 +20,17 @@ fn func(scope: &ScopeBuilder, errors: &mut Vec<SemanticError>, func: &mut Func) 
   /* Type check function body and make sure it returns value of correct type. */
   match stat(scope, errors, &mut func.body)? {
     AtEnd(t) if t.clone().unify(func.signature.return_type.clone()) == None => {
-      scope.add_error(
-        errors,
-        SemanticError::Normal(format!(
-          "Function body returns {:?} but function signature expects {:?}",
-          t, func.signature.return_type
-        )),
-      );
+      errors.push(SemanticError::Normal(format!(
+        "Function body returns {:?} but function signature expects {:?}",
+        t, func.signature.return_type
+      )));
       None
     }
     AtEnd(_) => Some(()),
     _ => {
-      scope.add_error(
-        errors,
-        SemanticError::Syntax("The last statement should be a return or exit.".to_string()),
-      );
+      errors.push(SemanticError::Syntax(
+        "The last statement should be a return or exit.".to_string(),
+      ));
       None
     }
   }
@@ -60,10 +56,9 @@ pub fn program(errors: &mut Vec<SemanticError>, program: &mut Program) -> Option
   /* Program body must never return, but it can exit. */
   match scoped_stat(&scope, errors, &mut program.statement)? {
     MidWay(t) | AtEnd(t) if t != Type::Any => {
-      scope.add_error(
-        errors,
-        SemanticError::Normal("Cannot have 'return' statement in main".to_string()),
-      );
+      errors.push(SemanticError::Normal(
+        "Cannot have 'return' statement in main".to_string(),
+      ));
       None
     }
     _ => Some(()),

@@ -39,16 +39,6 @@ impl ScopeBuilder<'_> {
     }
   }
 
-  pub fn add_error(&self, errors: &mut Vec<SemanticError>, error: SemanticError) {
-    if let Some(parent) = self.parents {
-      /* Scope has parent, wrap error in nested. */
-      parent.add_error(errors, error)
-    } else {
-      /* Global scope, no more nesting to do. */
-      errors.push(error);
-    }
-  }
-
   /* Returns type of given ident */
   pub fn get_type(&self, ident: &Ident) -> Option<(&Type, Ident)> {
     match self.current.table.get(ident) {
