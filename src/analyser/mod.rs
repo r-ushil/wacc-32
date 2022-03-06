@@ -4,7 +4,7 @@ mod program;
 mod stat;
 mod unify;
 
-use std::{collections::LinkedList, fmt::Display};
+use std::fmt::Display;
 
 use context::ScopeBuilder;
 use unify::Unifiable;
@@ -16,10 +16,11 @@ use crate::ast::*;
 pub enum SemanticError {
   Normal(String),
   Syntax(String),
+  Join(Box<SemanticError>, Box<SemanticError>),
 }
 
 /* Result of a semantic analysis. */
-type AResult<T> = Result<T, LinkedList<SemanticError>>;
+type AResult<T> = Result<T, SemanticError>;
 
 /* Because AResult is a type alias, I cannot add methods to it directly,
 so I add the join method via this trait, which is only implemented by AResult. */
@@ -44,12 +45,11 @@ impl<T> Joinable for AResult<T> {
   fn join<U>(self, other: AResult<U>) -> AResult<(Self::T, U)> {
     match (self, other) {
       /* Both results failed, append the errors of the second to the first. */
-      (Err(mut e1), Err(mut e2)) => {
-        e1.append(&mut e2);
-        Err(e1)
-      }
+      (Err(e1), Err(e2)) => Err(SemanticError::Join(Box::new(e1), Box::new(e2))),
+
       /* Only one failed, return their errors. */
       (Err(e), _) | (_, Err(e)) => Err(e),
+
       /* Both Ok, join the results into a pair. */
       (Ok(o1), Ok(o2)) => Ok((o1, o2)),
     }
@@ -59,7 +59,8 @@ impl<T> Joinable for AResult<T> {
 impl Display for SemanticError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
-      SemanticError::Normal(s) | SemanticError::Syntax(s) => s.fmt(f),
+      SemanticError::Normal(s) | SemanticError::Syntax(s) => write!(f, "ERROR: {}", s),
+      SemanticError::Join(e1, e2) => write!(f, "{}\n{}", e1, e2),
     }
   }
 }
