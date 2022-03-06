@@ -1,10 +1,7 @@
-use super::{
-  context::ScopeBuilder,
-  stat::{ReturnBehaviour::*, *},
-  unify::Unifiable,
-  SemanticError,
-};
+use super::*;
 use crate::ast::*;
+use stat::*;
+use ReturnBehaviour::*;
 
 fn func(scope: &ScopeBuilder, errors: &mut Vec<SemanticError>, func: &mut Func) -> Option<()> {
   let scope = &mut scope.new_scope(&mut func.params_st);
