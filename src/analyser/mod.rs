@@ -4,7 +4,7 @@ mod program;
 mod stat;
 mod unify;
 
-use std::fmt::Display;
+use std::{collections::LinkedList, fmt::Display};
 
 use context::ScopeBuilder;
 use unify::Unifiable;
@@ -16,6 +16,44 @@ use crate::ast::*;
 pub enum SemanticError {
   Normal(String),
   Syntax(String),
+}
+
+/* Result of a semantic analysis. */
+type AResult<T> = Result<T, LinkedList<SemanticError>>;
+
+/* Because AResult is a type alias, I cannot add methods to it directly,
+so I add the join method via this trait, which is only implemented by AResult. */
+trait Joinable {
+  type T;
+
+  fn join<U>(self, other: AResult<U>) -> AResult<(Self::T, U)>;
+}
+
+impl<T> Joinable for AResult<T> {
+  type T = T;
+
+  /* Used to join the analysis results, concatenating their errors.
+  let a: AResult<T>;
+  let b: AResult<U>;
+
+  a.join(b) = {
+    if (both ok) { Ok((a.unwrap(), b.unwrap())) }
+    else { LinkedList containing all of both of their accumulated errors }
+  }
+  */
+  fn join<U>(self, other: AResult<U>) -> AResult<(Self::T, U)> {
+    match (self, other) {
+      /* Both results failed, append the errors of the second to the first. */
+      (Err(mut e1), Err(mut e2)) => {
+        e1.append(&mut e2);
+        Err(e1)
+      }
+      /* Only one failed, return their errors. */
+      (Err(e), _) | (_, Err(e)) => Err(e),
+      /* Both Ok, join the results into a pair. */
+      (Ok(o1), Ok(o2)) => Ok((o1, o2)),
+    }
+  }
 }
 
 impl Display for SemanticError {
