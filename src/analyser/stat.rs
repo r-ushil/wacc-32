@@ -221,8 +221,6 @@ pub fn stat(scope: &mut ScopeBuilder, statement: &mut Stat) -> AResult<ReturnBeh
       Ok(Never)
     }
     Stat::If(cond, if_stat, else_stat) => {
-      let cond_fine = cond.get_type(scope) == Ok(Type::Bool);
-
       let ((_, true_behaviour), false_behaviour) = expected_type(scope, &Type::Bool, cond)
         .join(scoped_stat(scope, if_stat))
         .join(scoped_stat(scope, else_stat))?;
