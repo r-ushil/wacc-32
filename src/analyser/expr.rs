@@ -2,41 +2,40 @@ use super::*;
 use crate::ast::*;
 
 impl HasType for Expr {
-  fn get_type(&mut self, scope: &ScopeBuilder, errors: &mut Vec<SemanticError>) -> Option<Type> {
-    Some(match self {
+  fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
+    Ok(match self {
       Expr::IntLiter(_) => Type::Int,
       Expr::BoolLiter(_) => Type::Bool,
       Expr::CharLiter(_) => Type::Char,
       Expr::StrLiter(_) => Type::String,
       Expr::PairLiter => Type::Pair(Box::new(Type::Any), Box::new(Type::Any)),
-      Expr::Ident(id) => id.get_type(scope, errors)?,
-      Expr::ArrayElem(elem) => elem.get_type(scope, errors)?,
+      Expr::Ident(id) => id.get_type(scope)?,
+      Expr::ArrayElem(elem) => elem.get_type(scope)?,
       Expr::UnaryApp(op, exp) => match op {
-        UnaryOper::Bang => expected_type(scope, errors, &Type::Bool, exp)?.clone(),
-        UnaryOper::Neg => expected_type(scope, errors, &Type::Int, exp)?.clone(),
-        UnaryOper::Len => match exp.get_type(scope, errors)? {
+        UnaryOper::Bang => expected_type(scope, &Type::Bool, exp)?.clone(),
+        UnaryOper::Neg => expected_type(scope, &Type::Int, exp)?.clone(),
+        UnaryOper::Len => match exp.get_type(scope)? {
           Type::Array(_) => Type::Int,
           t => {
-            errors.push(SemanticError::Normal(format!(
+            return Err(SemanticError::Normal(format!(
               "TYPE ERROR: Attempt to find length of non array\n\tExpected: Array\n\tActual: {:?}",
               t
-            )));
-            return None;
+            )))
           }
         },
         UnaryOper::Ord => {
-          expected_type(scope, errors, &Type::Char, exp)?;
+          expected_type(scope, &Type::Char, exp)?;
           Type::Int
         }
         UnaryOper::Chr => {
-          expected_type(scope, errors, &Type::Int, exp)?;
+          expected_type(scope, &Type::Int, exp)?;
           Type::Char
         }
       },
 
       Expr::BinaryApp(exp1, op, exp2) => {
         /* Every binary application requires both expressions to have the same type. */
-        let expr_type = equal_types(scope, errors, exp1, exp2)?;
+        let expr_type = equal_types(scope, exp1, exp2)?;
 
         match op {
           /* Maths can only be done on ints. */
@@ -47,22 +46,20 @@ impl HasType for Expr {
           | BinaryOper::Sub => match expr_type {
             Type::Int => Type::Int,
             t => {
-              errors.push(SemanticError::Normal(format!(
+              return Err(SemanticError::Normal(format!(
                 "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
                 op, t
-              )));
-              return None;
+              )))
             }
           },
           /* Any types can be compared. */
           BinaryOper::Gt | BinaryOper::Gte | BinaryOper::Lt | BinaryOper::Lte => match expr_type {
             Type::Int | Type::Char => Type::Bool,
             t => {
-              errors.push(SemanticError::Normal(format!(
+              return Err(SemanticError::Normal(format!(
                 "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
                 op, t
-              )));
-              return None;
+              )))
             }
           },
           BinaryOper::Eq | BinaryOper::Neq => Type::Bool,
@@ -70,11 +67,10 @@ impl HasType for Expr {
           BinaryOper::And | BinaryOper::Or => match expr_type {
             Type::Bool => Type::Bool,
             t => {
-              errors.push(SemanticError::Normal(format!(
+              return Err(SemanticError::Normal(format!(
                 "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
                 op, t
-              )));
-              return None;
+              )))
             }
           },
         }
@@ -105,21 +101,12 @@ mod tests {
     let mut symbol_table = SymbolTable::default();
     let scope = &ScopeBuilder::new(&mut symbol_table);
 
+    assert_eq!(Expr::IntLiter(5).get_type(scope), Ok(Type::Int));
+    assert_eq!(Expr::BoolLiter(false).get_type(scope), Ok(Type::Bool));
+    assert_eq!(Expr::CharLiter('a').get_type(scope), Ok(Type::Char));
     assert_eq!(
-      Expr::IntLiter(5).get_type(scope, &mut vec!()),
-      Some(Type::Int)
-    );
-    assert_eq!(
-      Expr::BoolLiter(false).get_type(scope, &mut vec!()),
-      Some(Type::Bool)
-    );
-    assert_eq!(
-      Expr::CharLiter('a').get_type(scope, &mut vec!()),
-      Some(Type::Char)
-    );
-    assert_eq!(
-      Expr::PairLiter.get_type(scope, &mut vec!()),
-      Some(Type::Pair(Box::new(Type::Any), Box::new(Type::Any))),
+      Expr::PairLiter.get_type(scope),
+      Ok(Type::Pair(Box::new(Type::Any), Box::new(Type::Any))),
     );
   }
 
@@ -130,8 +117,8 @@ mod tests {
     populate_scope(&mut scope, "var");
 
     assert_eq!(
-      Expr::Ident(String::from("var1")).get_type(&scope, &mut vec![]),
-      Some(Type::Int),
+      Expr::Ident(String::from("var1")).get_type(&scope),
+      Ok(Type::Int),
     );
   }
 
@@ -145,8 +132,8 @@ mod tests {
     scope.insert(&x, x_type);
 
     assert_eq!(
-      Expr::ArrayElem(ArrayElem(x, vec!(Expr::IntLiter(5)))).get_type(&scope, &mut vec![]),
-      Some(Type::Int)
+      Expr::ArrayElem(ArrayElem(x, vec!(Expr::IntLiter(5)))).get_type(&scope),
+      Ok(Type::Int)
     );
   }
 
@@ -159,30 +146,29 @@ mod tests {
     /* BANG */
     /* !false: Bool */
     assert_eq!(
-      Expr::UnaryApp(UnaryOper::Bang, Box::new(Expr::BoolLiter(false)))
-        .get_type(scope, &mut vec!()),
-      Some(Type::Bool)
+      Expr::UnaryApp(UnaryOper::Bang, Box::new(Expr::BoolLiter(false))).get_type(scope),
+      Ok(Type::Bool)
     );
 
     /* !'a': ERROR */
     assert!(
       Expr::UnaryApp(UnaryOper::Bang, Box::new(Expr::CharLiter('a')))
-        .get_type(scope, &mut vec!())
-        .is_none()
+        .get_type(scope)
+        .is_err()
     );
 
     /* NEG */
     /* -5: Int */
     assert_eq!(
-      Expr::UnaryApp(UnaryOper::Neg, Box::new(Expr::IntLiter(5))).get_type(scope, &mut vec!()),
-      Some(Type::Int)
+      Expr::UnaryApp(UnaryOper::Neg, Box::new(Expr::IntLiter(5))).get_type(scope),
+      Ok(Type::Int)
     );
 
     /* -false: ERROR */
     assert!(
       Expr::UnaryApp(UnaryOper::Neg, Box::new(Expr::BoolLiter(false)))
-        .get_type(scope, &mut vec!())
-        .is_none()
+        .get_type(scope)
+        .is_err()
     );
 
     /* LEN */
@@ -191,39 +177,39 @@ mod tests {
     let x_type = Type::Array(Box::new(Type::Int));
     scope.insert(&x, x_type);
     assert_eq!(
-      Expr::UnaryApp(UnaryOper::Len, Box::new(Expr::Ident(x))).get_type(scope, &mut vec!()),
-      Some(Type::Int)
+      Expr::UnaryApp(UnaryOper::Len, Box::new(Expr::Ident(x))).get_type(scope),
+      Ok(Type::Int)
     );
 
     /* len 5: ERROR */
     assert!(Expr::UnaryApp(UnaryOper::Len, Box::new(Expr::IntLiter(5)))
-      .get_type(scope, &mut vec!())
-      .is_none());
+      .get_type(scope)
+      .is_err());
 
     /* ORD */
     /* ord 'a': Int */
     assert_eq!(
-      Expr::UnaryApp(UnaryOper::Ord, Box::new(Expr::CharLiter('a'))).get_type(scope, &mut vec!()),
-      Some(Type::Int)
+      Expr::UnaryApp(UnaryOper::Ord, Box::new(Expr::CharLiter('a'))).get_type(scope),
+      Ok(Type::Int)
     );
 
     /* ord 5: ERROR */
     assert!(Expr::UnaryApp(UnaryOper::Ord, Box::new(Expr::IntLiter(5)))
-      .get_type(scope, &mut vec!())
-      .is_none());
+      .get_type(scope)
+      .is_err());
 
     /* CHR */
     /* chr 5: Char */
     assert_eq!(
-      Expr::UnaryApp(UnaryOper::Chr, Box::new(Expr::IntLiter(5))).get_type(scope, &mut vec!()),
-      Some(Type::Char)
+      Expr::UnaryApp(UnaryOper::Chr, Box::new(Expr::IntLiter(5))).get_type(scope),
+      Ok(Type::Char)
     );
 
     /* chr 'a': ERROR */
     assert!(
       Expr::UnaryApp(UnaryOper::Chr, Box::new(Expr::CharLiter('a')))
-        .get_type(scope, &mut vec!())
-        .is_none()
+        .get_type(scope)
+        .is_err()
     );
   }
 
@@ -238,8 +224,8 @@ mod tests {
       BinaryOper::Add,
       Box::new(Expr::BoolLiter(false))
     )
-    .get_type(scope, &mut vec![])
-    .is_none());
+    .get_type(scope)
+    .is_err());
 
     /* 5 * 'a': ERROR */
     assert!(Expr::BinaryApp(
@@ -247,8 +233,8 @@ mod tests {
       BinaryOper::Mul,
       Box::new(Expr::CharLiter('a'))
     )
-    .get_type(scope, &mut vec![])
-    .is_none());
+    .get_type(scope)
+    .is_err());
 
     /* false / "hello": ERROR */
     assert!(Expr::BinaryApp(
@@ -256,8 +242,8 @@ mod tests {
       BinaryOper::Div,
       Box::new(Expr::StrLiter(String::from("hello")))
     )
-    .get_type(scope, &mut vec![])
-    .is_none());
+    .get_type(scope)
+    .is_err());
 
     /* false && 6: ERROR */
     assert!(Expr::BinaryApp(
@@ -265,8 +251,8 @@ mod tests {
       BinaryOper::And,
       Box::new(Expr::IntLiter(6))
     )
-    .get_type(scope, &mut vec![])
-    .is_none());
+    .get_type(scope)
+    .is_err());
 
     /* MATH CAN BE DONE ON INTS. */
     /* 5 * 5: Int */
@@ -276,8 +262,8 @@ mod tests {
         BinaryOper::Mul,
         Box::new(Expr::IntLiter(5)),
       )
-      .get_type(scope, &mut vec![]),
-      Some(Type::Int),
+      .get_type(scope),
+      Ok(Type::Int),
     );
 
     /* 5 + 5: Int */
@@ -287,8 +273,8 @@ mod tests {
         BinaryOper::Add,
         Box::new(Expr::IntLiter(5)),
       )
-      .get_type(scope, &mut vec![]),
-      Some(Type::Int),
+      .get_type(scope),
+      Ok(Type::Int),
     );
 
     /* MATH CANT BE DONE ON ANYTHING ELSE */
@@ -298,8 +284,8 @@ mod tests {
       BinaryOper::Add,
       Box::new(Expr::CharLiter('b'))
     )
-    .get_type(scope, &mut vec![])
-    .is_none());
+    .get_type(scope)
+    .is_err());
 
     /* false + false: ERROR */
     assert!(Expr::BinaryApp(
@@ -307,8 +293,8 @@ mod tests {
       BinaryOper::Add,
       Box::new(Expr::BoolLiter(false))
     )
-    .get_type(scope, &mut vec![])
-    .is_none());
+    .get_type(scope)
+    .is_err());
 
     /* Any type can be comapred to itself. */
     for expr in vec![
@@ -325,9 +311,8 @@ mod tests {
     ] {
       for oper in vec![BinaryOper::Eq, BinaryOper::Neq] {
         assert_eq!(
-          Expr::BinaryApp(Box::new(expr.clone()), oper, Box::new(expr.clone()))
-            .get_type(scope, &mut vec![]),
-          Some(Type::Bool)
+          Expr::BinaryApp(Box::new(expr.clone()), oper, Box::new(expr.clone())).get_type(scope),
+          Ok(Type::Bool)
         );
       }
     }
@@ -340,9 +325,8 @@ mod tests {
         BinaryOper::Lte,
       ] {
         assert_eq!(
-          Expr::BinaryApp(Box::new(expr.clone()), oper, Box::new(expr.clone()))
-            .get_type(scope, &mut vec!()),
-          Some(Type::Bool)
+          Expr::BinaryApp(Box::new(expr.clone()), oper, Box::new(expr.clone())).get_type(scope),
+          Ok(Type::Bool)
         );
       }
     }
@@ -354,8 +338,8 @@ mod tests {
       BinaryOper::And,
       Box::new(Expr::IntLiter(5)),
     )
-    .get_type(scope, &mut vec!())
-    .is_none());
+    .get_type(scope)
+    .is_err());
 
     /* 'a' || 'a': ERROR */
     assert!(Expr::BinaryApp(
@@ -363,8 +347,8 @@ mod tests {
       BinaryOper::Or,
       Box::new(Expr::CharLiter('a')),
     )
-    .get_type(scope, &mut vec!())
-    .is_none());
+    .get_type(scope)
+    .is_err());
 
     /* true && true: bool */
     assert_eq!(
@@ -373,8 +357,8 @@ mod tests {
         BinaryOper::And,
         Box::new(Expr::BoolLiter(true)),
       )
-      .get_type(scope, &mut vec!()),
-      Some(Type::Bool)
+      .get_type(scope),
+      Ok(Type::Bool)
     );
   }
 }

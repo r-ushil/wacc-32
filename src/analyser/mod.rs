@@ -19,6 +19,35 @@ pub enum SemanticError {
   Join(Box<SemanticError>, Box<SemanticError>),
 }
 
+// impl<I> From<I> for SemanticError
+// where
+//   I: Iterator<Item = SemanticError>,
+// {
+//   fn from(iter: I) -> Self {
+//     let mut err = match iter.next() {
+//       Some(e) => e,
+//       None =>
+//     };
+//   }
+// }
+
+impl SemanticError {
+  fn join_iter<T>(iter: impl Iterator<Item = AResult<T>>) -> AResult<()> {
+    let mut result = Ok(());
+
+    for i in iter {
+      if let Err(e2) = i {
+        result = match result {
+          Ok(()) => Err(e2),
+          Err(e1) => Err(SemanticError::Join(Box::new(e1), Box::new(e2))),
+        }
+      }
+    }
+
+    result
+  }
+}
+
 /* Result of a semantic analysis. */
 type AResult<T> = Result<T, SemanticError>;
 
@@ -77,46 +106,36 @@ check things, and when an AST represents a value, returns their type. */
 Otherwise, error. */
 fn equal_types<L: HasType, R: HasType>(
   scope: &ScopeBuilder,
-  errors: &mut Vec<SemanticError>,
   lhs: &mut L,
   rhs: &mut R,
-) -> Option<Type> {
-  if let (Some(lhs_type), Some(rhs_type)) =
-    (lhs.get_type(scope, errors), rhs.get_type(scope, errors))
-  {
-    if let Some(t) = lhs_type.clone().unify(rhs_type.clone()) {
-      Some(t)
-    } else {
-      errors.push(SemanticError::Normal(format!(
-        "TYPE ERROR: Type mismatch between.\n\tType 1: {:?}Type 2:\n\t{:?}",
-        lhs_type, rhs_type
-      )));
+) -> AResult<Type> {
+  let (lhs_type, rhs_type) = lhs.get_type(scope).join(rhs.get_type(scope))?;
 
-      None
-    }
+  if let Some(t) = lhs_type.clone().unify(rhs_type.clone()) {
+    Ok(t)
   } else {
-    None
+    Err(SemanticError::Normal(format!(
+      "TYPE ERROR: Type mismatch between.\n\tType 1: {:?}Type 2:\n\t{:?}",
+      lhs_type, rhs_type
+    )))
   }
 }
 
 /* Errors if AST node does not have expected type. */
 fn expected_type<'a, A: HasType>(
   scope: &ScopeBuilder,
-  errors: &mut Vec<SemanticError>,
   expected_type: &'a Type,
   actual: &mut A,
-) -> Option<&'a Type> {
-  let actual_type = actual.get_type(scope, errors)?;
+) -> AResult<&'a Type> {
+  let actual_type = actual.get_type(scope)?;
 
   if expected_type.clone().unify(actual_type.clone()).is_some() {
-    Some(expected_type)
+    Ok(expected_type)
   } else {
-    errors.push(SemanticError::Normal(format!(
+    Err(SemanticError::Normal(format!(
       "TYPE ERROR: Unexpected type.\n\tExpected: {:?}\n\tActual: {:?}",
       expected_type, actual_type
-    )));
-
-    None
+    )))
   }
 }
 
@@ -129,84 +148,69 @@ retrieve it without worrying what AST node it is. */
 /* E.g: IntLiter(5).get_type(_) = Ok(BaseType(Int)) */
 pub trait HasType {
   // TODO: make this return a reference to the type instead of a copy.
-  fn get_type(&mut self, scope: &ScopeBuilder, errors: &mut Vec<SemanticError>) -> Option<Type>;
+  fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type>;
 }
 
 impl<T: HasType> HasType for &mut T {
-  fn get_type(&mut self, scope: &ScopeBuilder, errors: &mut Vec<SemanticError>) -> Option<Type> {
-    (**self).get_type(scope, errors)
+  fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
+    (**self).get_type(scope)
   }
 }
 
 impl<T: HasType> HasType for Box<T> {
-  fn get_type(&mut self, scope: &ScopeBuilder, errors: &mut Vec<SemanticError>) -> Option<Type> {
-    (**self).get_type(scope, errors)
+  fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
+    (**self).get_type(scope)
   }
 }
 
 impl HasType for Ident {
-  fn get_type(&mut self, scope: &ScopeBuilder, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
     match scope.get_type(self) {
       Some((t, new_id)) => {
         *self = new_id;
-        Some(t.clone())
+        Ok(t.clone())
       }
-      None => {
-        errors.push(SemanticError::Normal(format!(
-          "Use of undeclared variable: {:?}",
-          self
-        )));
-        None
-      }
+      None => Err(SemanticError::Normal(format!(
+        "Use of undeclared variable: {:?}",
+        self
+      ))),
     }
   }
 }
 
 impl HasType for ArrayElem {
-  fn get_type(&mut self, scope: &ScopeBuilder, errors: &mut Vec<SemanticError>) -> Option<Type> {
+  fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
     let ArrayElem(id, indexes) = self;
-    let mut errored = false;
 
-    /* Ensure all indexes are ints */
-    for index in indexes.iter_mut() {
-      if index.get_type(scope, errors) != Some(Type::Int) {
-        errored = true;
-      }
-    }
-
-    if errored {
-      return None;
-    }
+    /* If any indexes aren't Int, return errors. */
+    SemanticError::join_iter(
+      indexes
+        .iter_mut()
+        .map(|index| expected_type(scope, &Type::Int, index)),
+    )?;
 
     /* Gets type of the array being looked up. */
-    let mut curr_type = id.get_type(scope, errors)?;
+    let mut curr_type = id.get_type(scope)?;
 
     /* For each index, unwrap the type by one array. */
     for _ in indexes {
       curr_type = match curr_type {
         Type::Array(t) => *t,
         t => {
-          errors.push(SemanticError::Normal(format!(
+          return Err(SemanticError::Normal(format!(
             "Expected array, found {:?}",
             t
-          )));
-          return None;
+          )))
         }
       };
     }
 
-    Some(curr_type)
+    Ok(curr_type)
   }
 }
 
-pub fn analyse(program: &mut Program) -> Result<(), Vec<SemanticError>> {
-  let mut errors = Vec::new();
-
-  if program::program(&mut errors, program).is_some() {
-    Ok(())
-  } else {
-    Err(errors)
-  }
+pub fn analyse(program: &mut Program) -> AResult<()> {
+  program::program(program)
 }
 
 /* ======== Type Checkers ======== */
@@ -230,16 +234,15 @@ mod tests {
     scope.insert(&id, Type::Array(Box::new(Type::Array(Box::new(Type::Int)))));
 
     /* x[5]['a'] is error */
-    println!("{:?}", id.clone().get_type(&scope, &mut vec!()));
+    println!("{:?}", id.clone().get_type(&scope));
     println!(
       "{:?}",
-      ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::CharLiter('a')])
-        .get_type(&scope, &mut vec![])
+      ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::CharLiter('a')]).get_type(&scope)
     );
     assert!(
       ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::CharLiter('a')])
-        .get_type(&scope, &mut vec![])
-        .is_none()
+        .get_type(&scope)
+        .is_err()
     );
   }
 
@@ -253,10 +256,8 @@ mod tests {
     /* x: BaseType(Int) */
     scope.insert(&x, x_type.clone()).unwrap();
 
-    assert_eq!(x.get_type(&scope, &mut vec![]), Some(x_type));
-    assert!(String::from("hello")
-      .get_type(&scope, &mut vec![])
-      .is_none());
+    assert_eq!(x.get_type(&scope), Ok(x_type));
+    assert!(String::from("hello").get_type(&scope).is_err());
   }
 
   #[test]
@@ -271,22 +272,21 @@ mod tests {
 
     /* x[5][2]: Int */
     assert_eq!(
-      ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::IntLiter(2)])
-        .get_type(&scope, &mut vec![]),
-      Some(Type::Int),
+      ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::IntLiter(2)]).get_type(&scope),
+      Ok(Type::Int),
     );
 
     /* x[5]['a'] is error */
     assert!(
       ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::CharLiter('a')])
-        .get_type(&scope, &mut vec![])
-        .is_none()
+        .get_type(&scope)
+        .is_err()
     );
 
     /* x[5]: Array(Int) */
     assert_eq!(
-      ArrayElem(id.clone(), vec![Expr::IntLiter(5)]).get_type(&scope, &mut vec![]),
-      Some(Type::Array(Box::new(Type::Int))),
+      ArrayElem(id.clone(), vec![Expr::IntLiter(5)]).get_type(&scope),
+      Ok(Type::Array(Box::new(Type::Int))),
     );
 
     /* x[5][2][1] is error */
@@ -294,7 +294,7 @@ mod tests {
       id.clone(),
       vec![Expr::IntLiter(5), Expr::IntLiter(2), Expr::IntLiter(1)]
     )
-    .get_type(&scope, &mut vec![])
-    .is_none());
+    .get_type(&scope)
+    .is_err());
   }
 }

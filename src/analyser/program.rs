@@ -3,7 +3,7 @@ use crate::ast::*;
 use stat::*;
 use ReturnBehaviour::*;
 
-fn func(scope: &ScopeBuilder, errors: &mut Vec<SemanticError>, func: &mut Func) -> Option<()> {
+fn func(scope: &ScopeBuilder, func: &mut Func) -> AResult<()> {
   let scope = &mut scope.new_scope(&mut func.params_st);
 
   /* Add parameters to parameter scope. */
@@ -15,28 +15,24 @@ fn func(scope: &ScopeBuilder, errors: &mut Vec<SemanticError>, func: &mut Func) 
   let scope = &mut scope.new_scope(&mut func.body_st);
 
   /* Type check function body and make sure it returns value of correct type. */
-  match stat(scope, errors, &mut func.body)? {
+  match stat(scope, &mut func.body)? {
     AtEnd(t) if t.clone().unify(func.signature.return_type.clone()) == None => {
-      errors.push(SemanticError::Normal(format!(
+      Err(SemanticError::Normal(format!(
         "Function body returns {:?} but function signature expects {:?}",
         t, func.signature.return_type
-      )));
-      None
+      )))
     }
-    AtEnd(_) => Some(()),
-    _ => {
-      errors.push(SemanticError::Syntax(
-        "The last statement should be a return or exit.".to_string(),
-      ));
-      None
-    }
+    AtEnd(_) => Ok(()),
+    _ => Err(SemanticError::Syntax(
+      "The last statement should be a return or exit.".to_string(),
+    )),
   }
 }
 
 /* Semantically checks an entire program. */
 /* This function initialises the symbol table and function table. */
 #[allow(dead_code)]
-pub fn program(errors: &mut Vec<SemanticError>, program: &mut Program) -> Option<()> {
+pub fn program(program: &mut Program) -> AResult<()> {
   /* root, global scope. */
   let mut scope = ScopeBuilder::new(&mut program.symbol_table);
 
@@ -47,18 +43,15 @@ pub fn program(errors: &mut Vec<SemanticError>, program: &mut Program) -> Option
 
   /* Analyse functions. */
   for f in program.funcs.iter_mut() {
-    func(&scope, errors, f)?;
+    func(&scope, f)?;
   }
 
   /* Program body must never return, but it can exit. */
-  match scoped_stat(&scope, errors, &mut program.statement)? {
-    MidWay(t) | AtEnd(t) if t != Type::Any => {
-      errors.push(SemanticError::Normal(
-        "Cannot have 'return' statement in main".to_string(),
-      ));
-      None
-    }
-    _ => Some(()),
+  match scoped_stat(&scope, &mut program.statement)? {
+    MidWay(t) | AtEnd(t) if t != Type::Any => Err(SemanticError::Normal(
+      "Cannot have 'return' statement in main".to_string(),
+    )),
+    _ => Ok(()),
   }
 }
 
@@ -91,20 +84,20 @@ mod tests {
     };
 
     /* Works in it's default form. */
-    assert!(func(scope, &mut vec![], &mut f.clone()).is_some());
+    assert!(func(scope, &mut f.clone()).is_ok());
 
     /* Doesn't work if wrong type returned. */
     /* int double(int x) is return false end */
     let mut f1 = f.clone();
     f1.body = Stat::Return(Expr::BoolLiter(false));
-    assert!(func(scope, &mut vec![], &mut f1).is_none());
+    assert!(func(scope, &mut f1).is_err());
 
     /* Can compare parameter type with return type. */
     /* bool double(int x) is return x end */
     let mut f2 = f;
     f2.signature.return_type = Type::Bool;
     f2.body = Stat::Return(Expr::Ident(String::from("x")));
-    assert!(func(scope, &mut vec![], &mut f2).is_none());
+    assert!(func(scope, &mut f2).is_err());
   }
 
   #[test]
@@ -136,12 +129,7 @@ mod tests {
       ScopedStat::new(Stat::Return(Expr::IntLiter(5))),
       ScopedStat::new(Stat::Return(Expr::IntLiter(2))),
     );
-    assert!(func(
-      &mut ScopeBuilder::new(&mut SymbolTable::default()),
-      &mut vec![],
-      &mut f3
-    )
-    .is_some());
+    assert!(func(&mut ScopeBuilder::new(&mut SymbolTable::default()), &mut f3).is_ok());
 
     /* int double(int x) is
       if true then return false else return 2 fi
@@ -153,12 +141,7 @@ mod tests {
       ScopedStat::new(Stat::Return(Expr::IntLiter(2))),
     );
 
-    assert!(func(
-      &mut ScopeBuilder::new(&mut SymbolTable::default()),
-      &mut vec![],
-      &mut f4
-    )
-    .is_none());
+    assert!(func(&mut ScopeBuilder::new(&mut SymbolTable::default()), &mut f4).is_err());
 
     /* Only one statement has to return. */
     /* int double(int x) is
@@ -172,12 +155,8 @@ mod tests {
       )),
       Box::new(Stat::Return(Expr::IntLiter(5))),
     );
-    let x = func(
-      &mut ScopeBuilder::new(&mut SymbolTable::default()),
-      &mut vec![],
-      &mut f5,
-    );
-    assert!(x.is_some());
+    let x = func(&mut ScopeBuilder::new(&mut SymbolTable::default()), &mut f5);
+    assert!(x.is_ok());
 
     /* Spots erroneous returns. */
     /* int double(int x) is
@@ -196,11 +175,6 @@ mod tests {
         Expr::StrLiter(String::from("Hello World")),
       )),
     );
-    assert!(func(
-      &mut ScopeBuilder::new(&mut SymbolTable::default()),
-      &mut vec![],
-      &mut f6
-    )
-    .is_none());
+    assert!(func(&mut ScopeBuilder::new(&mut SymbolTable::default()), &mut f6).is_err());
   }
 }
