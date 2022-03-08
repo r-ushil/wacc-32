@@ -1,9 +1,16 @@
-use crate::analyser::context::SymbolTable;
+use crate::analyser::context::{Offset, SymbolTable};
+use std::collections::HashMap;
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Program {
+  /* User defined types. */
+  pub type_defs: HashMap<Ident, Struct>,
+  /* User defined functions. */
   pub funcs: Vec<Func>,
+  /* Program body. */
   pub statement: ScopedStat,
+  /* Top level symbol table (root node in any
+  given scope in this program.) */
   pub symbol_table: SymbolTable,
 }
 
@@ -96,6 +103,36 @@ pub enum Type {
   Array(Box<Type>),
   Pair(Box<Type>, Box<Type>),
   Func(Box<FuncSig>),
+  Custom(Ident),
+}
+
+#[derive(PartialEq, Clone, Debug, Default)]
+pub struct Struct {
+  /* Details about the fields of this struct. */
+  pub fields: HashMap<Ident, (Type, Offset)>,
+  /* Size in bytes of the whole struct. */
+  pub size: Offset,
+}
+
+impl Struct {
+  pub fn new() -> Struct {
+    Self {
+      fields: HashMap::new(),
+      size: 0,
+    }
+  }
+
+  pub fn add_field(&mut self, t: Type, id: Ident) -> Option<Offset> {
+    let offset = self.size;
+
+    /* Grow size of structs by size of this type. */
+    self.size += t.size();
+
+    match self.fields.insert(id, (t, offset)) {
+      Some(_) => None,
+      None => Some(offset),
+    }
+  }
 }
 
 impl Default for Type {
