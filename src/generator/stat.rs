@@ -225,10 +225,7 @@ fn generate_assign_rhs_call(
   let mut args_offset = 0;
 
   for (expr, (arg_type, _arg_ident)) in exprs.iter().zip(args).rev() {
-    let symbol_table = SymbolTable {
-      size: args_offset,
-      ..Default::default()
-    };
+    let symbol_table = SymbolTable::empty(args_offset);
 
     let arg_offset_scope = scope.new_scope(&symbol_table);
 

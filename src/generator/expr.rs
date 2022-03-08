@@ -130,10 +130,7 @@ fn generate_binary_app(
 
     /* The PUSH instruction above decremented stack pointer,
     so we need to expand symbol table to reflect this. */
-    let st = SymbolTable {
-      size: ARM_DSIZE_WORD,
-      ..Default::default()
-    };
+    let st = SymbolTable::empty(ARM_DSIZE_WORD);
 
     /* Evaluate LHS using all registers. */
     expr2.generate(&scope.new_scope(&st), code, regs, ());

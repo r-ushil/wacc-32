@@ -1,8 +1,6 @@
 /* This is code General's version of context.rs, cannot re-use context.rs
 because that's mutable. */
 
-use std::collections::HashMap;
-
 use crate::analyser::context::{self, *};
 use crate::ast::*;
 
@@ -31,11 +29,8 @@ impl ScopeReader<'_> {
     by these new values. */
 
     /* Make new symbol table from fresh to copy the renamed values into. */
-    let mut new_st = SymbolTable {
-      table: HashMap::new(),
-      size: st.size,
-      prefix: st.prefix.clone(),
-    };
+    let mut new_st = SymbolTable::empty(st.size);
+    new_st.prefix = st.prefix.clone();
 
     for (id, (t, offset)) in st.table.iter() {
       /* Calculate what it got renamed to. */

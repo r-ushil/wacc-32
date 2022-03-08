@@ -15,6 +15,18 @@ pub struct SymbolTable {
   pub prefix: String,
 }
 
+impl SymbolTable {
+  /* Makes an empty symbol table with size = offset, this has the effect
+  of recognise the stack pointer having moved down by {offset} bytes, because
+  all calls to .get_offset will now be {offset} greater than they were. */
+  pub fn empty(size: Offset) -> SymbolTable {
+    SymbolTable {
+      size,
+      ..Default::default()
+    }
+  }
+}
+
 #[derive(Debug)]
 pub struct ScopeBuilder<'a> {
   /* Maps identifiers to types for each variable declared in this scope. */
