@@ -7,6 +7,13 @@ failed_expected=0
 failed_unexpected=0
 
 function run_tests() {
+  tests=$(grep -i "$2" "$1/test_list")
+  if [ "$tests" = "" ]
+  then
+    echo Skipping $1
+    return
+  fi
+
   echo Deleting old cache for $1 tests.
   rm -rf $1/*_ours
   echo Generating actual data for $1 tests.
@@ -14,10 +21,10 @@ function run_tests() {
 
   while read in; do 
     our_output_file=$(echo $in | cut -d, -f2)
-    their_output_file=$(echo $in | cut -d, -f3) expected_test_result=$(echo $in | cut -d, -f4)
+    their_output_file=$(echo $in | cut -d, -f3) 
+    expected_test_result=$(echo $in | cut -d, -f4)
   
     difference=`diff $1/$our_output_file $1/$their_output_file`
-  
   
     if [ `echo $?` -eq 0 ]
     then
@@ -44,13 +51,13 @@ function run_tests() {
   
     total=$((total + 1))
     
-  done < $1/test_list
+  done < <(printf "%s\n" "$tests")
 }
 
 function main() {
-  run_tests ./wacc_examples_exit_codes
-  run_tests ./wacc_examples_assembled
-  run_tests ./wacc_examples_executed
+  run_tests ./wacc_examples_exit_codes "$1"
+  run_tests ./wacc_examples_assembled "$1"
+  run_tests ./wacc_examples_executed "$1"
 
   echo "Passed (expected)   :" $passed_expected 
   echo "Passed (unexpected) :" $passed_unexpected
@@ -60,7 +67,7 @@ function main() {
   [[ $passed_unexpected -eq 0 && $failed_unexpected -eq 0 ]]
 }
 
-main
+main $1
 
 
 
