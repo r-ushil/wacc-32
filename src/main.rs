@@ -76,8 +76,8 @@ fn analyse(ast: &mut ast::Program) {
       println!("Successful semantic analysis.");
     }
     Err(errors) => {
-      print_semantic_errors(&errors);
-      if contains_syntax_errors(&errors) {
+      println!("{}", errors);
+      if contains_syntax_errors(errors) {
         exit(100);
       } else {
         exit(200);
@@ -109,19 +109,13 @@ fn incorrect_usage(reason: &str) {
   exit(-1);
 }
 
-fn print_semantic_errors(errors: &[SemanticError]) {
-  for error in errors {
-    println!("ERROR: {}", error);
+fn contains_syntax_errors(errors: SemanticError) -> bool {
+  use SemanticError::*;
+  match errors {
+    Syntax(_) => true,
+    Normal(_) => false,
+    Join(e1, e2) => contains_syntax_errors(*e1) || contains_syntax_errors(*e2),
   }
-}
-
-fn contains_syntax_errors(errors: &[SemanticError]) -> bool {
-  for error in errors {
-    if let SemanticError::Syntax(_) = error {
-      return true;
-    }
-  }
-  false
 }
 
 const EXCERPT_SIZE: usize = 30;

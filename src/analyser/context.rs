@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::SemanticError;
+use super::{AResult, SemanticError};
 use crate::ast::*;
 
 pub type Offset = i32;
@@ -39,16 +39,6 @@ impl ScopeBuilder<'_> {
     }
   }
 
-  pub fn add_error(&self, errors: &mut Vec<SemanticError>, error: SemanticError) {
-    if let Some(parent) = self.parents {
-      /* Scope has parent, wrap error in nested. */
-      parent.add_error(errors, error)
-    } else {
-      /* Global scope, no more nesting to do. */
-      errors.push(error);
-    }
-  }
-
   /* Returns type of given ident */
   pub fn get_type(&self, ident: &Ident) -> Option<(&Type, Ident)> {
     match self.current.table.get(ident) {
@@ -73,7 +63,7 @@ impl ScopeBuilder<'_> {
 
   /* Sets type of ident to val, if ident already exists, updates it and
   returns old value. */
-  pub fn insert(&mut self, ident: &Ident, val: Type) -> Option<Ident> {
+  pub fn insert(&mut self, ident: &Ident, val: Type) -> AResult<Ident> {
     /* Stackframe will be increased in size by val bytes */
     self.current.size += val.size();
 
@@ -84,10 +74,12 @@ impl ScopeBuilder<'_> {
     match self.current.table.insert(ident.clone(), (val, offset)) {
       /* Val replaced something but we aren't allowed to change the type of
       variables, return None signifiying error. */
-      Some(_) => None,
+      Some(_) => Err(SemanticError::Normal(format!(
+        "Attempt to redefine variable in current scope."
+      ))),
       /* No conflict, first time this identifier used in this scope, return
       unit signifiying success. */
-      None => Some(format!("{}{}", self.current.prefix, offset)),
+      None => Ok(format!("{}{}", self.current.prefix, offset)),
     }
   }
 
@@ -148,7 +140,7 @@ mod tests {
     let mut symbol_table = SymbolTable::default();
     let mut scope = make_scope(&mut symbol_table);
 
-    assert!((scope.insert(&String::from("g"), Type::Char).is_some()));
+    assert!((scope.insert(&String::from("g"), Type::Char).is_ok()));
 
     assert!(!matches!(
       scope.get_type(&String::from("g")),
