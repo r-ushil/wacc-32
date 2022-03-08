@@ -309,13 +309,13 @@ mod tests {
     assert!(
       AssignRhs::PairElem(PairElem::Fst(Type::default(), Expr::PairLiter))
         .get_type(scope)
-        .is_ok()
+        .is_err()
     );
 
     assert!(
       AssignRhs::PairElem(PairElem::Fst(Type::default(), Expr::PairLiter))
         .get_type(scope)
-        .is_ok()
+        .is_err()
     );
 
     assert_eq!(
