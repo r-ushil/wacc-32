@@ -81,38 +81,47 @@ impl HasType for AssignRhs {
 
 impl HasType for PairElem {
   fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
-    match self {
-      PairElem::Fst(t, p) => match p.get_type(scope)? {
-        Type::Pair(left, _) => match *left {
-          Type::Any => Err(SemanticError::Normal(
-            "TYPE ERROR:\n\tExpected: BaseType\n\tActual: Null".to_string(),
-          )),
-          new_t => {
-            *t = new_t.clone();
-            Ok(new_t)
-          }
-        },
-        t => Err(SemanticError::Normal(format!(
+    use PairElem::*;
+
+    /* Gets type of thing being accessed, and stored type. */
+    let pair_type = match self {
+      Fst(_, p) | Snd(_, p) => p.get_type(scope)?,
+    };
+
+    /* Gets type of left and right element of pair. */
+    let (left_type, right_type) = match pair_type {
+      Type::Pair(lt, rt) => (*lt, *rt),
+      t => {
+        return Err(SemanticError::Normal(format!(
           "TYPE ERROR:\n\tExpected: Pair\n\tActual:{:?}",
           t
-        ))),
-      },
-      PairElem::Snd(t, p) => match p.get_type(scope)? {
-        Type::Pair(_, right) => match *right {
-          Type::Any => Err(SemanticError::Normal(
-            "TYPE ERROR:\n\tExpected: BaseType\n\tActual: Null".to_string(),
-          )),
-          new_t => {
-            *t = new_t.clone();
-            Ok(new_t)
-          }
-        },
-        t => Err(SemanticError::Normal(format!(
-          "TYPE ERROR:\n\tExpected: Pair\n\tActual:{:?}",
-          t
-        ))),
-      },
+        )))
+      }
+    };
+
+    /* EDGE CASE: compiler must reject "fst null", "snd null".
+    (Which makes no sense because in the rest of the compiler there is
+    no static checking for nulls) >:( */
+    if left_type == Type::Any && right_type == Type::Any {
+      return Err(SemanticError::Normal(format!(
+        "Cannot access element of null-literal"
+      )));
     }
+
+    /* Gets the type of the element being accessed. */
+    let elem_type = match self {
+      Fst(_, _) => left_type,
+      Snd(_, _) => right_type,
+    };
+
+    let stored_type = match self {
+      Fst(st, _) | Snd(st, _) => st,
+    };
+
+    /* Stores this on the AST. */
+    *stored_type = elem_type.clone();
+
+    Ok(elem_type.clone())
   }
 }
 
