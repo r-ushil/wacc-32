@@ -11,20 +11,10 @@ use nom_supreme::{error::ErrorTree, ParserExt};
 use super::shared::*;
 use crate::ast::*;
 
-pub fn func_type(input: &str) -> IResult<&str, Type, ErrorTree<&str>> {
+pub fn func_type(input: &str) -> IResult<&str, Vec<Type>, ErrorTree<&str>> {
   map(
-    tuple((
-      base_type,
-      tok("("),
-      many0_delimited(type_, tok(",")),
-      tok(")"),
-    )),
-    |(return_type, _, param_types, _)| {
-      Type::Func(Box::new(FuncSig {
-        param_types,
-        return_type,
-      }))
-    },
+    tuple((tok("("), many0_delimited(type_, tok(",")), tok(")"))),
+    |(_, param_types, _)| param_types,
   )(input)
 }
 
@@ -32,8 +22,6 @@ pub fn func_type(input: &str) -> IResult<&str, Type, ErrorTree<&str>> {
 pub fn type_(input: &str) -> IResult<&str, Type, ErrorTree<&str>> {
   /* Parses everything apart from the trailing array notes. */
   let (input, mut t) = alt((
-    func_type,
-    base_type,
     map(
       tuple((
         tok("pair"),
@@ -46,6 +34,13 @@ pub fn type_(input: &str) -> IResult<&str, Type, ErrorTree<&str>> {
       |(_, _, l, _, r, _)| Type::Pair(Box::new(l), Box::new(r)),
     ),
     map(ident, Type::Custom),
+    map(tuple((type_, func_type)), |(return_type, param_types)| {
+      Type::Func(Box::new(FuncSig {
+        param_types,
+        return_type,
+      }))
+    }),
+    base_type,
   ))(input)?;
 
   /* Counts how many '[]' trail. */
