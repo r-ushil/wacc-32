@@ -2,7 +2,7 @@ extern crate nom;
 use nom::{
   branch::alt,
   combinator::{map, value},
-  sequence::{delimited, preceded, tuple},
+  sequence::{delimited, pair, preceded, separated_pair, tuple},
   IResult,
 };
 use nom_supreme::error::ErrorTree;
@@ -147,7 +147,29 @@ fn assign_rhs(input: &str) -> IResult<&str, AssignRhs, ErrorTree<&str>> {
     map(pair_elem, AssignRhs::PairElem),
     map(expr, AssignRhs::Expr),
     map(array_liter, AssignRhs::ArrayLiter),
+    map(struct_liter, AssignRhs::StructLiter),
   ))(input)
+}
+
+/* <struct-liter> ::= <ident> '{' ( (<field-liter> ',')* <field-liter> )? '}' */
+fn struct_liter(input: &str) -> IResult<&str, StructLiter, ErrorTree<&str>> {
+  let (input, (id, fields)) = pair(
+    ident,
+    delimited(tok("{"), many0_delimited(field_liter, tok(",")), tok("}")),
+  )(input)?;
+
+  Ok((
+    input,
+    StructLiter {
+      id,
+      fields: fields.into_iter().collect(),
+    },
+  ))
+}
+
+/* <field-liter> ::= <ident> ':' <expr> */
+fn field_liter(input: &str) -> IResult<&str, (Ident, Expr), ErrorTree<&str>> {
+  separated_pair(ident, tok(":"), expr)(input)
 }
 
 /* 〈array-liter〉::= ‘[’ (〈expr〉 (‘,’〈expr〉)* )? ‘]’ */
@@ -162,6 +184,15 @@ fn array_liter(input: &str) -> IResult<&str, ArrayLiter, ErrorTree<&str>> {
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  #[test]
+  fn test_struct_liter() {
+    let sl = struct_liter("Foo { x: 5 }").unwrap().1;
+
+    assert_eq!(sl.id, "Foo");
+    assert_eq!(sl.fields.len(), 1);
+    assert_eq!(sl.fields.get("x").unwrap(), &Expr::IntLiter(5));
+  }
 
   #[test]
   fn test_stat_skip() {
