@@ -11,7 +11,19 @@ use nom_supreme::{error::ErrorTree, ParserExt};
 use super::shared::*;
 use crate::ast::*;
 
-/* type ::= <base-type> | <array-type> | <pair-type> | <custom-type> */
+pub fn func_type(input: &str) -> IResult<&str, Type, ErrorTree<&str>> {
+  map(
+    tuple((type_, tok("("), many0_delimited(type_, tok(",")), tok(")"))),
+    |(return_type, _, param_types, _)| {
+      Type::Func(Box::new(FuncSig {
+        param_types,
+        return_type,
+      }))
+    },
+  )(input)
+}
+
+/* type ::= <base-type> | <array-type> | <pair-type> */
 pub fn type_(input: &str) -> IResult<&str, Type, ErrorTree<&str>> {
   /* Parses everything apart from the trailing array notes. */
   let (input, mut t) = alt((
