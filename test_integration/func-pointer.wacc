@@ -5,7 +5,7 @@ begin
     end
 
     int foo(int(int) bar, int w) is
-        int z = bar(w);
+        int z = call bar(w);
         return z
     end
 
