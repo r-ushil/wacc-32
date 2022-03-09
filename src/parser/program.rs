@@ -192,6 +192,29 @@ mod tests {
   }
 
   #[test]
+  fn test_func_with_func_in_args() {
+    assert!(matches!(
+      func("int funcWithFunc (int(int, int) foo, int x) is int y = call foo(x); return y end"),
+      Ok((
+        "",
+        ast)) if ast == Func {
+          ident:"funcWithFunc".to_string(),
+          signature:FuncSig{
+            param_types:vec!(Type::Func(Box::new(FuncSig {param_types:vec!(Type::Int, Type::Int), return_type:Type::Int})), Type::Int),
+            return_type:Type::Int,
+          },
+          body:Stat::Sequence(
+            Box::new(Stat::Declaration(Type::Int, "y".to_string(), AssignRhs::Call("foo".to_string(), vec!(Expr::Ident("x".to_string()))))),
+            Box::new(Stat::Return(Expr::Ident("y".to_string()))),
+          ),
+          params_st:SymbolTable::default(),
+          body_st:SymbolTable::default(),
+          param_ids:vec!("foo".to_string(), "x".to_string()),
+        }
+    ));
+  }
+
+  #[test]
   fn test_param() {
     assert!(
       matches!(param("int x"), Ok(("", ast)) if ast == (Type::Int, "x".to_string()))
