@@ -58,6 +58,7 @@ function main() {
   run_tests ./wacc_examples_exit_codes "$1"
   run_tests ./wacc_examples_assembled "$1"
   run_tests ./wacc_examples_executed "$1"
+  run_tests ./extension_executed "$1"
 
   echo "Passed (expected)   :" $passed_expected 
   echo "Passed (unexpected) :" $passed_unexpected
