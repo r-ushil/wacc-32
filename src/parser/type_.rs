@@ -27,6 +27,7 @@ pub fn func_type(input: &str) -> IResult<&str, Type, ErrorTree<&str>> {
 pub fn type_(input: &str) -> IResult<&str, Type, ErrorTree<&str>> {
   /* Parses everything apart from the trailing array notes. */
   let (input, mut t) = alt((
+    func_type,
     base_type,
     map(
       tuple((
