@@ -23,6 +23,7 @@ const BINARY_OP_MAX_PREC: u8 = 6;
 | 〈ident〉
 | 〈array-elem〉
 | 〈unary-oper〉〈expr〉          //〈unary-oper〉::= ‘!’ | ‘-’ | ‘len’ | ‘ord’ | ‘chr’
+| 〈expr〉'.'〈ident〉    // (struct elems)
 | 〈expr〉〈binary-oper〉〈expr〉  //〈binary-oper〉::= ‘*’ | ‘/’ | ‘%’ | ‘+’ | ‘-’ | ‘>’ | ‘>=’ | ‘<’ | ‘<=’ | ‘==’ | ‘!=’ | ‘&&’ | ‘||’
 | ‘(’〈expr〉‘)’ */
 pub fn expr(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
@@ -53,7 +54,7 @@ fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
     Expr::UnaryApp(op, Box::new(expr))
   });
 
-  alt((
+  let (mut input, mut e) = alt((
     map(int_liter, Expr::IntLiter),
     bool_liter,
     char_liter,
@@ -63,7 +64,18 @@ fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
     unary_app,
     map(ident, Expr::Ident),
     delimited(tok("("), expr, tok(")")),
-  ))(input)
+  ))(input)?;
+
+  /* Check if the expression is followed by a .field_name (StructElem) */
+  while let Ok((i, id)) = preceded(tok("."), ident)(input) {
+    /* Shuffle input up. */
+    input = i;
+
+    /* Nest expression in a struct elem. */
+    e = Expr::StructElem(StructElem(Box::new(e), id));
+  }
+
+  Ok((input, e))
 }
 
 fn expr_binary_app(prec: u8, input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
@@ -179,6 +191,30 @@ fn character(input: &str) -> IResult<&str, char, ErrorTree<&str>> {
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  #[test]
+  fn test_struct_liter() {
+    assert_eq!(
+      expr("x.foo").unwrap().1,
+      Expr::StructElem(StructElem(
+        Box::new(Expr::Ident(format!("x"))),
+        format!("foo")
+      ))
+    );
+
+    /* can access results of arbitrary expressions. */
+    assert_eq!(
+      expr("(1 + 1).foo").unwrap().1,
+      Expr::StructElem(StructElem(
+        Box::new(Expr::BinaryApp(
+          Box::new(Expr::IntLiter(1)),
+          BinaryOper::Add,
+          Box::new(Expr::IntLiter(1)),
+        )),
+        format!("foo")
+      ))
+    );
+  }
 
   #[test]
   fn test_expr() {
