@@ -19,6 +19,7 @@ pub struct Program {
 #[derive(PartialEq, Debug, Clone)]
 pub struct Func {
   pub ident: Ident,
+  pub param_ids: Vec<Ident>,
   pub signature: FuncSig,
   pub body: Stat,
   pub params_st: SymbolTable,
@@ -27,7 +28,7 @@ pub struct Func {
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct FuncSig {
-  pub params: Vec<(Type, Ident)>,
+  pub param_types: Vec<Type>,
   pub return_type: Type,
 }
 

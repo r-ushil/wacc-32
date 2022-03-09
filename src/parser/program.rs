@@ -68,17 +68,20 @@ fn func(input: &str) -> IResult<&str, Func, ErrorTree<&str>> {
     tok("end"),
   ))(input)?;
 
+  let (param_types, param_ids): (Vec<Type>, Vec<String>) = params.into_iter().unzip();
+
   Ok((
     input,
     Func {
       ident,
       signature: FuncSig {
-        params,
+        param_types,
         return_type,
       },
       body,
       params_st: SymbolTable::default(),
       body_st: SymbolTable::default(),
+      param_ids,
     },
   ))
 }
@@ -102,37 +105,37 @@ mod tests {
 
   #[test]
   fn test_program() {
-    assert!(matches!(
-    program("begin int foo(int x) is return x end int y = call foo(5 + 1) end"),
-    Ok((
-      "",
-      ast)) if ast == Program {
-        type_defs: HashMap::default(),
-        funcs: vec!(Func {
-          signature: FuncSig {
-            params: vec!((Type::Int, "x".to_string())),
-            return_type: Type::Int
-          },
-          ident: "foo".to_string(),
-          body: Stat::Return(Expr::Ident("x".to_string())),
-          params_st: SymbolTable::default(),
-          body_st: SymbolTable::default(),
-        }),
-        statement: ScopedStat::new(Stat::Declaration(
-          Type::Int,
-          "y".to_string(),
-          AssignRhs::Call(
-            "foo".to_string(),
-            vec!(Expr::BinaryApp(
-              Box::new(Expr::IntLiter(5)),
-              BinaryOper::Add,
-              Box::new(Expr::IntLiter(1)),
-            )),
-          )
-        )),
-        symbol_table: SymbolTable::default(),
-      }
-    ));
+    assert_eq!(
+      program("begin int foo(int x) is return x end int y = call foo(5 + 1) end").unwrap().1,
+      Program {
+                type_defs: HashMap::default(),
+                funcs: vec!(Func {
+                  signature: FuncSig {
+                    param_types: vec!(Type::Int),
+                    return_type: Type::Int
+                  },
+                  param_ids: vec!("x".to_string()),
+                  ident: "foo".to_string(),
+                  body: Stat::Return(Expr::Ident("x".to_string())),
+                  params_st: SymbolTable::default(),
+                  body_st: SymbolTable::default(),
+                }),
+                statement: ScopedStat::new(Stat::Declaration(
+                  Type::Int,
+                  "y".to_string(),
+                  AssignRhs::Call(
+                    "foo".to_string(),
+                    vec!(Expr::BinaryApp(
+                      Box::new(Expr::IntLiter(5)),
+                      BinaryOper::Add,
+                      Box::new(Expr::IntLiter(1)),
+                    )),
+                  )
+                )),
+                symbol_table: SymbolTable::default(),
+              }
+            )
+    ;
   }
 
   #[test]
@@ -175,36 +178,16 @@ mod tests {
     func("int firstFunc (int x, int y) is return x + y end"),
     Ok((
       "",
-      ast)) if ast == Func {
-        ident: "firstFunc".to_string(),
-        signature: FuncSig {
-          params: vec!((Type::Int, "x".to_string()), (Type::Int, "y".to_string())),
-          return_type: Type::Int,
-        },
-        body: Stat::Return(Expr::BinaryApp(
-          Box::new(Expr::Ident("x".to_string())),
-          BinaryOper::Add,
-          Box::new(Expr::Ident("y".to_string()))
-        )),
-        params_st: SymbolTable::default(),
-        body_st: SymbolTable::default(),
-      }
+      ast)) if ast == Func {ident:"firstFunc".to_string(),signature:FuncSig{param_types:vec!(Type::Int,Type::Int),return_type:Type::Int,},body:Stat::Return(Expr::BinaryApp(Box::new(Expr::Ident("x".to_string())),BinaryOper::Add,Box::new(Expr::Ident("y".to_string())))),params_st:SymbolTable::default(),body_st:SymbolTable::default(),
+                                                                            param_ids
+                                                                          : vec!("x".to_string(),"y".to_string()) }
     ));
 
     assert!(matches!(
     func("int exitThree () is exit 3 end"),
     Ok((
       "",
-      ast)) if ast == Func {
-        signature: FuncSig {
-          params: vec!(),
-          return_type: Type::Int
-        },
-        ident: "exitThree".to_string(),
-        body: Stat::Exit(Expr::IntLiter(3)),
-        params_st: SymbolTable::default(),
-        body_st: SymbolTable::default(),
-      }
+      ast)) if ast == Func {signature:FuncSig{param_types:vec!(),return_type:Type::Int},ident:"exitThree".to_string(),body:Stat::Exit(Expr::IntLiter(3)),params_st:SymbolTable::default(),body_st:SymbolTable::default(), param_ids: vec!() }
     ));
   }
 

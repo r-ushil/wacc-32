@@ -248,18 +248,21 @@ fn generate_assign_rhs_call(
   ident: &Ident,
   exprs: &[Expr],
 ) {
-  let args = if let Type::Func(function_sig) =
+  let arg_types = if let Type::Func(function_sig) =
     scope.get_bottom(ident).expect("Unreachable!")
   {
-    &function_sig.params
+    &function_sig.param_types
   } else {
     unreachable!();
   };
 
   let mut args_offset = 0;
 
-  for (expr, (arg_type, _arg_ident)) in exprs.iter().zip(args).rev() {
-    let symbol_table = SymbolTable::empty(args_offset);
+  for (expr, arg_type) in exprs.iter().zip(arg_types).rev() {
+    let symbol_table = SymbolTable {
+      size: args_offset,
+      ..Default::default()
+    };
 
     let arg_offset_scope = scope.new_scope(&symbol_table);
 

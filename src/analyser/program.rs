@@ -6,8 +6,11 @@ use ReturnBehaviour::*;
 fn func(scope: &ScopeBuilder, func: &mut Func) -> AResult<()> {
   let scope = &mut scope.new_scope(&mut func.params_st);
 
+  let pts = func.signature.param_types.iter().rev();
+  let pis = func.param_ids.iter().rev();
+
   /* Add parameters to parameter scope. */
-  for (pt, pi) in func.signature.params.iter().rev() {
+  for (pt, pi) in pts.zip(pis) {
     scope.insert(pi, pt.clone())?;
   }
 
@@ -73,7 +76,7 @@ mod tests {
     let f = Func {
       ident: String::from("double"),
       signature: FuncSig {
-        params: vec![(Type::Int, String::from("x"))],
+        param_types: vec![Type::Int],
         return_type: Type::Int,
       },
       body: Stat::Return(Expr::BinaryApp(
@@ -83,6 +86,7 @@ mod tests {
       )),
       params_st: SymbolTable::default(),
       body_st: SymbolTable::default(),
+      param_ids: vec![String::from("x")],
     };
 
     /* Works in it's default form. */
@@ -109,7 +113,7 @@ mod tests {
     let f = Func {
       ident: String::from("double"),
       signature: FuncSig {
-        params: vec![(Type::Int, String::from("x"))],
+        param_types: vec![Type::Int],
         return_type: Type::Int,
       },
       body: Stat::Return(Expr::BinaryApp(
@@ -119,6 +123,7 @@ mod tests {
       )),
       params_st: SymbolTable::default(),
       body_st: SymbolTable::default(),
+      param_ids: vec![String::from("x")],
     };
 
     /* Both branches of if statements must return correct type. */

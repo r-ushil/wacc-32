@@ -50,19 +50,20 @@ impl HasType for AssignRhs {
             *id = old_id;
 
             let FuncSig {
-              params,
+              param_types,
               return_type,
             } = *bx;
 
             /* Types must be pairwise the same. */
-            SemanticError::join_iter(args.iter_mut().zip(params.iter()).map(
-              |(arg, (param_type, param_id))| {
-                expected_type(scope, param_type, arg)
-              },
-            ))?;
+            SemanticError::join_iter(
+              args
+                .iter_mut()
+                .zip(param_types.iter())
+                .map(|(arg, param_type)| expected_type(scope, param_type, arg)),
+            )?;
 
             /* Must be same amount of args as parameters */
-            if params.len() != args.len() {
+            if param_types.len() != args.len() {
               Err(SemanticError::Normal(
                 "Function called with wrong amount of arguments.".to_string(),
               ))
