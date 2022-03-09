@@ -16,7 +16,7 @@ pub fn func_type(input: &str) -> IResult<&str, Type, ErrorTree<&str>> {
     tuple((
       base_type,
       tok("("),
-      many0_delimited(base_type, tok(",")),
+      many0_delimited(type_, tok(",")),
       tok(")"),
     )),
     |(return_type, _, param_types, _)| {
