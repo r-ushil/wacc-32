@@ -57,6 +57,7 @@ impl Generatable for AssignLhs {
       AssignLhs::Ident(id) => generate_assign_lhs_ident(scope, t, id),
       AssignLhs::ArrayElem(elem) => generate_assign_lhs_array_elem(scope, code, regs, elem),
       AssignLhs::PairElem(elem) => generate_assign_lhs_pair_elem(scope, code, regs, elem),
+      AssignLhs::StructElem(_) => unimplemented!(),
     }
   }
 }

@@ -20,6 +20,7 @@ impl Generatable for Expr {
       Expr::PairLiter => generate_pair_liter(code, regs),
       Expr::Ident(id) => generate_ident(scope, code, regs, id),
       Expr::ArrayElem(elem) => generate_array_elem(scope, code, regs, elem),
+      Expr::StructElem(_) => unimplemented!(),
     }
   }
 }

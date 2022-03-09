@@ -21,6 +21,7 @@ impl HasType for AssignLhs {
       AssignLhs::Ident(id) => id.get_type(scope),
       AssignLhs::ArrayElem(elem) => elem.get_type(scope),
       AssignLhs::PairElem(elem) => elem.get_type(scope),
+      AssignLhs::StructElem(_) => unimplemented!(),
     }
   }
 }

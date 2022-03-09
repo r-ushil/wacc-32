@@ -64,6 +64,7 @@ pub enum AssignLhs {
   Ident(Ident),
   ArrayElem(ArrayElem),
   PairElem(PairElem),
+  StructElem(StructElem),
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -81,6 +82,9 @@ pub struct StructLiter {
   pub id: Ident,
   pub fields: HashMap<Ident, Expr>,
 }
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct StructElem(pub Box<Expr>, pub Ident);
 
 /* Expr => AssignRhs::Expr */
 impl<E> From<E> for AssignRhs
@@ -170,6 +174,7 @@ pub enum Expr {
   PairLiter,
   Ident(Ident),
   ArrayElem(ArrayElem),
+  StructElem(StructElem),
   UnaryApp(UnaryOper, Box<Expr>),
   BinaryApp(Box<Expr>, BinaryOper, Box<Expr>),
 }
