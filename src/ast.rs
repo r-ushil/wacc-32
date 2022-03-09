@@ -70,9 +70,16 @@ pub enum AssignLhs {
 pub enum AssignRhs {
   Expr(Expr),
   ArrayLiter(ArrayLiter),
+  StructLiter(StructLiter),
   Pair(Expr, Expr),
   PairElem(PairElem),
   Call(Ident, Vec<Expr>),
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct StructLiter {
+  pub id: Ident,
+  pub fields: HashMap<Ident, Expr>,
 }
 
 /* Expr => AssignRhs::Expr */

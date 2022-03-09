@@ -75,6 +75,7 @@ impl HasType for AssignRhs {
           ))),
         }
       }
+      AssignRhs::StructLiter(_) => unimplemented!(),
     }
   }
 }

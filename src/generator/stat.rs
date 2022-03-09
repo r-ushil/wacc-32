@@ -271,6 +271,7 @@ impl Generatable for AssignRhs {
       AssignRhs::Pair(e1, e2) => generate_assign_rhs_pair(scope, code, regs, t, e1, e2),
       AssignRhs::PairElem(elem) => generate_assign_rhs_pair_elem(scope, code, regs, t, elem),
       AssignRhs::Call(ident, exprs) => generate_assign_rhs_call(scope, code, regs, t, ident, exprs),
+      AssignRhs::StructLiter(_) => unimplemented!(),
     }
   }
 }
