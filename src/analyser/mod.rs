@@ -209,6 +209,45 @@ impl HasType for ArrayElem {
   }
 }
 
+impl HasType for StructElem {
+  fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
+    let StructElem(expr, field_name) = self;
+
+    /* Expression should have this typ. */
+    let expr_type = expr.get_type(scope)?;
+
+    /* Get the struct's identifier. */
+    let struct_id = match expr_type {
+      Type::Custom(id) => id,
+      _ => {
+        return Err(SemanticError::Normal(format!(
+          "Field lookup can only be done on structs."
+        )))
+      }
+    };
+
+    /* Get struct definition. */
+    let struct_def = scope
+      .get_def(&struct_id)
+      .ok_or(SemanticError::Normal(format!(
+        "Custom type not found: {}",
+        struct_id
+      )))?;
+
+    /* Look up field type. */
+    let (field_type, _) = struct_def
+      .fields
+      .get(field_name)
+      .ok_or(SemanticError::Normal(format!(
+        "Struct {} has no field {}",
+        struct_id, field_name
+      )))?;
+
+    /* This is the type of {struct_id}.{field_name}. */
+    Ok(field_type.clone())
+  }
+}
+
 pub fn analyse(program: &mut Program) -> AResult<()> {
   program::program(program)
 }
@@ -219,12 +258,34 @@ pub fn analyse(program: &mut Program) -> AResult<()> {
 #[cfg(test)]
 
 mod tests {
+  use std::collections::HashMap;
+
   use crate::analyser::context::SymbolTable;
 
   use super::*;
 
   #[test]
-  fn charlie_test() {
+  fn test_struct_elem() {
+    let mut symbol_table = SymbolTable::default();
+    let type_defs = HashMap::from([(
+      format!("IntBox"),
+      Struct {
+        fields: HashMap::from([(format!("y"), (Type::Bool, 0))]),
+        size: 4,
+      },
+    )]);
+    let mut scope = ScopeBuilder::new(&mut symbol_table, &type_defs);
+    scope
+      .insert(&format!("box"), Type::Custom(format!("IntBox")))
+      .unwrap();
+
+    let mut elem = StructElem(Box::new(Expr::Ident(format!("box"))), format!("y"));
+
+    assert_eq!(elem.get_type(&mut scope), Ok(Type::Bool));
+  }
+
+  #[test]
+  fn test_array_elems() {
     let id = String::from("x");
 
     let mut symbol_table = SymbolTable::default();
@@ -235,11 +296,6 @@ mod tests {
     scope.insert(&id, Type::Array(Box::new(Type::Array(Box::new(Type::Int)))));
 
     /* x[5]['a'] is error */
-    println!("{:?}", id.clone().get_type(&scope));
-    println!(
-      "{:?}",
-      ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::CharLiter('a')]).get_type(&scope)
-    );
     assert!(
       ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::CharLiter('a')])
         .get_type(&scope)

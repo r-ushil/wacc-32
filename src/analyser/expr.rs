@@ -11,7 +11,7 @@ impl HasType for Expr {
       Expr::PairLiter => Type::Pair(Box::new(Type::Any), Box::new(Type::Any)),
       Expr::Ident(id) => id.get_type(scope)?,
       Expr::ArrayElem(elem) => elem.get_type(scope)?,
-      Expr::StructElem(_) => unimplemented!(),
+      Expr::StructElem(elem) => elem.get_type(scope)?,
       Expr::UnaryApp(op, exp) => match op {
         UnaryOper::Bang => expected_type(scope, &Type::Bool, exp)?.clone(),
         UnaryOper::Neg => expected_type(scope, &Type::Int, exp)?.clone(),
