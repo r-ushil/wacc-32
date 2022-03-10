@@ -100,7 +100,8 @@ mod tests {
   #[test]
   fn literals() {
     let mut symbol_table = SymbolTable::default();
-    let scope = &ScopeBuilder::new(&mut symbol_table);
+    let type_defs = TypeDefs::default();
+    let scope = &ScopeBuilder::new(&mut symbol_table, &type_defs);
 
     assert_eq!(Expr::IntLiter(5).get_type(scope), Ok(Type::Int));
     assert_eq!(Expr::BoolLiter(false).get_type(scope), Ok(Type::Bool));
@@ -114,7 +115,8 @@ mod tests {
   #[test]
   fn idents() {
     let mut symbol_table = SymbolTable::default();
-    let mut scope = ScopeBuilder::new(&mut symbol_table);
+    let type_defs = TypeDefs::default();
+    let mut scope = ScopeBuilder::new(&mut symbol_table, &type_defs);
     populate_scope(&mut scope, "var");
 
     assert_eq!(
@@ -129,7 +131,8 @@ mod tests {
     let x_type = Type::Array(Box::new(Type::Int));
 
     let mut symbol_table = SymbolTable::default();
-    let mut scope = ScopeBuilder::new(&mut symbol_table);
+    let type_defs = TypeDefs::default();
+    let mut scope = ScopeBuilder::new(&mut symbol_table, &type_defs);
     scope.insert(&x, x_type);
 
     assert_eq!(
@@ -142,7 +145,8 @@ mod tests {
   fn unary_apps() {
     /* Symbol Table */
     let mut symbol_table = SymbolTable::default();
-    let scope = &mut ScopeBuilder::new(&mut symbol_table);
+    let type_defs = TypeDefs::default();
+    let scope = &mut ScopeBuilder::new(&mut symbol_table, &type_defs);
 
     /* BANG */
     /* !false: Bool */
@@ -217,7 +221,8 @@ mod tests {
   #[test]
   fn binary_apps() {
     let mut symbol_table = SymbolTable::default();
-    let scope = &mut ScopeBuilder::new(&mut symbol_table);
+    let type_defs = TypeDefs::default();
+    let scope = &mut ScopeBuilder::new(&mut symbol_table, &type_defs);
 
     /* 5 + false: ERROR */
     assert!(Expr::BinaryApp(

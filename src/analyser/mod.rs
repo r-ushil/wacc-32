@@ -228,7 +228,8 @@ mod tests {
     let id = String::from("x");
 
     let mut symbol_table = SymbolTable::default();
-    let mut scope = ScopeBuilder::new(&mut symbol_table);
+    let type_defs = TypeDefs::default();
+    let mut scope = ScopeBuilder::new(&mut symbol_table, &type_defs);
 
     /* x: Array(Array(Int)) */
     scope.insert(&id, Type::Array(Box::new(Type::Array(Box::new(Type::Int)))));
@@ -251,7 +252,8 @@ mod tests {
     let mut x = String::from("x");
     let x_type = Type::Int;
     let mut symbol_table = SymbolTable::default();
-    let mut scope = ScopeBuilder::new(&mut symbol_table);
+    let type_defs = TypeDefs::default();
+    let mut scope = ScopeBuilder::new(&mut symbol_table, &type_defs);
 
     /* x: BaseType(Int) */
     scope.insert(&x, x_type.clone()).unwrap();
@@ -265,7 +267,8 @@ mod tests {
     let id = String::from("x");
 
     let mut symbol_table = SymbolTable::default();
-    let mut scope = ScopeBuilder::new(&mut symbol_table);
+    let type_defs = TypeDefs::default();
+    let mut scope = ScopeBuilder::new(&mut symbol_table, &type_defs);
 
     /* x: Array(Array(Int)) */
     scope.insert(&id, Type::Array(Box::new(Type::Array(Box::new(Type::Int)))));
