@@ -101,8 +101,13 @@ fn stat_multiple(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
   })(input)
 }
 
-/* assign-lhs ::= <ident> | <array-elem> | <pair-elem> */
+/* assign-lhs ::= <struct-elem> | <ident> | <array-elem> | <pair-elem> */
 fn assign_lhs(input: &str) -> IResult<&str, AssignLhs, ErrorTree<&str>> {
+  /* Attempt to parse as expression just to catch struct elem case. */
+  if let Ok((input, Expr::StructElem(elem))) = expr(input) {
+    return Ok((input, AssignLhs::StructElem(elem)));
+  }
+
   alt((
     map(pair_elem, AssignLhs::PairElem),
     map(array_elem, AssignLhs::ArrayElem),

@@ -57,9 +57,30 @@ impl Generatable for AssignLhs {
       AssignLhs::Ident(id) => generate_assign_lhs_ident(scope, t, id),
       AssignLhs::ArrayElem(elem) => generate_assign_lhs_array_elem(scope, code, regs, elem),
       AssignLhs::PairElem(elem) => generate_assign_lhs_pair_elem(scope, code, regs, elem),
-      AssignLhs::StructElem(_) => unimplemented!(),
+      AssignLhs::StructElem(elem) => generate_assign_lhs_struct_elem(scope, code, regs, elem),
     }
   }
+}
+
+fn generate_assign_lhs_struct_elem(
+  scope: &ScopeReader,
+  code: &mut GeneratedCode,
+  regs: &[GenReg],
+  elem: &StructElem,
+) -> <AssignLhs as Generatable>::Output {
+  let StructElem(struct_name, expr, field_name) = elem;
+
+  /* Get struct definition. */
+  let def = scope.get_def(struct_name).unwrap();
+
+  /* Get offset and type. */
+  let (type_, offset) = def.fields.get(field_name).unwrap();
+
+  /* Evaluate expression. */
+  expr.generate(scope, code, regs, ());
+
+  /* Return location. */
+  (Reg::General(regs[0]), *offset, type_.size().into())
 }
 
 /* Mallocs {bytes} bytes and leaves the address in {reg}. */
