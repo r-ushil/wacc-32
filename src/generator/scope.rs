@@ -1,8 +1,6 @@
 /* This is code General's version of context.rs, cannot re-use context.rs
 because that's mutable. */
 
-use std::collections::HashMap;
-
 use crate::analyser::context::{self, *};
 use crate::ast::*;
 
@@ -18,11 +16,13 @@ pub struct ScopeReader<'a> {
   and where abouts within that scope it is. */
   /* context: None means this is the global scope. */
   parents: Option<&'a ScopeReader<'a>>,
+  /* Pointer to type defs hashmap on root ast node. */
+  type_defs: &'a TypeDefs,
 }
 
 impl ScopeReader<'_> {
   /* Makes new Symbol table with initial global scope. */
-  pub fn new(st: &SymbolTable) -> ScopeReader<'_> {
+  pub fn new<'a>(st: &'a SymbolTable, type_defs: &'a TypeDefs) -> ScopeReader<'a> {
     /* When symbol tables are used in the analyser, they're used by callers
     who only have the origional idents the programmer gave to them, now we're
     in code General, the global rename has been done to the whole AST.
@@ -31,11 +31,8 @@ impl ScopeReader<'_> {
     by these new values. */
 
     /* Make new symbol table from fresh to copy the renamed values into. */
-    let mut new_st = SymbolTable {
-      table: HashMap::new(),
-      size: st.size,
-      prefix: st.prefix.clone(),
-    };
+    let mut new_st = SymbolTable::empty(st.size);
+    new_st.prefix = st.prefix.clone();
 
     for (id, (t, offset)) in st.table.iter() {
       /* Calculate what it got renamed to. */
@@ -53,6 +50,7 @@ impl ScopeReader<'_> {
     ScopeReader {
       current: new_st,
       parents: None,
+      type_defs,
     }
   }
 
@@ -94,8 +92,13 @@ impl ScopeReader<'_> {
     }
   }
 
+  /* Retrieves a type's definition from it's identifier. */
+  pub fn get_def(&self, ident: &Ident) -> Option<Struct> {
+    Some(self.type_defs.get(ident)?.clone())
+  }
+
   pub fn new_scope<'a>(&'a self, symbol_table: &'a SymbolTable) -> ScopeReader<'a> {
-    let mut st = ScopeReader::new(symbol_table);
+    let mut st = ScopeReader::new(symbol_table, self.type_defs);
 
     /* The parent of the returned scope is the caller. */
     st.parents = Some(self);

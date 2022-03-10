@@ -10,7 +10,7 @@ impl Generatable for Program {
     assert!(regs == GENERAL_REGS);
 
     /* Move into program's scope. */
-    let scope = &ScopeReader::new(&self.symbol_table);
+    let scope = &ScopeReader::new(&self.symbol_table, &self.type_defs);
 
     /* Generate code for every function, side affecting the code struct.
      * Each function is allowed to use the registers from min_regs variable
@@ -84,10 +84,7 @@ impl Generatable for Func {
     let scope = &scope.new_scope(&self.params_st);
 
     /* Make new 4 byte scope to reserve space for link register. */
-    let lr_table = SymbolTable {
-      size: ARM_DSIZE_WORD,
-      ..Default::default()
-    };
+    let lr_table = SymbolTable::empty(ARM_DSIZE_WORD);
     let scope = &scope.new_scope(&lr_table);
 
     /* Move into function body scope. */

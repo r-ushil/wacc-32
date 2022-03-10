@@ -2,7 +2,7 @@ extern crate nom;
 use nom::{
   branch::alt,
   combinator::{map, value},
-  sequence::{delimited, preceded, tuple},
+  sequence::{delimited, pair, preceded, separated_pair, tuple},
   IResult,
 };
 use nom_supreme::error::ErrorTree;
@@ -101,8 +101,13 @@ fn stat_multiple(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
   })(input)
 }
 
-/* assign-lhs ::= <ident> | <array-elem> | <pair-elem> */
+/* assign-lhs ::= <struct-elem> | <ident> | <array-elem> | <pair-elem> */
 fn assign_lhs(input: &str) -> IResult<&str, AssignLhs, ErrorTree<&str>> {
+  /* Attempt to parse as expression just to catch struct elem case. */
+  if let Ok((input, Expr::StructElem(elem))) = expr(input) {
+    return Ok((input, AssignLhs::StructElem(elem)));
+  }
+
   alt((
     map(pair_elem, AssignLhs::PairElem),
     map(array_elem, AssignLhs::ArrayElem),
@@ -145,9 +150,31 @@ fn assign_rhs(input: &str) -> IResult<&str, AssignRhs, ErrorTree<&str>> {
       |(_, _, e1, _, e2, _)| AssignRhs::Pair(e1, e2),
     ),
     map(pair_elem, AssignRhs::PairElem),
+    map(struct_liter, AssignRhs::StructLiter),
     map(expr, AssignRhs::Expr),
     map(array_liter, AssignRhs::ArrayLiter),
   ))(input)
+}
+
+/* <struct-liter> ::= <ident> '{' ( (<field-liter> ',')* <field-liter> )? '}' */
+fn struct_liter(input: &str) -> IResult<&str, StructLiter, ErrorTree<&str>> {
+  let (input, (id, fields)) = pair(
+    ident,
+    delimited(tok("{"), many0_delimited(field_liter, tok(",")), tok("}")),
+  )(input)?;
+
+  Ok((
+    input,
+    StructLiter {
+      id,
+      fields: fields.into_iter().collect(),
+    },
+  ))
+}
+
+/* <field-liter> ::= <ident> ':' <expr> */
+fn field_liter(input: &str) -> IResult<&str, (Ident, Expr), ErrorTree<&str>> {
+  separated_pair(ident, tok(":"), expr)(input)
 }
 
 /* 〈array-liter〉::= ‘[’ (〈expr〉 (‘,’〈expr〉)* )? ‘]’ */
@@ -161,7 +188,38 @@ fn array_liter(input: &str) -> IResult<&str, ArrayLiter, ErrorTree<&str>> {
 
 #[cfg(test)]
 mod tests {
+  use std::collections::HashMap;
+
   use super::*;
+
+  #[test]
+  fn test_struct_liter() {
+    let sl = struct_liter("Foo { x: 5 }").unwrap().1;
+
+    assert_eq!(sl.id, "Foo");
+    assert_eq!(sl.fields.len(), 1);
+    assert_eq!(sl.fields.get("x").unwrap(), &Expr::IntLiter(5));
+  }
+
+  #[test]
+  fn test_struct_declaration() {
+    let statement = stat("IntBox box = IntBox { x : 5 }").unwrap().1;
+
+    let (t, id, rhs) = match statement {
+      Stat::Declaration(t, id, rhs) => (t, id, rhs),
+      _ => panic!("Statement should be declaration."),
+    };
+
+    assert_eq!(t, Type::Custom(format!("IntBox")));
+    assert_eq!(id, format!("box"));
+    assert_eq!(
+      rhs,
+      AssignRhs::StructLiter(StructLiter {
+        id: format!("IntBox"),
+        fields: HashMap::from([(format!("x"), Expr::IntLiter(5))])
+      })
+    );
+  }
 
   #[test]
   fn test_stat_skip() {

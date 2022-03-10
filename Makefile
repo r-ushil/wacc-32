@@ -24,6 +24,10 @@ test_unit:
 test_integration: wacc
 	(cd ./test_integration && bash ./test_integration.sh)
 
+docker_test_integration:
+	docker build -t test_integration --target test_integration .
+	docker run test_integration
+
 # clean up all of the compiled files
 clean:
 	cargo clean

@@ -21,6 +21,7 @@ impl HasType for AssignLhs {
       AssignLhs::Ident(id) => id.get_type(scope),
       AssignLhs::ArrayElem(elem) => elem.get_type(scope),
       AssignLhs::PairElem(elem) => elem.get_type(scope),
+      AssignLhs::StructElem(elem) => elem.get_type(scope),
     }
   }
 }
@@ -75,7 +76,46 @@ impl HasType for AssignRhs {
           ))),
         }
       }
+      AssignRhs::StructLiter(s) => s.get_type(scope),
     }
+  }
+}
+
+impl HasType for StructLiter {
+  fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
+    let StructLiter { id, fields } = self;
+
+    /* Fetch struct definition. */
+    let def = match scope.get_def(id) {
+      Some(def) => def,
+      None => return Err(SemanticError::Normal(format!("Cannot find type: {:?}", id))),
+    };
+
+    /* Make sure defition and usage have same number of fields. */
+    if fields.len() != def.fields.len() {
+      return Err(SemanticError::Normal(format!(
+        "Struct literal has different amount of errors to definition."
+      )));
+    }
+
+    /* Check all fields evaluate to correct type. */
+    for (field_name, (field_type, _)) in def.fields.iter() {
+      /* Get expression this field is to be set to. */
+      let liter_expr = match self.fields.get_mut(field_name) {
+        Some(expr) => expr,
+        None => {
+          return Err(SemanticError::Normal(format!(
+            "Struct literal missing expression for field: {}",
+            field_name
+          )))
+        }
+      };
+
+      /* Assert it's type is the same as the field is expecting. */
+      expected_type(scope, field_type, liter_expr)?;
+    }
+
+    Ok(Type::Custom(id.clone()))
   }
 }
 
@@ -291,14 +331,57 @@ pub fn stat(scope: &mut ScopeBuilder, statement: &mut Stat) -> AResult<ReturnBeh
 
 #[cfg(test)]
 mod tests {
+  use std::collections::HashMap;
+
   use crate::analyser::context::SymbolTable;
 
   use super::*;
 
   #[test]
+  fn struct_liter() {
+    let mut symbol_table = SymbolTable::default();
+    let type_defs = HashMap::from([(
+      format!("IntBox"),
+      Struct {
+        fields: HashMap::from([(format!("x"), (Type::Int, 0))]),
+        size: 4,
+      },
+    )]);
+    let scope = &mut ScopeBuilder::new(&mut symbol_table, &type_defs);
+
+    /* Correct usage. */
+    assert!((StructLiter {
+      id: format!("IntBox"),
+      fields: HashMap::from([(format!("x"), Expr::IntLiter(5))]),
+    })
+    .get_type(scope)
+    .is_ok());
+
+    /* Wrong amount of fields. */
+    assert!((StructLiter {
+      id: format!("IntBox"),
+      fields: HashMap::from([
+        (format!("x"), Expr::IntLiter(5)),
+        (format!("y"), Expr::IntLiter(6)),
+      ])
+    })
+    .get_type(scope)
+    .is_err());
+
+    /* Field has wrong type. */
+    assert!((StructLiter {
+      id: format!("IntBox"),
+      fields: HashMap::from([(format!("x"), Expr::BoolLiter(true)),])
+    })
+    .get_type(scope)
+    .is_err());
+  }
+
+  #[test]
   fn assign_lhs() {
     let mut symbol_table = SymbolTable::default();
-    let scope = &mut ScopeBuilder::new(&mut symbol_table);
+    let type_defs = TypeDefs::default();
+    let scope = &mut ScopeBuilder::new(&mut symbol_table, &type_defs);
 
     /* Identifiers cause */
     let x_id = String::from("x");
@@ -333,7 +416,8 @@ mod tests {
     let mut intx5 = Stat::Declaration(Type::Int, x(), AssignRhs::Expr(Expr::IntLiter(5)));
 
     let mut outer_symbol_table = SymbolTable::default();
-    let mut outer_scope = ScopeBuilder::new(&mut outer_symbol_table);
+    let type_defs = TypeDefs::default();
+    let mut outer_scope = ScopeBuilder::new(&mut outer_symbol_table, &type_defs);
 
     stat(&mut outer_scope, &mut intx5);
 
@@ -369,7 +453,8 @@ mod tests {
     )));
 
     let mut outer_symbol_table = SymbolTable::default();
-    let mut global_scope = ScopeBuilder::new(&mut outer_symbol_table);
+    let type_defs = TypeDefs::default();
+    let mut global_scope = ScopeBuilder::new(&mut outer_symbol_table, &type_defs);
 
     stat(&mut global_scope, &mut statement);
     /* x and z should now be in outer scope */
@@ -394,7 +479,8 @@ mod tests {
     };
 
     /* When in outer scope, x and z should be ints. */
-    let outer_scope = ScopeBuilder::new(&mut st);
+    let type_defs = TypeDefs::default();
+    let outer_scope = ScopeBuilder::new(&mut st, &type_defs);
     assert!(matches!(outer_scope.get_type(&x()), Some((&Type::Int, _))));
     assert!(matches!(outer_scope.get_type(&z()), Some((&Type::Int, _))));
 

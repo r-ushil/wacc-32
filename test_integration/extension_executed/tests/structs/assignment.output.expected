@@ -1,5 +1,6 @@
 Compiler exit code: 0
 --------- stdout ---------
-hello
+1
+42
 --------------------------
 Exit code: 0

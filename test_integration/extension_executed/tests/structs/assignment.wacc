@@ -1,0 +1,9 @@
+begin
+  struct IntBox {
+    int x
+  }
+  IntBox box = IntBox { x: 1 };
+  println box.x;
+  box.x = 42;
+  println box.x
+end

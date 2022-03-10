@@ -11,7 +11,7 @@ use nom_supreme::{error::ErrorTree, ParserExt};
 use super::shared::*;
 use crate::ast::*;
 
-/* type ::= <base-type> | <array-type> | <pair-type> */
+/* type ::= <base-type> | <array-type> | <pair-type> | <custom-type> */
 pub fn type_(input: &str) -> IResult<&str, Type, ErrorTree<&str>> {
   /* Parses everything apart from the trailing array notes. */
   let (input, mut t) = alt((
@@ -27,6 +27,7 @@ pub fn type_(input: &str) -> IResult<&str, Type, ErrorTree<&str>> {
       )),
       |(_, _, l, _, r, _)| Type::Pair(Box::new(l), Box::new(r)),
     ),
+    map(ident, Type::Custom),
   ))(input)?;
 
   /* Counts how many '[]' trail. */
@@ -78,6 +79,11 @@ fn pair_elem_type(input: &str) -> IResult<&str, Type, ErrorTree<&str>> {
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  #[test]
+  fn test_custom() {
+    assert_eq!(type_("foobar").unwrap().1, Type::Custom(format!("foobar")));
+  }
 
   #[test]
   fn test_type_() {

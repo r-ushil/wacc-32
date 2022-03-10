@@ -1,9 +1,18 @@
-use crate::analyser::context::SymbolTable;
+use crate::analyser::context::{Offset, SymbolTable};
+use std::collections::HashMap;
+
+pub type TypeDefs = HashMap<Ident, Struct>;
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Program {
+  /* User defined types. */
+  pub type_defs: TypeDefs,
+  /* User defined functions. */
   pub funcs: Vec<Func>,
+  /* Program body. */
   pub statement: ScopedStat,
+  /* Top level symbol table (root node in any
+  given scope in this program.) */
   pub symbol_table: SymbolTable,
 }
 
@@ -57,16 +66,27 @@ pub enum AssignLhs {
   Ident(Ident),
   ArrayElem(ArrayElem),
   PairElem(PairElem),
+  StructElem(StructElem),
 }
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum AssignRhs {
   Expr(Expr),
   ArrayLiter(ArrayLiter),
+  StructLiter(StructLiter),
   Pair(Expr, Expr),
   PairElem(PairElem),
   Call(Ident, Vec<Expr>),
 }
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct StructLiter {
+  pub id: Ident,
+  pub fields: HashMap<Ident, Expr>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct StructElem(pub Ident, pub Box<Expr>, pub Ident);
 
 /* Expr => AssignRhs::Expr */
 impl<E> From<E> for AssignRhs
@@ -96,6 +116,36 @@ pub enum Type {
   Array(Box<Type>),
   Pair(Box<Type>, Box<Type>),
   Func(Box<FuncSig>),
+  Custom(Ident),
+}
+
+#[derive(PartialEq, Clone, Debug, Default)]
+pub struct Struct {
+  /* Details about the fields of this struct. */
+  pub fields: HashMap<Ident, (Type, Offset)>,
+  /* Size in bytes of the whole struct. */
+  pub size: Offset,
+}
+
+impl Struct {
+  pub fn new() -> Struct {
+    Self {
+      fields: HashMap::new(),
+      size: 0,
+    }
+  }
+
+  pub fn add_field(&mut self, t: Type, id: Ident) -> Option<Offset> {
+    let offset = self.size;
+
+    /* Grow size of structs by size of this type. */
+    self.size += t.size();
+
+    match self.fields.insert(id, (t, offset)) {
+      Some(_) => None,
+      None => Some(offset),
+    }
+  }
 }
 
 impl Default for Type {
@@ -126,6 +176,7 @@ pub enum Expr {
   PairLiter,
   Ident(Ident),
   ArrayElem(ArrayElem),
+  StructElem(StructElem),
   UnaryApp(UnaryOper, Box<Expr>),
   BinaryApp(Box<Expr>, BinaryOper, Box<Expr>),
 }

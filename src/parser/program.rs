@@ -18,15 +18,17 @@ pub fn final_program_parser(input: &str) -> Result<Program, ErrorTree<&str>> {
 
 /* program ::= 'begin' <func>* <stat> 'end' */
 pub fn program(input: &str) -> IResult<&str, Program, ErrorTree<&str>> {
-  let (input, (funcs, statement)) = delimited(
+  let (input, (type_defs_vec, funcs, statement)) = delimited(
     preceded(comment_or_ws, tok("begin")),
-    pair(many0(func), stat),
+    tuple((many0(type_def), many0(func), stat)),
     tok("end"),
   )(input)?;
 
   Ok((
     input,
     Program {
+      /* Convert from vector of type defs to hashmap of typedefs. */
+      type_defs: type_defs_vec.into_iter().collect(),
       funcs,
       statement: ScopedStat::new(statement),
       symbol_table: SymbolTable::default(),
@@ -34,11 +36,27 @@ pub fn program(input: &str) -> IResult<&str, Program, ErrorTree<&str>> {
   ))
 }
 
+/* type-def ::= 'struct' <ident> '{' <param-list>? '}' */
+fn type_def(input: &str) -> IResult<&str, (Ident, Struct), ErrorTree<&str>> {
+  let (input, (id, fields)) = pair(
+    /* 'struct' <ident> */
+    preceded(tok("struct"), ident),
+    /* '{' <param-list> '}' */
+    delimited(tok("{"), param_list, tok("}")),
+  )(input)?;
+
+  /* Adds all fields to a struct definition. */
+  let mut s = Struct::new();
+  for (t, id) in fields {
+    s.add_field(t, id);
+  }
+
+  Ok((input, (id, s)))
+}
+
 /* func ::= <type> <ident> '(' <param-list>? ')' 'is' <stat> 'end' */
 /* param-list ::= <param> ( ',' <param> )* */
 fn func(input: &str) -> IResult<&str, Func, ErrorTree<&str>> {
-  let param_list = many0_delimited(param, tok(","));
-
   let (input, (return_type, ident, _, params, _, _, body, _)) = tuple((
     type_,
     ident,
@@ -70,8 +88,14 @@ fn param(input: &str) -> IResult<&str, (Type, Ident), ErrorTree<&str>> {
   pair(type_, ident)(input)
 }
 
+fn param_list(input: &str) -> IResult<&str, Vec<(Type, Ident)>, ErrorTree<&str>> {
+  many0_delimited(param, tok(","))(input)
+}
+
 #[cfg(test)]
 mod tests {
+  use std::collections::HashMap;
+
   use super::*;
 
   #[test]
@@ -81,6 +105,7 @@ mod tests {
     Ok((
       "",
       ast)) if ast == Program {
+        type_defs: HashMap::default(),
         funcs: vec!(Func {
           signature: FuncSig {
             params: vec!((Type::Int, "x".to_string())),
@@ -106,6 +131,40 @@ mod tests {
         symbol_table: SymbolTable::default(),
       }
     ));
+  }
+
+  #[test]
+  fn test_structs() {
+    let p = program("begin struct foo { int x, char y } skip end")
+      .unwrap()
+      .1;
+
+    assert_eq!(p.type_defs.len(), 1);
+
+    assert_eq!(
+      p.type_defs.get("foo").unwrap(),
+      &Struct {
+        fields: HashMap::from([
+          (format!("x"), (Type::Int, 0)),
+          (format!("y"), (Type::Char, 4))
+        ]),
+        size: 5
+      }
+    );
+  }
+
+  #[test]
+  fn test_structs2() {
+    program(
+      "begin
+      struct IntBox {
+        int x
+      }
+      IntBox f = IntBox { x: 5 }
+    end",
+    )
+    .unwrap()
+    .1;
   }
 
   #[test]
