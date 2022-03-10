@@ -1,0 +1,9 @@
+begin
+  struct IntBox {
+    int x
+  }
+  int fn(IntBox i) is
+    return 5
+  end
+  skip
+end

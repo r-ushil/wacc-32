@@ -1,0 +1,6 @@
+begin
+  struct IntBox {
+    int x
+  }
+  skip
+end
