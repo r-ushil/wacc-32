@@ -211,9 +211,9 @@ impl HasType for ArrayElem {
 
 impl HasType for StructElem {
   fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
-    let StructElem(expr, field_name) = self;
+    let StructElem(struct_elem_id, expr, field_name) = self;
 
-    /* Expression should have this typ. */
+    /* Expression should have this type. */
     let expr_type = expr.get_type(scope)?;
 
     /* Get the struct's identifier. */
@@ -225,6 +225,10 @@ impl HasType for StructElem {
         )))
       }
     };
+
+    /* Put struct's identifier on StructElem because StructElem
+    is generic over structs. */
+    *struct_elem_id = struct_id.clone();
 
     /* Get struct definition. */
     let struct_def = scope
@@ -279,7 +283,11 @@ mod tests {
       .insert(&format!("box"), Type::Custom(format!("IntBox")))
       .unwrap();
 
-    let mut elem = StructElem(Box::new(Expr::Ident(format!("box"))), format!("y"));
+    let mut elem = StructElem(
+      format!("IntBox"),
+      Box::new(Expr::Ident(format!("box"))),
+      format!("y"),
+    );
 
     assert_eq!(elem.get_type(&mut scope), Ok(Type::Bool));
   }

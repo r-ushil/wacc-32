@@ -86,7 +86,7 @@ pub struct StructLiter {
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct StructElem(pub Box<Expr>, pub Ident);
+pub struct StructElem(pub Ident, pub Box<Expr>, pub Ident);
 
 /* Expr => AssignRhs::Expr */
 impl<E> From<E> for AssignRhs

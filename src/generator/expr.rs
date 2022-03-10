@@ -20,9 +20,32 @@ impl Generatable for Expr {
       Expr::PairLiter => generate_pair_liter(code, regs),
       Expr::Ident(id) => generate_ident(scope, code, regs, id),
       Expr::ArrayElem(elem) => generate_array_elem(scope, code, regs, elem),
-      Expr::StructElem(_) => unimplemented!(),
+      Expr::StructElem(elem) => generate_struct_elem(scope, code, regs, elem),
     }
   }
+}
+
+fn generate_struct_elem(
+  scope: &ScopeReader,
+  code: &mut GeneratedCode,
+  regs: &[GenReg],
+  elem: &StructElem,
+) {
+  let StructElem(struct_name, expr, field_name) = elem;
+
+  /* Get struct definition. */
+  let def = scope.get_def(struct_name).unwrap();
+
+  /* Get offset and type. */
+  let (type_, offset) = def.fields.get(field_name).unwrap();
+
+  /* Evaluate expression. */
+  expr.generate(scope, code, regs, ());
+
+  /* Dereference with offset. */
+  code.text.push(
+    Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), *offset)).size(type_.size().into()),
+  );
 }
 
 fn generate_pair_liter(code: &mut GeneratedCode, regs: &[GenReg]) {

@@ -72,7 +72,7 @@ fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
     input = i;
 
     /* Nest expression in a struct elem. */
-    e = Expr::StructElem(StructElem(Box::new(e), id));
+    e = Expr::StructElem(StructElem(Ident::default(), Box::new(e), id));
   }
 
   Ok((input, e))
@@ -197,6 +197,7 @@ mod tests {
     assert_eq!(
       expr("x.foo").unwrap().1,
       Expr::StructElem(StructElem(
+        Ident::default(),
         Box::new(Expr::Ident(format!("x"))),
         format!("foo")
       ))
@@ -206,6 +207,7 @@ mod tests {
     assert_eq!(
       expr("(1 + 1).foo").unwrap().1,
       Expr::StructElem(StructElem(
+        Ident::default(),
         Box::new(Expr::BinaryApp(
           Box::new(Expr::IntLiter(1)),
           BinaryOper::Add,

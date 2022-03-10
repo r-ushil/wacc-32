@@ -2,5 +2,5 @@
 ./tests/structs/basicDef.wacc,./tests/structs/basicDef.output.observed,./tests/structs/basicDef.output.expected,pass
 ./tests/structs/declaration.wacc,./tests/structs/declaration.output.observed,./tests/structs/declaration.output.expected,pass
 ./tests/structs/fnParam.wacc,./tests/structs/fnParam.output.observed,./tests/structs/fnParam.output.expected,pass
-./tests/structs/fieldAccess.wacc,./tests/structs/fieldAccess.output.observed,./tests/structs/fieldAccess.output.expected,fail
+./tests/structs/fieldAccess.wacc,./tests/structs/fieldAccess.output.observed,./tests/structs/fieldAccess.output.expected,pass
 ./tests/structs/assignment.wacc,./tests/structs/assignment.output.observed,./tests/structs/assignment.output.expected,fail
