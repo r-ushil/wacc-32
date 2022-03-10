@@ -145,9 +145,9 @@ fn assign_rhs(input: &str) -> IResult<&str, AssignRhs, ErrorTree<&str>> {
       |(_, _, e1, _, e2, _)| AssignRhs::Pair(e1, e2),
     ),
     map(pair_elem, AssignRhs::PairElem),
+    map(struct_liter, AssignRhs::StructLiter),
     map(expr, AssignRhs::Expr),
     map(array_liter, AssignRhs::ArrayLiter),
-    map(struct_liter, AssignRhs::StructLiter),
   ))(input)
 }
 
@@ -183,6 +183,8 @@ fn array_liter(input: &str) -> IResult<&str, ArrayLiter, ErrorTree<&str>> {
 
 #[cfg(test)]
 mod tests {
+  use std::collections::HashMap;
+
   use super::*;
 
   #[test]
@@ -192,6 +194,26 @@ mod tests {
     assert_eq!(sl.id, "Foo");
     assert_eq!(sl.fields.len(), 1);
     assert_eq!(sl.fields.get("x").unwrap(), &Expr::IntLiter(5));
+  }
+
+  #[test]
+  fn test_struct_declaration() {
+    let statement = stat("IntBox box = IntBox { x : 5 }").unwrap().1;
+
+    let (t, id, rhs) = match statement {
+      Stat::Declaration(t, id, rhs) => (t, id, rhs),
+      _ => panic!("Statement should be declaration."),
+    };
+
+    assert_eq!(t, Type::Custom(format!("IntBox")));
+    assert_eq!(id, format!("box"));
+    assert_eq!(
+      rhs,
+      AssignRhs::StructLiter(StructLiter {
+        id: format!("IntBox"),
+        fields: HashMap::from([(format!("x"), Expr::IntLiter(5))])
+      })
+    );
   }
 
   #[test]

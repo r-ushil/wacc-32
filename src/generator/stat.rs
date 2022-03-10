@@ -272,7 +272,48 @@ impl Generatable for AssignRhs {
       AssignRhs::Pair(e1, e2) => generate_assign_rhs_pair(scope, code, regs, t, e1, e2),
       AssignRhs::PairElem(elem) => generate_assign_rhs_pair_elem(scope, code, regs, t, elem),
       AssignRhs::Call(ident, exprs) => generate_assign_rhs_call(scope, code, regs, t, ident, exprs),
-      AssignRhs::StructLiter(_) => unimplemented!(),
+      AssignRhs::StructLiter(liter) => liter.generate(scope, code, regs, ()),
+    }
+  }
+}
+
+impl Generatable for StructLiter {
+  type Input = ();
+  type Output = ();
+
+  fn generate(
+    &self,
+    scope: &ScopeReader,
+    code: &mut GeneratedCode,
+    regs: &[GenReg],
+    aux: Self::Input,
+  ) -> Self::Output {
+    let StructLiter { id, fields } = self;
+
+    /* Get size of struct. */
+    let struct_def = scope
+      .get_def(id)
+      .expect("Analyser should ensure all struct usages are valid.");
+
+    /* Malloc for the struct. */
+    generate_malloc(struct_def.size, code, Reg::General(regs[0]));
+
+    /* Expression evaluation can't use register malloc */
+    let expr_regs = &regs[1..];
+
+    /* For each field: */
+    for (field_name, expr) in fields.iter() {
+      /* Evaluate expression. */
+      expr.generate(scope, code, expr_regs, aux);
+
+      /* Calculate offset. */
+      let offset = struct_def.fields.get(field_name).unwrap().1;
+
+      /* Write to struct. */
+      code.text.push(Asm::str(
+        Reg::General(expr_regs[0]),
+        (Reg::General(regs[0]), offset),
+      ));
     }
   }
 }
@@ -667,7 +708,8 @@ mod tests {
   #[test]
   fn exit_statement() {
     let symbol_table = SymbolTable::default();
-    let scope = &ScopeReader::new(&symbol_table);
+    let type_defs = TypeDefs::default();
+    let scope = &ScopeReader::new(&symbol_table, &type_defs);
     let expr = Expr::IntLiter(0);
     let stat = Stat::Exit(expr.clone());
     let regs = &GENERAL_REGS;

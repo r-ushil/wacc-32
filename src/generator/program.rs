@@ -10,7 +10,7 @@ impl Generatable for Program {
     assert!(regs == GENERAL_REGS);
 
     /* Move into program's scope. */
-    let scope = &ScopeReader::new(&self.symbol_table);
+    let scope = &ScopeReader::new(&self.symbol_table, &self.type_defs);
 
     /* Generate code for every function, side affecting the code struct.
      * Each function is allowed to use the registers from min_regs variable

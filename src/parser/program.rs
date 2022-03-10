@@ -154,6 +154,20 @@ mod tests {
   }
 
   #[test]
+  fn test_structs2() {
+    program(
+      "begin
+      struct IntBox {
+        int x
+      }
+      IntBox f = IntBox { x: 5 }
+    end",
+    )
+    .unwrap()
+    .1;
+  }
+
+  #[test]
   fn test_func() {
     assert!(matches!(
     func("int firstFunc (int x, int y) is return x + y end"),
