@@ -9,7 +9,7 @@ use nom_supreme::{error::ErrorTree, final_parser};
 use super::shared::*;
 use super::stat::*;
 use super::type_::*;
-use crate::analyser::context::SymbolTable;
+use crate::analyser::context::{IdentInfo, SymbolTable};
 use crate::ast::*;
 
 pub fn final_program_parser(input: &str) -> Result<Program, ErrorTree<&str>> {
@@ -24,14 +24,22 @@ pub fn program(input: &str) -> IResult<&str, Program, ErrorTree<&str>> {
     tok("end"),
   )(input)?;
 
+  /* Convert from vector of type defs to hashmap of typedefs. */
+  let mut symbol_table = SymbolTable::default();
+  for (struct_name, struct_def) in type_defs_vec {
+    symbol_table
+      .table
+      .insert(struct_name, IdentInfo::TypeDef(struct_def));
+  }
+
+  println!("symbol_table = {:#?}", symbol_table);
+
   Ok((
     input,
     Program {
-      /* Convert from vector of type defs to hashmap of typedefs. */
-      type_defs: type_defs_vec.into_iter().collect(),
       funcs,
       statement: ScopedStat::new(statement),
-      symbol_table: SymbolTable::default(),
+      symbol_table,
     },
   ))
 }
@@ -68,7 +76,8 @@ fn func(input: &str) -> IResult<&str, Func, ErrorTree<&str>> {
     tok("end"),
   ))(input)?;
 
-  let (param_types, param_ids): (Vec<Type>, Vec<String>) = params.into_iter().unzip();
+  let (param_types, param_ids): (Vec<Type>, Vec<String>) =
+    params.into_iter().unzip();
 
   Ok((
     input,
@@ -106,36 +115,38 @@ mod tests {
   #[test]
   fn test_program() {
     assert_eq!(
-      program("begin int foo(int x) is return x end int y = call foo(5 + 1) end").unwrap().1,
+      program(
+        "begin int foo(int x) is return x end int y = call foo(5 + 1) end"
+      )
+      .unwrap()
+      .1,
       Program {
-                type_defs: HashMap::default(),
-                funcs: vec!(Func {
-                  signature: FuncSig {
-                    param_types: vec!(Type::Int),
-                    return_type: Type::Int
-                  },
-                  param_ids: vec!("x".to_string()),
-                  ident: "foo".to_string(),
-                  body: Stat::Return(Expr::Ident("x".to_string())),
-                  params_st: SymbolTable::default(),
-                  body_st: SymbolTable::default(),
-                }),
-                statement: ScopedStat::new(Stat::Declaration(
-                  Type::Int,
-                  "y".to_string(),
-                  AssignRhs::Call(
-                    "foo".to_string(),
-                    vec!(Expr::BinaryApp(
-                      Box::new(Expr::IntLiter(5)),
-                      BinaryOper::Add,
-                      Box::new(Expr::IntLiter(1)),
-                    )),
-                  )
-                )),
-                symbol_table: SymbolTable::default(),
-              }
-            )
-    ;
+        funcs: vec!(Func {
+          signature: FuncSig {
+            param_types: vec!(Type::Int),
+            return_type: Type::Int
+          },
+          param_ids: vec!("x".to_string()),
+          ident: "foo".to_string(),
+          body: Stat::Return(Expr::LocalVar("x".to_string())),
+          params_st: SymbolTable::default(),
+          body_st: SymbolTable::default(),
+        }),
+        statement: ScopedStat::new(Stat::Declaration(
+          Type::Int,
+          "y".to_string(),
+          AssignRhs::Call(
+            "foo".to_string(),
+            vec!(Expr::BinaryApp(
+              Box::new(Expr::IntLiter(5)),
+              BinaryOper::Add,
+              Box::new(Expr::IntLiter(1)),
+            )),
+          )
+        )),
+        symbol_table: SymbolTable::default(),
+      }
+    );
   }
 
   #[test]
@@ -144,17 +155,17 @@ mod tests {
       .unwrap()
       .1;
 
-    assert_eq!(p.type_defs.len(), 1);
+    assert_eq!(p.symbol_table.table.len(), 1);
 
     assert_eq!(
-      p.type_defs.get("foo").unwrap(),
-      &Struct {
+      p.symbol_table.table.get("foo").unwrap(),
+      &IdentInfo::TypeDef(Struct {
         fields: HashMap::from([
           (format!("x"), (Type::Int, 0)),
           (format!("y"), (Type::Char, 4))
         ]),
         size: 5
-      }
+      })
     );
   }
 
@@ -178,7 +189,7 @@ mod tests {
     func("int firstFunc (int x, int y) is return x + y end"),
     Ok((
       "",
-      ast)) if ast == Func {ident:"firstFunc".to_string(),signature:FuncSig{param_types:vec!(Type::Int,Type::Int),return_type:Type::Int,},body:Stat::Return(Expr::BinaryApp(Box::new(Expr::Ident("x".to_string())),BinaryOper::Add,Box::new(Expr::Ident("y".to_string())))),params_st:SymbolTable::default(),body_st:SymbolTable::default(),
+      ast)) if ast == Func {ident:"firstFunc".to_string(),signature:FuncSig{param_types:vec!(Type::Int,Type::Int),return_type:Type::Int,},body:Stat::Return(Expr::BinaryApp(Box::new(Expr::LocalVar("x".to_string())),BinaryOper::Add,Box::new(Expr::LocalVar("y".to_string())))),params_st:SymbolTable::default(),body_st:SymbolTable::default(),
                                                                             param_ids
                                                                           : vec!("x".to_string(),"y".to_string()) }
     ));
@@ -204,8 +215,8 @@ mod tests {
             return_type:Type::Int,
           },
           body:Stat::Sequence(
-            Box::new(Stat::Declaration(Type::Int, "y".to_string(), AssignRhs::Call("foo".to_string(), vec!(Expr::Ident("x".to_string()))))),
-            Box::new(Stat::Return(Expr::Ident("y".to_string()))),
+            Box::new(Stat::Declaration(Type::Int, "y".to_string(), AssignRhs::Call("foo".to_string(), vec!(Expr::LocalVar("x".to_string()))))),
+            Box::new(Stat::Return(Expr::LocalVar("y".to_string()))),
           ),
           params_st:SymbolTable::default(),
           body_st:SymbolTable::default(),

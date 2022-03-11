@@ -11,6 +11,8 @@ use unify::Unifiable;
 
 use crate::ast::*;
 
+use self::context::IdentInfo;
+
 /* Represents the result of a semantic analyse. */
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum SemanticError {
@@ -169,13 +171,12 @@ impl<T: HasType> HasType for Box<T> {
 
 impl HasType for Ident {
   fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
-    match scope.get_type(self) {
-      Some((t, new_id)) => {
-        *self = new_id;
-        Ok(t.clone())
-      }
-      None => Err(SemanticError::Normal(format!(
-        "Use of undeclared variable: {:?}",
+    use IdentInfo::*;
+
+    match scope.get(self) {
+      Some(LocalVar(t, _) | Label(t, _)) => Ok(t.clone()),
+      _ => Err(SemanticError::Normal(format!(
+        "Use of undeclared variable: {:#?}",
         self
       ))),
     }
@@ -221,7 +222,7 @@ impl HasType for StructElem {
     let expr_type = expr.get_type(scope)?;
 
     /* Get the struct's identifier. */
-    let struct_id = match expr_type {
+    let mut struct_id = match expr_type {
       Type::Custom(id) => id,
       _ => {
         return Err(SemanticError::Normal(format!(
@@ -237,7 +238,7 @@ impl HasType for StructElem {
     /* Get struct definition. */
     let struct_def =
       scope
-        .get_def(&struct_id)
+        .get_def(&mut struct_id)
         .ok_or(SemanticError::Normal(format!(
           "Custom type not found: {}",
           struct_id
@@ -277,21 +278,27 @@ mod tests {
   #[test]
   fn test_struct_elem() {
     let mut symbol_table = SymbolTable::default();
-    let type_defs = HashMap::from([(
-      format!("IntBox"),
-      Struct {
-        fields: HashMap::from([(format!("y"), (Type::Bool, 0))]),
-        size: 4,
-      },
-    )]);
-    let mut scope = ScopeBuilder::new(&mut symbol_table, &type_defs);
+    let box_id = format!("box");
+    let mut scope = ScopeBuilder::new(&mut symbol_table);
+    /* Add custom struct to scope. */
     scope
-      .insert(&format!("box"), Type::Custom(format!("IntBox")))
+      .insert(
+        &format!("IntBox"),
+        IdentInfo::TypeDef(Struct {
+          fields: HashMap::from([(format!("y"), (Type::Bool, 0))]),
+          size: 4,
+        }),
+      )
+      .unwrap();
+
+    /* Add variable to scope. */
+    scope
+      .insert_var(&mut box_id.clone(), Type::Custom(format!("IntBox")))
       .unwrap();
 
     let mut elem = StructElem(
       format!("IntBox"),
-      Box::new(Expr::Ident(format!("box"))),
+      Box::new(Expr::LocalVar(box_id)),
       format!("y"),
     );
 
@@ -300,14 +307,18 @@ mod tests {
 
   #[test]
   fn test_array_elems() {
-    let id = String::from("x");
+    let mut id = String::from("x");
 
     let mut symbol_table = SymbolTable::default();
-    let type_defs = TypeDefs::default();
-    let mut scope = ScopeBuilder::new(&mut symbol_table, &type_defs);
+    let mut scope = ScopeBuilder::new(&mut symbol_table);
 
     /* x: Array(Array(Int)) */
-    scope.insert(&id, Type::Array(Box::new(Type::Array(Box::new(Type::Int)))));
+    scope
+      .insert_var(
+        &mut id,
+        Type::Array(Box::new(Type::Array(Box::new(Type::Int)))),
+      )
+      .unwrap();
 
     /* x[5]['a'] is error */
     assert!(ArrayElem(
@@ -320,16 +331,15 @@ mod tests {
 
   #[test]
   fn idents() {
-    let mut x = String::from("x");
+    let x = String::from("x");
     let x_type = Type::Int;
     let mut symbol_table = SymbolTable::default();
-    let type_defs = TypeDefs::default();
-    let mut scope = ScopeBuilder::new(&mut symbol_table, &type_defs);
+    let mut scope = ScopeBuilder::new(&mut symbol_table);
 
     /* x: BaseType(Int) */
-    scope.insert(&x, x_type.clone()).unwrap();
+    scope.insert_var(&mut x.clone(), x_type.clone()).unwrap();
 
-    assert_eq!(x.get_type(&scope), Ok(x_type));
+    assert_eq!(x.clone().get_type(&scope), Ok(x_type));
     assert!(String::from("hello").get_type(&scope).is_err());
   }
 
@@ -338,11 +348,13 @@ mod tests {
     let id = String::from("x");
 
     let mut symbol_table = SymbolTable::default();
-    let type_defs = TypeDefs::default();
-    let mut scope = ScopeBuilder::new(&mut symbol_table, &type_defs);
+    let mut scope = ScopeBuilder::new(&mut symbol_table);
 
     /* x: Array(Array(Int)) */
-    scope.insert(&id, Type::Array(Box::new(Type::Array(Box::new(Type::Int)))));
+    scope.insert_var(
+      &mut id.clone(),
+      Type::Array(Box::new(Type::Array(Box::new(Type::Int)))),
+    );
 
     /* x[5][2]: Int */
     assert_eq!(

@@ -5,6 +5,7 @@ use super::{
   predef::{RequiredPredefs, PREDEF_SYS_MALLOC},
   *,
 };
+use crate::analyser::context::*;
 use Directive::*;
 use Instr::*;
 
@@ -13,7 +14,12 @@ fn generate_assign_lhs_ident(
   t: Type,
   id: &Ident,
 ) -> <AssignLhs as Generatable>::Output {
-  let offset = scope.get_offset(id).unwrap();
+  use IdentInfo::*;
+
+  let offset = match scope.get(id) {
+    Some(LocalVar(_, offset)) => offset,
+    _ => unreachable!("ident must be a local variable"),
+  };
 
   (Reg::StackPointer, offset, t.size().into())
 }
@@ -248,8 +254,9 @@ fn generate_assign_rhs_call(
   ident: &Ident,
   exprs: &[Expr],
 ) {
-  let arg_types = if let Type::Func(function_sig) =
-    scope.get_bottom(ident).expect("Unreachable!")
+  let arg_types = if let Type::Func(function_sig) = scope
+    .get_type(ident)
+    .expect("Analyser guarentees this ident is valid.")
   {
     &function_sig.param_types
   } else {
@@ -338,6 +345,7 @@ impl Generatable for StructLiter {
     regs: &[GenReg],
     aux: Self::Input,
   ) -> Self::Output {
+    // println!("incorrect: scope = {:#?}", scope);
     let StructLiter { id, fields } = self;
 
     /* Get size of struct. */
@@ -787,7 +795,7 @@ mod tests {
   fn exit_statement() {
     let symbol_table = SymbolTable::default();
     let type_defs = TypeDefs::default();
-    let scope = &ScopeReader::new(&symbol_table, &type_defs);
+    let scope = &ScopeReader::new(&symbol_table);
     let expr = Expr::IntLiter(0);
     let stat = Stat::Exit(expr.clone());
     let regs = &GENERAL_REGS;

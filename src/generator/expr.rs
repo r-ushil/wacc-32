@@ -5,6 +5,7 @@ use super::predef::{
   PREDEF_THROW_OVERFLOW_ERR,
 };
 use super::*;
+use crate::analyser::context::*;
 use crate::generator::asm::*;
 
 impl Generatable for Expr {
@@ -29,7 +30,7 @@ impl Generatable for Expr {
         generate_binary_app(code, regs, scope, expr1, op, expr2)
       }
       Expr::PairLiter => generate_pair_liter(code, regs),
-      Expr::Ident(id) => generate_ident(scope, code, regs, id),
+      Expr::LocalVar(id) => generate_ident(scope, code, regs, id),
       Expr::ArrayElem(elem) => generate_array_elem(scope, code, regs, elem),
       Expr::StructElem(elem) => generate_struct_elem(scope, code, regs, elem),
     }
@@ -90,12 +91,22 @@ fn generate_ident(
   regs: &[GenReg],
   id: &Ident,
 ) {
-  let offset = scope.get_offset(id).unwrap();
+  use IdentInfo::*;
 
-  code.text.push(
-    Asm::ldr(Reg::General(regs[0]), (Reg::StackPointer, offset))
-      .size(scope.get_type(id).unwrap().size().into()),
-  );
+  match scope.get(id) {
+    Some(LocalVar(_, offset)) => {
+      /* LDR {regs[0]}, [sp, #{offset}] */
+      code.text.push(
+        Asm::ldr(Reg::General(regs[0]), (Reg::StackPointer, offset))
+          .size(scope.get_type(id).unwrap().size().into()),
+      );
+    }
+    Some(Label(_, label)) => {
+      /* LDR {regs[0]}, ={label} */
+      code.text.push(Asm::ldr(Reg::General(regs[0]), label));
+    }
+    _ => panic!("ident must be a local variable or function"),
+  };
 }
 
 fn generate_int_liter(code: &mut GeneratedCode, regs: &[GenReg], val: &i32) {
@@ -368,6 +379,8 @@ impl Generatable for ArrayElem {
     regs: &[GenReg],
     _aux: (),
   ) -> DataSize {
+    use IdentInfo::*;
+
     let ArrayElem(id, indexes) = self;
     let mut current_type = scope.get_type(id).unwrap();
     let array_ptr_reg = Reg::General(regs[0]);
@@ -376,12 +389,17 @@ impl Generatable for ArrayElem {
     /* Get reference to {id}.
     Put address of array in regs[0].
     ADD {regs[0]}, sp, #{offset} */
-    let offset = scope.get_offset(id).unwrap();
-    code.text.push(Asm::add(
-      array_ptr_reg,
-      Reg::StackPointer,
-      Op2::Imm(offset),
-    ));
+
+    match scope.get(id) {
+      Some(LocalVar(_, offset)) => {
+        code.text.push(Asm::add(
+          array_ptr_reg,
+          Reg::StackPointer,
+          Op2::Imm(offset),
+        ));
+      }
+      _ => unreachable!("ident must be a local variable"),
+    };
 
     /* For each index. */
     for index in indexes {

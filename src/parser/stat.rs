@@ -577,7 +577,7 @@ mod tests {
         "",
         ast)) if ast == Stat::If(
           Expr::BinaryApp(
-            Box::new(Expr::Ident("b".to_string())),
+            Box::new(Expr::LocalVar("b".to_string())),
             BinaryOper::Eq,
             Box::new(Expr::IntLiter(2)),
           ),
@@ -603,7 +603,7 @@ mod tests {
         "",
         ast)) if ast == Stat::While(
           Expr::BinaryApp(
-            Box::new(Expr::Ident("n".to_string())),
+            Box::new(Expr::LocalVar("n".to_string())),
             BinaryOper::Neq,
             Box::new(Expr::IntLiter(0)),
           ),
@@ -612,16 +612,16 @@ mod tests {
               AssignLhs::Ident("acc".to_string()),
               Type::default(),
               AssignRhs::Expr(Expr::BinaryApp(
-                Box::new(Expr::Ident("acc".to_string())),
+                Box::new(Expr::LocalVar("acc".to_string())),
                 BinaryOper::Mul,
-                Box::new(Expr::Ident("n".to_string())),
+                Box::new(Expr::LocalVar("n".to_string())),
               )),
             )),
             Box::new(Stat::Assignment(
               AssignLhs::Ident("n".to_string()),
               Type::default(),
               AssignRhs::Expr(Expr::BinaryApp(
-                Box::new(Expr::Ident("n".to_string())),
+                Box::new(Expr::LocalVar("n".to_string())),
                 BinaryOper::Sub,
                 Box::new(Expr::IntLiter(1)),
               )),
@@ -669,16 +669,16 @@ mod tests {
           Type::default(),
           AssignRhs::Expr(Expr::BinaryApp(
             Box::new(Expr::BinaryApp(
-              Box::new(Expr::Ident("w".to_string())),
+              Box::new(Expr::LocalVar("w".to_string())),
               BinaryOper::Add,
               Box::new(Expr::BinaryApp(
-                Box::new(Expr::Ident("x".to_string())),
+                Box::new(Expr::LocalVar("x".to_string())),
                 BinaryOper::Mul,
-                Box::new(Expr::Ident("y".to_string()))
+                Box::new(Expr::LocalVar("y".to_string()))
               )),
             )),
             BinaryOper::Add,
-            Box::new(Expr::Ident("z".to_string())),
+            Box::new(Expr::LocalVar("z".to_string())),
           ))
         )
     ));

@@ -5,8 +5,6 @@ pub type TypeDefs = HashMap<Ident, Struct>;
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Program {
-  /* User defined types. */
-  pub type_defs: TypeDefs,
   /* User defined functions. */
   pub funcs: Vec<Func>,
   /* Program body. */
@@ -162,7 +160,6 @@ impl Type {
     match self {
       Bool | Char => 1,
       Any => panic!("Size of Type::Any can not be known."),
-      Func(_) => 0,
       _ => 4,
     }
   }
@@ -175,7 +172,7 @@ pub enum Expr {
   CharLiter(char),
   StrLiter(String),
   PairLiter,
-  Ident(Ident),
+  LocalVar(Ident),
   ArrayElem(ArrayElem),
   StructElem(StructElem),
   UnaryApp(UnaryOper, Box<Expr>),
