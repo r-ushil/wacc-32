@@ -176,16 +176,20 @@ impl TypedExpr {
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum Expr {
+  /* Literal values. */
   IntLiter(i32),
   BoolLiter(bool),
   CharLiter(char),
   StrLiter(String),
   NullPairLiter,
   PairLiter(Box<TypedExpr>, Box<TypedExpr>),
+  /* Identifiers. */
   Ident(Ident),
+  /* Element access. */
   ArrayElem(ArrayElem),
   StructElem(StructElem),
   PairElem(Box<PairElem>),
+  /* Operator application. */
   UnaryApp(UnaryOper, Box<Expr>),
   BinaryApp(Box<Expr>, BinaryOper, Box<Expr>),
 }
