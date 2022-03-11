@@ -172,7 +172,7 @@ pub enum Expr {
   BoolLiter(bool),
   CharLiter(char),
   StrLiter(String),
-  PairLiter,
+  NullPairLiter,
   Ident(Ident),
   ArrayElem(ArrayElem),
   StructElem(StructElem),

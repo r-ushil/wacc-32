@@ -8,7 +8,7 @@ impl HasType for Expr {
       Expr::BoolLiter(_) => Type::Bool,
       Expr::CharLiter(_) => Type::Char,
       Expr::StrLiter(_) => Type::String,
-      Expr::PairLiter => Type::Pair(Box::new(Type::Any), Box::new(Type::Any)),
+      Expr::NullPairLiter => Type::Pair(Box::new(Type::Any), Box::new(Type::Any)),
       Expr::PairElem(elem) => elem.get_type(scope)?,
       Expr::Ident(id) => id.get_type(scope)?,
       Expr::ArrayElem(elem) => elem.get_type(scope)?,
@@ -106,14 +106,14 @@ mod tests {
 
     assert!(Expr::PairElem(Box::new(PairElem::Fst(
       Type::default(),
-      Expr::PairLiter
+      Expr::NullPairLiter
     )))
     .get_type(scope)
     .is_err());
 
     assert!(Expr::PairElem(Box::new(PairElem::Fst(
       Type::default(),
-      Expr::PairLiter
+      Expr::NullPairLiter
     )))
     .get_type(scope)
     .is_err());
@@ -129,7 +129,7 @@ mod tests {
     assert_eq!(Expr::BoolLiter(false).get_type(scope), Ok(Type::Bool));
     assert_eq!(Expr::CharLiter('a').get_type(scope), Ok(Type::Char));
     assert_eq!(
-      Expr::PairLiter.get_type(scope),
+      Expr::NullPairLiter.get_type(scope),
       Ok(Type::Pair(Box::new(Type::Any), Box::new(Type::Any))),
     );
   }
@@ -333,7 +333,7 @@ mod tests {
       Expr::IntLiter(5),
       Expr::BoolLiter(false),
       Expr::StrLiter(String::from("hello")),
-      Expr::PairLiter,
+      Expr::NullPairLiter,
       Expr::UnaryApp(UnaryOper::Neg, Box::new(Expr::IntLiter(5))),
       Expr::BinaryApp(
         Box::new(Expr::StrLiter(String::from("hello world"))),

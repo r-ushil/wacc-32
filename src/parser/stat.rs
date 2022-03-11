@@ -385,7 +385,7 @@ mod tests {
             Box::new(Type::Int)
           ))),
           "arr".to_string(),
-          AssignRhs::ArrayLiter(ArrayLiter(vec![Expr::PairLiter; 3]))
+          AssignRhs::ArrayLiter(ArrayLiter(vec![Expr::NullPairLiter; 3]))
         )
     ));
   }
@@ -416,7 +416,7 @@ mod tests {
             Box::new(Type::Pair(Box::new(Type::Any), Box::new(Type::Any)))
           ),
           "x".to_string(),
-          AssignRhs::Pair(Expr::PairLiter, Expr::PairLiter),
+          AssignRhs::Pair(Expr::NullPairLiter, Expr::NullPairLiter),
         )
     ));
   }
@@ -433,7 +433,7 @@ mod tests {
             Box::new(Type::Pair(Box::new(Type::Any), Box::new(Type::Any)))
           ),
           "x".to_string(),
-          AssignRhs::Expr(Expr::PairLiter),
+          AssignRhs::Expr(Expr::NullPairLiter),
         )
     ));
   }
@@ -450,7 +450,7 @@ mod tests {
             Box::new(Type::Pair(Box::new(Type::Any), Box::new(Type::Any)))
           ),
           "x".to_string(),
-          AssignRhs::Pair(Expr::IntLiter(1), Expr::PairLiter),
+          AssignRhs::Pair(Expr::IntLiter(1), Expr::NullPairLiter),
         )
     ));
   }
@@ -691,7 +691,7 @@ mod tests {
     ));
     assert!(matches!(
       pair_elem("snd null"),
-      Ok(("", PairElem::Snd(Type::Any, Expr::PairLiter)))
+      Ok(("", PairElem::Snd(Type::Any, Expr::NullPairLiter)))
     ));
   }
 
@@ -719,7 +719,7 @@ mod tests {
       assign_lhs("snd null"),
       Ok((
         "",
-        AssignLhs::PairElem(PairElem::Snd(Type::Any, Expr::PairLiter))
+        AssignLhs::PairElem(PairElem::Snd(Type::Any, Expr::NullPairLiter))
       )),
     ));
   }

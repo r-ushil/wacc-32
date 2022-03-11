@@ -60,7 +60,7 @@ fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
     bool_liter,
     char_liter,
     str_liter,
-    value(Expr::PairLiter, tok("null")),
+    value(Expr::NullPairLiter, tok("null")),
     map(array_elem, Expr::ArrayElem),
     map(pair_elem, |elem| Expr::PairElem(Box::new(elem))),
     unary_app,
@@ -213,7 +213,7 @@ mod tests {
   fn test_pair_elem7() {
     assert_eq!(
       expr("snd null").unwrap().1,
-      Expr::PairElem(Box::new(PairElem::Snd(Type::Any, Expr::PairLiter)))
+      Expr::PairElem(Box::new(PairElem::Snd(Type::Any, Expr::NullPairLiter)))
     );
   }
 
@@ -275,8 +275,10 @@ mod tests {
     assert!(
       matches!(expr("\"\""), Ok(("", ast)) if ast == Expr::StrLiter(String::from("")))
     );
-    assert!(matches!(expr("null"), Ok(("", ast)) if ast == Expr::PairLiter));
-    assert!(matches!(expr("null  5"), Ok(("5", Expr::PairLiter))));
+    assert!(
+      matches!(expr("null"), Ok(("", ast)) if ast == Expr::NullPairLiter)
+    );
+    assert!(matches!(expr("null  5"), Ok(("5", Expr::NullPairLiter))));
     assert!(
       matches!(expr("hello "), Ok(("", ast)) if ast == Expr::Ident(String::from("hello")))
     );

@@ -28,7 +28,7 @@ impl Generatable for Expr {
       Expr::BinaryApp(expr1, op, expr2) => {
         generate_binary_app(code, regs, scope, expr1, op, expr2)
       }
-      Expr::PairLiter => generate_pair_liter(code, regs),
+      Expr::NullPairLiter => generate_pair_liter(code, regs),
       Expr::Ident(id) => generate_ident(scope, code, regs, id),
       Expr::ArrayElem(elem) => generate_array_elem(scope, code, regs, elem),
       Expr::StructElem(elem) => generate_struct_elem(scope, code, regs, elem),
