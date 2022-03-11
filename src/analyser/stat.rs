@@ -68,7 +68,6 @@ impl HasType for AssignRhs {
           ))),
         }
       }
-      AssignRhs::StructLiter(s) => s.get_type(scope),
     }
   }
 }

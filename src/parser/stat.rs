@@ -145,30 +145,8 @@ fn assign_rhs(input: &str) -> IResult<&str, AssignRhs, ErrorTree<&str>> {
       )),
       |(_, id, _, exprs, _)| AssignRhs::Call(id, exprs),
     ),
-    map(struct_liter, AssignRhs::StructLiter),
     map(expr, AssignRhs::Expr),
   ))(input)
-}
-
-/* <struct-liter> ::= <ident> '{' ( (<field-liter> ',')* <field-liter> )? '}' */
-fn struct_liter(input: &str) -> IResult<&str, StructLiter, ErrorTree<&str>> {
-  let (input, (id, fields)) = pair(
-    ident,
-    delimited(tok("{"), many0_delimited(field_liter, tok(",")), tok("}")),
-  )(input)?;
-
-  Ok((
-    input,
-    StructLiter {
-      id,
-      fields: fields.into_iter().collect(),
-    },
-  ))
-}
-
-/* <field-liter> ::= <ident> ':' <expr> */
-fn field_liter(input: &str) -> IResult<&str, (Ident, Expr), ErrorTree<&str>> {
-  separated_pair(ident, tok(":"), expr)(input)
 }
 
 #[cfg(test)]
@@ -176,15 +154,6 @@ mod tests {
   use std::collections::HashMap;
 
   use super::*;
-
-  #[test]
-  fn test_struct_liter() {
-    let sl = struct_liter("Foo { x: 5 }").unwrap().1;
-
-    assert_eq!(sl.id, "Foo");
-    assert_eq!(sl.fields.len(), 1);
-    assert_eq!(sl.fields.get("x").unwrap(), &Expr::IntLiter(5));
-  }
 
   #[test]
   fn test_struct_declaration() {
@@ -199,10 +168,10 @@ mod tests {
     assert_eq!(id, format!("box"));
     assert_eq!(
       rhs,
-      AssignRhs::StructLiter(StructLiter {
+      AssignRhs::Expr(Expr::StructLiter(StructLiter {
         id: format!("IntBox"),
         fields: HashMap::from([(format!("x"), Expr::IntLiter(5))])
-      })
+      }))
     );
   }
 

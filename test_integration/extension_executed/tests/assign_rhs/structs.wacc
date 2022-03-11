@@ -1,0 +1,10 @@
+begin
+  struct StringBox {
+    string s
+  }
+  StringBox box_id(StringBox value) is
+    return value
+  end
+  StringBox x = call box_id(StringBox { s: "hello there!" });
+  println x.s
+end

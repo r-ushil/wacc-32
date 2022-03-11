@@ -23,10 +23,10 @@ impl Generatable for Expr {
       Expr::BoolLiter(val) => generate_bool_liter(code, regs, val),
       Expr::CharLiter(val) => generate_char_liter(code, regs, val),
       Expr::StrLiter(val) => generate_string_liter(code, regs, val),
-
       Expr::ArrayLiter(ArrayLiter(t, exprs)) => {
         generate_array_liter(scope, code, regs, t, exprs)
       }
+      Expr::StructLiter(liter) => liter.generate(scope, code, regs, ()),
       Expr::UnaryApp(op, expr) => {
         generate_unary_app(code, regs, scope, op, expr)
       }

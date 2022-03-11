@@ -72,7 +72,6 @@ pub enum AssignLhs {
 #[derive(PartialEq, Debug, Clone)]
 pub enum AssignRhs {
   Expr(Expr),
-  StructLiter(StructLiter),
   Call(Ident, Vec<Expr>),
 }
 
@@ -183,6 +182,7 @@ pub enum Expr {
   NullPairLiter,
   PairLiter(Box<TypedExpr>, Box<TypedExpr>),
   ArrayLiter(ArrayLiter), /* Type is type of elements. */
+  StructLiter(StructLiter),
   /* Identifiers. */
   Ident(Ident),
   /* Element access. */

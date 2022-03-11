@@ -24,6 +24,7 @@ impl HasType for Expr {
         Type::Pair(Box::new(lhs_type), Box::new(rhs_type))
       }
       Expr::ArrayLiter(lit) => lit.get_type(scope)?,
+      Expr::StructLiter(s) => s.get_type(scope)?,
       Expr::PairElem(elem) => elem.get_type(scope)?,
       Expr::Ident(id) => id.get_type(scope)?,
       Expr::ArrayElem(elem) => elem.get_type(scope)?,

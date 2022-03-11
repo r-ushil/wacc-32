@@ -5,7 +5,7 @@ use nom::{
   character::complete::{char as char_, digit1, none_of},
   combinator::{map, opt, value},
   multi::{many0, many1},
-  sequence::{delimited, pair, preceded, tuple},
+  sequence::{delimited, pair, preceded, separated_pair, tuple},
   IResult,
 };
 use nom_supreme::error::ErrorTree;
@@ -73,6 +73,7 @@ fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
     value(Expr::NullPairLiter, tok("null")),
     pair_liter,
     map(array_liter, Expr::ArrayLiter),
+    map(struct_liter, Expr::StructLiter),
     map(array_elem, Expr::ArrayElem),
     map(pair_elem, |elem| Expr::PairElem(Box::new(elem))),
     unary_app,
@@ -90,6 +91,27 @@ fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
   }
 
   Ok((input, e))
+}
+
+/* <struct-liter> ::= <ident> '{' ( (<field-liter> ',')* <field-liter> )? '}' */
+fn struct_liter(input: &str) -> IResult<&str, StructLiter, ErrorTree<&str>> {
+  let (input, (id, fields)) = pair(
+    ident,
+    delimited(tok("{"), many0_delimited(field_liter, tok(",")), tok("}")),
+  )(input)?;
+
+  Ok((
+    input,
+    StructLiter {
+      id,
+      fields: fields.into_iter().collect(),
+    },
+  ))
+}
+
+/* <field-liter> ::= <ident> ':' <expr> */
+fn field_liter(input: &str) -> IResult<&str, (Ident, Expr), ErrorTree<&str>> {
+  separated_pair(ident, tok(":"), expr)(input)
 }
 
 fn expr_binary_app(
@@ -278,6 +300,15 @@ mod tests {
         format!("foo")
       ))
     );
+  }
+
+  #[test]
+  fn test_struct_liter_constructor() {
+    let sl = struct_liter("Foo { x: 5 }").unwrap().1;
+
+    assert_eq!(sl.id, "Foo");
+    assert_eq!(sl.fields.len(), 1);
+    assert_eq!(sl.fields.get("x").unwrap(), &Expr::IntLiter(5));
   }
 
   #[test]

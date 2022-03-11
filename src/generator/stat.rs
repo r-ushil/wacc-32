@@ -186,7 +186,6 @@ impl Generatable for AssignRhs {
       AssignRhs::Call(ident, exprs) => {
         generate_assign_rhs_call(scope, code, regs, t, ident, exprs)
       }
-      AssignRhs::StructLiter(liter) => liter.generate(scope, code, regs, ()),
     }
   }
 }
