@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use super::{
   predef::{
     ReadFmt, PREDEF_CHECK_NULL_POINTER, PREDEF_FREE_ARRAY, PREDEF_FREE_PAIR,
@@ -132,6 +134,27 @@ fn generate_assign_rhs_call(
     unreachable!();
   };
 
+  /* Save all registers we haven't been allowed to mangle. */
+  /* Figure out which registers aren't safe to overwrite and therefore need
+  saving. */
+  let mut unsafe_regs_set = GENERAL_REGS.iter().collect::<HashSet<_>>();
+  for reg in regs.iter() {
+    unsafe_regs_set.remove(reg);
+  }
+
+  /* Must put in some deterministic order so registers are popped in the
+  same order as they are pushed. */
+  let unsafe_regs_vec = unsafe_regs_set.into_iter().collect::<Vec<_>>();
+
+  /* Push all to stack. */
+  /* TODO: Change Push instruction to do this with one instruction. */
+  for reg in unsafe_regs_vec.iter() {
+    code.text.push(Asm::push(Reg::General(*reg.clone())));
+  }
+
+  /* Now all registers are saved, we can use all registers! */
+  let safe_regs = &GENERAL_REGS;
+
   let mut args_offset = 0;
 
   for (expr, (arg_type, _arg_ident)) in exprs.iter().zip(args).rev() {
@@ -139,12 +162,15 @@ fn generate_assign_rhs_call(
 
     let arg_offset_scope = scope.new_scope(&symbol_table);
 
-    expr.generate(&arg_offset_scope, code, regs, ());
+    expr.generate(&arg_offset_scope, code, safe_regs, ());
 
     code.text.push(
-      Asm::str(Reg::General(regs[0]), (Reg::StackPointer, -arg_type.size()))
-        .size(arg_type.size().into())
-        .pre_indexed(),
+      Asm::str(
+        Reg::General(safe_regs[0]),
+        (Reg::StackPointer, -arg_type.size()),
+      )
+      .size(arg_type.size().into())
+      .pre_indexed(),
     );
 
     /* Make symbol table bigger. */
@@ -154,6 +180,12 @@ fn generate_assign_rhs_call(
   code
     .text
     .push(Asm::b(generate_function_name(ident.to_string())).link());
+
+  /* Pop preserved register back from the stack. */
+  /* TODO: Change Pop instruction to do this with one instruction. */
+  for reg in unsafe_regs_vec.iter().rev() {
+    code.text.push(Asm::pop(Reg::General(*reg.clone())));
+  }
 
   /* Stack space was given to parameter to call function.
   We've finished calling so we can deallocate this space now. */
