@@ -41,7 +41,6 @@ impl HasType for AssignRhs {
       AssignRhs::PairElem(elem) => elem.get_type(scope),
       AssignRhs::Call(t, func_expr, args) => {
         match func_expr.get_type(scope)? {
-          
           Type::Func(bx) => {
             /* Populate the type in call. */
             *t = Type::Func(bx.clone());
