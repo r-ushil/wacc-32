@@ -1,7 +1,8 @@
 use self::CondCode::*;
 use super::predef::{
-  RequiredPredefs, PREDEF_AEABI_IDIV, PREDEF_AEABI_IDIVMOD, PREDEF_CHECK_ARRAY_BOUNDS,
-  PREDEF_CHECK_DIVIDE_BY_ZERO, PREDEF_THROW_OVERFLOW_ERR,
+  RequiredPredefs, PREDEF_AEABI_IDIV, PREDEF_AEABI_IDIVMOD,
+  PREDEF_CHECK_ARRAY_BOUNDS, PREDEF_CHECK_DIVIDE_BY_ZERO,
+  PREDEF_THROW_OVERFLOW_ERR,
 };
 use super::*;
 use crate::generator::asm::*;
@@ -9,14 +10,24 @@ use crate::generator::asm::*;
 impl Generatable for Expr {
   type Input = ();
   type Output = ();
-  fn generate(&self, scope: &ScopeReader, code: &mut GeneratedCode, regs: &[GenReg], _aux: ()) {
+  fn generate(
+    &self,
+    scope: &ScopeReader,
+    code: &mut GeneratedCode,
+    regs: &[GenReg],
+    _aux: (),
+  ) {
     match self {
       Expr::IntLiter(val) => generate_int_liter(code, regs, val),
       Expr::BoolLiter(val) => generate_bool_liter(code, regs, val),
       Expr::CharLiter(val) => generate_char_liter(code, regs, val),
       Expr::StrLiter(val) => generate_string_liter(code, regs, val),
-      Expr::UnaryApp(op, expr) => generate_unary_app(code, regs, scope, op, expr),
-      Expr::BinaryApp(expr1, op, expr2) => generate_binary_app(code, regs, scope, expr1, op, expr2),
+      Expr::UnaryApp(op, expr) => {
+        generate_unary_app(code, regs, scope, op, expr)
+      }
+      Expr::BinaryApp(expr1, op, expr2) => {
+        generate_binary_app(code, regs, scope, expr1, op, expr2)
+      }
       Expr::PairLiter => generate_pair_liter(code, regs),
       Expr::Ident(id) => generate_ident(scope, code, regs, id),
       Expr::ArrayElem(elem) => generate_array_elem(scope, code, regs, elem),
@@ -44,7 +55,8 @@ fn generate_struct_elem(
 
   /* Dereference with offset. */
   code.text.push(
-    Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), *offset)).size(type_.size().into()),
+    Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), *offset))
+      .size(type_.size().into()),
   );
 }
 
@@ -65,13 +77,19 @@ fn generate_array_elem(
   let array_elem_size = elem.generate(scope, code, regs, ());
 
   /* Read from that address into regs[0]. */
-  code
-    .text
-    .push(Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), 0)).size(array_elem_size));
+  code.text.push(
+    Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), 0))
+      .size(array_elem_size),
+  );
 }
 
 /* Stores value of local variable specified by ident to regs[0]. */
-fn generate_ident(scope: &ScopeReader, code: &mut GeneratedCode, regs: &[GenReg], id: &Ident) {
+fn generate_ident(
+  scope: &ScopeReader,
+  code: &mut GeneratedCode,
+  regs: &[GenReg],
+  id: &Ident,
+) {
   let offset = scope.get_offset(id).unwrap();
 
   code.text.push(
@@ -359,9 +377,11 @@ impl Generatable for ArrayElem {
     Put address of array in regs[0].
     ADD {regs[0]}, sp, #{offset} */
     let offset = scope.get_offset(id).unwrap();
-    code
-      .text
-      .push(Asm::add(array_ptr_reg, Reg::StackPointer, Op2::Imm(offset)));
+    code.text.push(Asm::add(
+      array_ptr_reg,
+      Reg::StackPointer,
+      Op2::Imm(offset),
+    ));
 
     /* For each index. */
     for index in indexes {

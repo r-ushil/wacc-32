@@ -1,5 +1,7 @@
 use super::{
-  predef::{ReadFmt, PREDEF_CHECK_NULL_POINTER, PREDEF_FREE_ARRAY, PREDEF_FREE_PAIR},
+  predef::{
+    ReadFmt, PREDEF_CHECK_NULL_POINTER, PREDEF_FREE_ARRAY, PREDEF_FREE_PAIR,
+  },
   predef::{RequiredPredefs, PREDEF_SYS_MALLOC},
   *,
 };
@@ -55,9 +57,15 @@ impl Generatable for AssignLhs {
   ) -> Self::Output {
     match self {
       AssignLhs::Ident(id) => generate_assign_lhs_ident(scope, t, id),
-      AssignLhs::ArrayElem(elem) => generate_assign_lhs_array_elem(scope, code, regs, elem),
-      AssignLhs::PairElem(elem) => generate_assign_lhs_pair_elem(scope, code, regs, elem),
-      AssignLhs::StructElem(elem) => generate_assign_lhs_struct_elem(scope, code, regs, elem),
+      AssignLhs::ArrayElem(elem) => {
+        generate_assign_lhs_array_elem(scope, code, regs, elem)
+      }
+      AssignLhs::PairElem(elem) => {
+        generate_assign_lhs_pair_elem(scope, code, regs, elem)
+      }
+      AssignLhs::StructElem(elem) => {
+        generate_assign_lhs_struct_elem(scope, code, regs, elem)
+      }
     }
   }
 }
@@ -185,9 +193,10 @@ fn generate_assign_rhs_pair(
   generate_malloc(e1_size, code, Reg::Arg(ArgReg::R0));
 
   /* Write e1 to malloced space. */
-  code
-    .text
-    .push(Asm::str(Reg::General(regs[1]), (Reg::Arg(ArgReg::R0), 0)).size(e1_size.into()));
+  code.text.push(
+    Asm::str(Reg::General(regs[1]), (Reg::Arg(ArgReg::R0), 0))
+      .size(e1_size.into()),
+  );
 
   /* Write pointer to e1 to pair. */
   code
@@ -203,9 +212,10 @@ fn generate_assign_rhs_pair(
   generate_malloc(e2_size, code, Reg::Arg(ArgReg::R0));
 
   /* Write e2 to malloced space. */
-  code
-    .text
-    .push(Asm::str(Reg::General(regs[1]), (Reg::Arg(ArgReg::R0), 0)).size(e2_size.into()));
+  code.text.push(
+    Asm::str(Reg::General(regs[1]), (Reg::Arg(ArgReg::R0), 0))
+      .size(e2_size.into()),
+  );
 
   /* Write pointer to e2 to pair. */
   code.text.push(Asm::str(
@@ -225,9 +235,9 @@ fn generate_assign_rhs_pair_elem(
   let elem_size = elem.generate(scope, code, regs, ());
 
   /* Dereference. */
-  code
-    .text
-    .push(Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), 0)).size(elem_size));
+  code.text.push(
+    Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), 0)).size(elem_size),
+  );
 }
 
 fn generate_assign_rhs_call(
@@ -238,7 +248,9 @@ fn generate_assign_rhs_call(
   ident: &Ident,
   exprs: &[Expr],
 ) {
-  let args = if let Type::Func(function_sig) = scope.get_bottom(ident).expect("Unreachable!") {
+  let args = if let Type::Func(function_sig) =
+    scope.get_bottom(ident).expect("Unreachable!")
+  {
     &function_sig.params
   } else {
     unreachable!();
@@ -284,15 +296,29 @@ impl Generatable for AssignRhs {
   type Input = Type;
   type Output = ();
 
-  fn generate(&self, scope: &ScopeReader, code: &mut GeneratedCode, regs: &[GenReg], t: Type) {
+  fn generate(
+    &self,
+    scope: &ScopeReader,
+    code: &mut GeneratedCode,
+    regs: &[GenReg],
+    t: Type,
+  ) {
     match self {
-      AssignRhs::Expr(expr) => generate_assign_rhs_expr(scope, code, regs, expr),
+      AssignRhs::Expr(expr) => {
+        generate_assign_rhs_expr(scope, code, regs, expr)
+      }
       AssignRhs::ArrayLiter(ArrayLiter(exprs)) => {
         generate_assign_rhs_array_liter(scope, code, regs, t, exprs)
       }
-      AssignRhs::Pair(e1, e2) => generate_assign_rhs_pair(scope, code, regs, t, e1, e2),
-      AssignRhs::PairElem(elem) => generate_assign_rhs_pair_elem(scope, code, regs, t, elem),
-      AssignRhs::Call(ident, exprs) => generate_assign_rhs_call(scope, code, regs, t, ident, exprs),
+      AssignRhs::Pair(e1, e2) => {
+        generate_assign_rhs_pair(scope, code, regs, t, e1, e2)
+      }
+      AssignRhs::PairElem(elem) => {
+        generate_assign_rhs_pair_elem(scope, code, regs, t, elem)
+      }
+      AssignRhs::Call(ident, exprs) => {
+        generate_assign_rhs_call(scope, code, regs, t, ident, exprs)
+      }
       AssignRhs::StructLiter(liter) => liter.generate(scope, code, regs, ()),
     }
   }
@@ -382,7 +408,13 @@ impl Generatable for PairElem {
 impl Generatable for ScopedStat {
   type Input = ();
   type Output = ();
-  fn generate(&self, scope: &ScopeReader, code: &mut GeneratedCode, regs: &[GenReg], _aux: ()) {
+  fn generate(
+    &self,
+    scope: &ScopeReader,
+    code: &mut GeneratedCode,
+    regs: &[GenReg],
+    _aux: (),
+  ) {
     let ScopedStat(st, statement) = self;
 
     /* Allocate space on stack for variables declared in this scope. */
@@ -413,12 +445,8 @@ fn generate_stat_declaration(
   id: &str,
   rhs: &AssignRhs,
 ) {
-  Stat::Assignment(AssignLhs::Ident(id.to_string()), t.clone(), rhs.clone()).generate(
-    scope,
-    code,
-    regs,
-    (),
-  );
+  Stat::Assignment(AssignLhs::Ident(id.to_string()), t.clone(), rhs.clone())
+    .generate(scope, code, regs, ());
 }
 
 fn generate_stat_assignment(
@@ -433,7 +461,8 @@ fn generate_stat_assignment(
   rhs.generate(scope, code, regs, t.clone());
 
   /* stores value of regs[0] into lhs */
-  let (ptr_reg, offset, data_size) = lhs.generate(scope, code, &regs[1..], t.clone());
+  let (ptr_reg, offset, data_size) =
+    lhs.generate(scope, code, &regs[1..], t.clone());
   code
     .text
     .push(Asm::str(Reg::General(regs[0]), (ptr_reg, offset)).size(data_size));
@@ -534,7 +563,12 @@ fn generate_stat_return(
   code.text.push(Asm::pop(Reg::PC));
 }
 
-fn generate_stat_exit(scope: &ScopeReader, code: &mut GeneratedCode, regs: &[GenReg], expr: &Expr) {
+fn generate_stat_exit(
+  scope: &ScopeReader,
+  code: &mut GeneratedCode,
+  regs: &[GenReg],
+  expr: &Expr,
+) {
   /* regs[0] = eval(expr) */
   expr.generate(scope, code, regs, ());
 
@@ -703,21 +737,41 @@ fn generate_stat_sequence(
 impl Generatable for Stat {
   type Input = ();
   type Output = ();
-  fn generate(&self, scope: &ScopeReader, code: &mut GeneratedCode, regs: &[GenReg], _aux: ()) {
+  fn generate(
+    &self,
+    scope: &ScopeReader,
+    code: &mut GeneratedCode,
+    regs: &[GenReg],
+    _aux: (),
+  ) {
     match self {
       Stat::Skip => (),
-      Stat::Declaration(t, id, rhs) => generate_stat_declaration(scope, code, regs, t, id, rhs),
-      Stat::Assignment(lhs, t, rhs) => generate_stat_assignment(scope, code, regs, lhs, t, rhs),
-      Stat::Read(type_, lhs) => generate_stat_read(scope, code, regs, type_, lhs),
+      Stat::Declaration(t, id, rhs) => {
+        generate_stat_declaration(scope, code, regs, t, id, rhs)
+      }
+      Stat::Assignment(lhs, t, rhs) => {
+        generate_stat_assignment(scope, code, regs, lhs, t, rhs)
+      }
+      Stat::Read(type_, lhs) => {
+        generate_stat_read(scope, code, regs, type_, lhs)
+      }
       Stat::Free(t, expr) => generate_stat_free(scope, code, regs, t, expr),
       Stat::Return(expr) => generate_stat_return(scope, code, regs, expr),
       Stat::Exit(expr) => generate_stat_exit(scope, code, regs, expr),
       Stat::Print(t, expr) => generate_stat_print(scope, code, regs, t, expr),
-      Stat::Println(t, expr) => generate_stat_println(scope, code, regs, t, expr),
-      Stat::If(cond, body_t, body_f) => generate_stat_if(scope, code, regs, cond, body_t, body_f),
-      Stat::While(cond, body) => generate_stat_while(scope, code, regs, cond, body),
+      Stat::Println(t, expr) => {
+        generate_stat_println(scope, code, regs, t, expr)
+      }
+      Stat::If(cond, body_t, body_f) => {
+        generate_stat_if(scope, code, regs, cond, body_t, body_f)
+      }
+      Stat::While(cond, body) => {
+        generate_stat_while(scope, code, regs, cond, body)
+      }
       Stat::Scope(stat) => generate_stat_scope(scope, code, regs, stat),
-      Stat::Sequence(head, tail) => generate_stat_sequence(scope, code, regs, head, tail),
+      Stat::Sequence(head, tail) => {
+        generate_stat_sequence(scope, code, regs, head, tail)
+      }
     }
   }
 }

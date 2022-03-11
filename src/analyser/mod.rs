@@ -74,7 +74,9 @@ impl<T> Joinable for AResult<T> {
   fn join<U>(self, other: AResult<U>) -> AResult<(Self::T, U)> {
     match (self, other) {
       /* Both results failed, append the errors of the second to the first. */
-      (Err(e1), Err(e2)) => Err(SemanticError::Join(Box::new(e1), Box::new(e2))),
+      (Err(e1), Err(e2)) => {
+        Err(SemanticError::Join(Box::new(e1), Box::new(e2)))
+      }
 
       /* Only one failed, return their errors. */
       (Err(e), _) | (_, Err(e)) => Err(e),
@@ -88,7 +90,9 @@ impl<T> Joinable for AResult<T> {
 impl Display for SemanticError {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
-      SemanticError::Normal(s) | SemanticError::Syntax(s) => write!(f, "ERROR: {}", s),
+      SemanticError::Normal(s) | SemanticError::Syntax(s) => {
+        write!(f, "ERROR: {}", s)
+      }
       SemanticError::Join(e1, e2) => write!(f, "{}\n{}", e1, e2),
     }
   }
@@ -231,21 +235,23 @@ impl HasType for StructElem {
     *struct_elem_id = struct_id.clone();
 
     /* Get struct definition. */
-    let struct_def = scope
-      .get_def(&struct_id)
-      .ok_or(SemanticError::Normal(format!(
-        "Custom type not found: {}",
-        struct_id
-      )))?;
+    let struct_def =
+      scope
+        .get_def(&struct_id)
+        .ok_or(SemanticError::Normal(format!(
+          "Custom type not found: {}",
+          struct_id
+        )))?;
 
     /* Look up field type. */
-    let (field_type, _) = struct_def
-      .fields
-      .get(field_name)
-      .ok_or(SemanticError::Normal(format!(
-        "Struct {} has no field {}",
-        struct_id, field_name
-      )))?;
+    let (field_type, _) =
+      struct_def
+        .fields
+        .get(field_name)
+        .ok_or(SemanticError::Normal(format!(
+          "Struct {} has no field {}",
+          struct_id, field_name
+        )))?;
 
     /* This is the type of {struct_id}.{field_name}. */
     Ok(field_type.clone())
@@ -304,11 +310,12 @@ mod tests {
     scope.insert(&id, Type::Array(Box::new(Type::Array(Box::new(Type::Int)))));
 
     /* x[5]['a'] is error */
-    assert!(
-      ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::CharLiter('a')])
-        .get_type(&scope)
-        .is_err()
-    );
+    assert!(ArrayElem(
+      id.clone(),
+      vec![Expr::IntLiter(5), Expr::CharLiter('a')]
+    )
+    .get_type(&scope)
+    .is_err());
   }
 
   #[test]
@@ -339,16 +346,18 @@ mod tests {
 
     /* x[5][2]: Int */
     assert_eq!(
-      ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::IntLiter(2)]).get_type(&scope),
+      ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::IntLiter(2)])
+        .get_type(&scope),
       Ok(Type::Int),
     );
 
     /* x[5]['a'] is error */
-    assert!(
-      ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::CharLiter('a')])
-        .get_type(&scope)
-        .is_err()
-    );
+    assert!(ArrayElem(
+      id.clone(),
+      vec![Expr::IntLiter(5), Expr::CharLiter('a')]
+    )
+    .get_type(&scope)
+    .is_err());
 
     /* x[5]: Array(Int) */
     assert_eq!(

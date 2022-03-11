@@ -78,7 +78,10 @@ fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
   Ok((input, e))
 }
 
-fn expr_binary_app(prec: u8, input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
+fn expr_binary_app(
+  prec: u8,
+  input: &str,
+) -> IResult<&str, Expr, ErrorTree<&str>> {
   if prec == 0 {
     return expr_atom(input);
   }
@@ -100,7 +103,8 @@ fn int_liter(input: &str) -> IResult<&str, i32, ErrorTree<&str>> {
   use nom_supreme::error::{BaseErrorKind, Expectation};
   use std::convert::TryFrom;
 
-  let (input, (sign, digits)) = pair(opt(ws(alt((char_('+'), char_('-'))))), ws(digit1))(input)?;
+  let (input, (sign, digits)) =
+    pair(opt(ws(alt((char_('+'), char_('-'))))), ws(digit1))(input)?;
 
   /* Use builtin i32 parsing for digits. */
   let n = digits.parse::<i64>().map_err(|_| {
@@ -111,12 +115,15 @@ fn int_liter(input: &str) -> IResult<&str, i32, ErrorTree<&str>> {
   })?;
 
   /* Negate if negative sign present. */
-  let n: i32 = i32::try_from(if sign == Some('-') { -n } else { n }).map_err(|_| {
-    nom::Err::Error(ErrorTree::Base {
-      location: input,
-      kind: BaseErrorKind::Expected(Expectation::Tag("couldn't negate literal")),
-    })
-  })?;
+  let n: i32 =
+    i32::try_from(if sign == Some('-') { -n } else { n }).map_err(|_| {
+      nom::Err::Error(ErrorTree::Base {
+        location: input,
+        kind: BaseErrorKind::Expected(Expectation::Tag(
+          "couldn't negate literal",
+        )),
+      })
+    })?;
 
   Ok((input, n))
 }
@@ -239,10 +246,14 @@ mod tests {
       expr("\"hello\n\""),
       Ok(("", ast)) if ast == Expr::StrLiter(String::from("hello\n"))
     ));
-    assert!(matches!(expr("\"\""), Ok(("", ast)) if ast == Expr::StrLiter(String::from(""))));
+    assert!(
+      matches!(expr("\"\""), Ok(("", ast)) if ast == Expr::StrLiter(String::from("")))
+    );
     assert!(matches!(expr("null"), Ok(("", ast)) if ast == Expr::PairLiter));
     assert!(matches!(expr("null  5"), Ok(("5", Expr::PairLiter))));
-    assert!(matches!(expr("hello "), Ok(("", ast)) if ast == Expr::Ident(String::from("hello"))));
+    assert!(
+      matches!(expr("hello "), Ok(("", ast)) if ast == Expr::Ident(String::from("hello")))
+    );
     assert!(matches!(
       expr("hello  5"),
       Ok(("5", ast)) if ast == Expr::Ident(String::from("hello"))
@@ -310,7 +321,9 @@ mod tests {
         )
     ));
 
-    assert!(matches!(expr("lenx"), Ok(("", ast)) if ast == Expr::Ident("lenx".to_string())));
+    assert!(
+      matches!(expr("lenx"), Ok(("", ast)) if ast == Expr::Ident("lenx".to_string()))
+    );
   }
 
   #[test]

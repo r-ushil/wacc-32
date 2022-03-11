@@ -33,7 +33,8 @@ impl HasType for AssignRhs {
       AssignRhs::Expr(exp) => exp.get_type(scope),
       AssignRhs::ArrayLiter(lit) => lit.get_type(scope),
       AssignRhs::Pair(e1, e2) => {
-        let (lhs_type, rhs_type) = e1.get_type(scope).join(e2.get_type(scope))?;
+        let (lhs_type, rhs_type) =
+          e1.get_type(scope).join(e2.get_type(scope))?;
 
         Ok(Type::Pair(Box::new(lhs_type), Box::new(rhs_type)))
       }
@@ -54,12 +55,11 @@ impl HasType for AssignRhs {
             } = *bx;
 
             /* Types must be pairwise the same. */
-            SemanticError::join_iter(
-              args
-                .iter_mut()
-                .zip(params.iter())
-                .map(|(arg, (param_type, param_id))| expected_type(scope, param_type, arg)),
-            )?;
+            SemanticError::join_iter(args.iter_mut().zip(params.iter()).map(
+              |(arg, (param_type, param_id))| {
+                expected_type(scope, param_type, arg)
+              },
+            ))?;
 
             /* Must be same amount of args as parameters */
             if params.len() != args.len() {
@@ -88,7 +88,12 @@ impl HasType for StructLiter {
     /* Fetch struct definition. */
     let def = match scope.get_def(id) {
       Some(def) => def,
-      None => return Err(SemanticError::Normal(format!("Cannot find type: {:?}", id))),
+      None => {
+        return Err(SemanticError::Normal(format!(
+          "Cannot find type: {:?}",
+          id
+        )))
+      }
     };
 
     /* Make sure defition and usage have same number of fields. */
@@ -207,15 +212,18 @@ Declarations will add to the symbol table.
 Scopes will make a new scope within the symbol table.
 If the statment ALWAYS returns with the same type, returns that type. */
 #[allow(dead_code)]
-pub fn stat(scope: &mut ScopeBuilder, statement: &mut Stat) -> AResult<ReturnBehaviour> {
+pub fn stat(
+  scope: &mut ScopeBuilder,
+  statement: &mut Stat,
+) -> AResult<ReturnBehaviour> {
   use ReturnBehaviour::*;
 
   /* Returns error if there is any. */
   match statement {
     Stat::Skip => Ok(Never), /* Skips never return. */
     Stat::Declaration(expected, id, val) => {
-      let (_, new_id) =
-        expected_type(scope, expected, val).join(scope.insert(id, expected.clone()))?;
+      let (_, new_id) = expected_type(scope, expected, val)
+        .join(scope.insert(id, expected.clone()))?;
 
       /* Rename ident. (global ident) */
       *id = new_id;
@@ -270,9 +278,10 @@ pub fn stat(scope: &mut ScopeBuilder, statement: &mut Stat) -> AResult<ReturnBeh
       Ok(Never)
     }
     Stat::If(cond, if_stat, else_stat) => {
-      let ((_, true_behaviour), false_behaviour) = expected_type(scope, &Type::Bool, cond)
-        .join(scoped_stat(scope, if_stat))
-        .join(scoped_stat(scope, else_stat))?;
+      let ((_, true_behaviour), false_behaviour) =
+        expected_type(scope, &Type::Bool, cond)
+          .join(scoped_stat(scope, if_stat))
+          .join(scoped_stat(scope, else_stat))?;
 
       /* If both branches return the same type, the if statement can
       be relied on to return that type. */
@@ -280,7 +289,8 @@ pub fn stat(scope: &mut ScopeBuilder, statement: &mut Stat) -> AResult<ReturnBeh
       /* If branches return with different types, if statement is error. */
       if !true_behaviour.same_return(&false_behaviour) {
         return Err(SemanticError::Normal(
-          "Branches of if statement return values of different types.".to_string(),
+          "Branches of if statement return values of different types."
+            .to_string(),
         ));
       }
 
@@ -302,8 +312,8 @@ pub fn stat(scope: &mut ScopeBuilder, statement: &mut Stat) -> AResult<ReturnBeh
       }
     }
     Stat::While(cond, body) => {
-      let (_, statement_result) =
-        expected_type(scope, &Type::Bool, cond).join(scoped_stat(scope, body))?;
+      let (_, statement_result) = expected_type(scope, &Type::Bool, cond)
+        .join(scoped_stat(scope, body))?;
 
       Ok(match statement_result {
         /* If the body always returns, while loop might still not return
@@ -389,20 +399,23 @@ mod tests {
     scope.insert(&x_id, x_type.clone()).unwrap();
     assert_eq!(AssignLhs::Ident(x_id.clone()).get_type(scope), Ok(x_type));
 
-    assert!(
-      AssignRhs::PairElem(PairElem::Fst(Type::default(), Expr::PairLiter))
-        .get_type(scope)
-        .is_err()
-    );
+    assert!(AssignRhs::PairElem(PairElem::Fst(
+      Type::default(),
+      Expr::PairLiter
+    ))
+    .get_type(scope)
+    .is_err());
 
-    assert!(
-      AssignRhs::PairElem(PairElem::Fst(Type::default(), Expr::PairLiter))
-        .get_type(scope)
-        .is_err()
-    );
+    assert!(AssignRhs::PairElem(PairElem::Fst(
+      Type::default(),
+      Expr::PairLiter
+    ))
+    .get_type(scope)
+    .is_err());
 
     assert_eq!(
-      AssignLhs::ArrayElem(ArrayElem(x_id.clone(), vec!(Expr::IntLiter(5)))).get_type(scope),
+      AssignLhs::ArrayElem(ArrayElem(x_id.clone(), vec!(Expr::IntLiter(5))))
+        .get_type(scope),
       Ok(Type::Int)
     );
   }
@@ -413,11 +426,13 @@ mod tests {
     int x = 5
     */
     let x = || String::from("x");
-    let mut intx5 = Stat::Declaration(Type::Int, x(), AssignRhs::Expr(Expr::IntLiter(5)));
+    let mut intx5 =
+      Stat::Declaration(Type::Int, x(), AssignRhs::Expr(Expr::IntLiter(5)));
 
     let mut outer_symbol_table = SymbolTable::default();
     let type_defs = TypeDefs::default();
-    let mut outer_scope = ScopeBuilder::new(&mut outer_symbol_table, &type_defs);
+    let mut outer_scope =
+      ScopeBuilder::new(&mut outer_symbol_table, &type_defs);
 
     stat(&mut outer_scope, &mut intx5);
 
@@ -441,9 +456,12 @@ mod tests {
     let x = || String::from("x");
     let y = || String::from("y");
     let z = || String::from("z");
-    let intx5 = Stat::Declaration(Type::Int, x(), AssignRhs::Expr(Expr::IntLiter(5)));
-    let intyx = Stat::Declaration(Type::Int, y(), AssignRhs::Expr(Expr::Ident(x())));
-    let intz7 = Stat::Declaration(Type::Int, z(), AssignRhs::Expr(Expr::IntLiter(7)));
+    let intx5 =
+      Stat::Declaration(Type::Int, x(), AssignRhs::Expr(Expr::IntLiter(5)));
+    let intyx =
+      Stat::Declaration(Type::Int, y(), AssignRhs::Expr(Expr::Ident(x())));
+    let intz7 =
+      Stat::Declaration(Type::Int, z(), AssignRhs::Expr(Expr::IntLiter(7)));
     let mut statement = Stat::Scope(ScopedStat::new(Stat::Sequence(
       Box::new(intx5),
       Box::new(Stat::Sequence(
@@ -454,29 +472,31 @@ mod tests {
 
     let mut outer_symbol_table = SymbolTable::default();
     let type_defs = TypeDefs::default();
-    let mut global_scope = ScopeBuilder::new(&mut outer_symbol_table, &type_defs);
+    let mut global_scope =
+      ScopeBuilder::new(&mut outer_symbol_table, &type_defs);
 
     stat(&mut global_scope, &mut statement);
     /* x and z should now be in outer scope */
 
     /* Retrieve inner and outer st from statement ast. */
-    let (mut st, mut inner_st) = if let Stat::Scope(ScopedStat(st, statement)) = statement {
-      if let Stat::Sequence(_intx5, everything_else) = *statement {
-        if let Stat::Sequence(inner_scope_stat, _intz7) = *everything_else {
-          if let Stat::Scope(ScopedStat(inner_st, _)) = *inner_scope_stat {
-            (st, inner_st)
+    let (mut st, mut inner_st) =
+      if let Stat::Scope(ScopedStat(st, statement)) = statement {
+        if let Stat::Sequence(_intx5, everything_else) = *statement {
+          if let Stat::Sequence(inner_scope_stat, _intz7) = *everything_else {
+            if let Stat::Scope(ScopedStat(inner_st, _)) = *inner_scope_stat {
+              (st, inner_st)
+            } else {
+              panic!("inner statement isnt a scope!")
+            }
           } else {
-            panic!("inner statement isnt a scope!")
+            panic!("only two statements!");
           }
         } else {
-          panic!("only two statements!");
+          panic!("inner statement structure has been changed!")
         }
       } else {
-        panic!("inner statement structure has been changed!")
-      }
-    } else {
-      panic!("outer statement structure has been changed!")
-    };
+        panic!("outer statement structure has been changed!")
+      };
 
     /* When in outer scope, x and z should be ints. */
     let type_defs = TypeDefs::default();

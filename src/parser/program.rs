@@ -88,7 +88,9 @@ fn param(input: &str) -> IResult<&str, (Type, Ident), ErrorTree<&str>> {
   pair(type_, ident)(input)
 }
 
-fn param_list(input: &str) -> IResult<&str, Vec<(Type, Ident)>, ErrorTree<&str>> {
+fn param_list(
+  input: &str,
+) -> IResult<&str, Vec<(Type, Ident)>, ErrorTree<&str>> {
   many0_delimited(param, tok(","))(input)
 }
 
@@ -208,7 +210,9 @@ mod tests {
 
   #[test]
   fn test_param() {
-    assert!(matches!(param("int x"), Ok(("", ast)) if ast == (Type::Int, "x".to_string())));
+    assert!(
+      matches!(param("int x"), Ok(("", ast)) if ast == (Type::Int, "x".to_string()))
+    );
     assert!(matches!(
     param("int [ ][ ] x"),
     Ok((

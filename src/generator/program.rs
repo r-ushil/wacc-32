@@ -5,7 +5,13 @@ impl Generatable for Program {
   type Input = ();
   type Output = ();
 
-  fn generate(&self, _: &ScopeReader, code: &mut GeneratedCode, regs: &[GenReg], _aux: ()) {
+  fn generate(
+    &self,
+    _: &ScopeReader,
+    code: &mut GeneratedCode,
+    regs: &[GenReg],
+    _aux: (),
+  ) {
     /* No registers should be in use by this point. */
     assert!(regs == GENERAL_REGS);
 
@@ -47,7 +53,13 @@ impl Generatable for Func {
   type Input = ();
   type Output = ();
 
-  fn generate(&self, scope: &ScopeReader, code: &mut GeneratedCode, regs: &[GenReg], _aux: ()) {
+  fn generate(
+    &self,
+    scope: &ScopeReader,
+    code: &mut GeneratedCode,
+    regs: &[GenReg],
+    _aux: (),
+  ) {
     /* No registers should be in use by this point. */
     assert!(regs == GENERAL_REGS);
 
@@ -105,7 +117,9 @@ impl Generatable for Func {
       let body_st_size = scope.get_total_offset();
 
       code.text.append(&mut Op2::imm_unroll(
-        |offset: i32| Asm::add(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset)),
+        |offset: i32| {
+          Asm::add(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset))
+        },
         body_st_size,
       ));
 
