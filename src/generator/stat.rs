@@ -360,8 +360,8 @@ impl Generatable for PairElem {
   ) -> DataSize {
     /*  */
     let (t, pair, offset) = match self {
-      PairElem::Fst(t, pair) => (t, pair, 0),
-      PairElem::Snd(t, pair) => (t, pair, ARM_DSIZE_WORD),
+      PairElem::Fst(TypedExpr(t, pair)) => (t, pair, 0),
+      PairElem::Snd(TypedExpr(t, pair)) => (t, pair, ARM_DSIZE_WORD),
     };
 
     /* Store address of pair in regs[0]. */
@@ -736,11 +736,15 @@ impl Generatable for Stat {
       Stat::Read(type_, lhs) => {
         generate_stat_read(scope, code, regs, type_, lhs)
       }
-      Stat::Free(t, expr) => generate_stat_free(scope, code, regs, t, expr),
+      Stat::Free(TypedExpr(t, expr)) => {
+        generate_stat_free(scope, code, regs, t, expr)
+      }
       Stat::Return(expr) => generate_stat_return(scope, code, regs, expr),
       Stat::Exit(expr) => generate_stat_exit(scope, code, regs, expr),
-      Stat::Print(t, expr) => generate_stat_print(scope, code, regs, t, expr),
-      Stat::Println(t, expr) => {
+      Stat::Print(TypedExpr(t, expr)) => {
+        generate_stat_print(scope, code, regs, t, expr)
+      }
+      Stat::Println(TypedExpr(t, expr)) => {
         generate_stat_println(scope, code, regs, t, expr)
       }
       Stat::If(cond, body_t, body_f) => {

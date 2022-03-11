@@ -205,7 +205,9 @@ mod tests {
   fn test_pair_elem6() {
     assert_eq!(
       expr("fst 5").unwrap().1,
-      Expr::PairElem(Box::new(PairElem::Fst(Type::Any, Expr::IntLiter(5))))
+      Expr::PairElem(Box::new(PairElem::Fst(TypedExpr::new(Expr::IntLiter(
+        5
+      )))))
     );
   }
 
@@ -213,7 +215,9 @@ mod tests {
   fn test_pair_elem7() {
     assert_eq!(
       expr("snd null").unwrap().1,
-      Expr::PairElem(Box::new(PairElem::Snd(Type::Any, Expr::NullPairLiter)))
+      Expr::PairElem(Box::new(PairElem::Snd(TypedExpr::new(
+        Expr::NullPairLiter
+      ))))
     );
   }
 
@@ -221,7 +225,9 @@ mod tests {
   fn test_pair_elem8() {
     assert_eq!(
       expr("fst 1 ; snd 2").unwrap().1,
-      Expr::PairElem(Box::new(PairElem::Fst(Type::Any, Expr::IntLiter(1))))
+      Expr::PairElem(Box::new(PairElem::Fst(TypedExpr::new(Expr::IntLiter(
+        1
+      )))))
     );
   }
 

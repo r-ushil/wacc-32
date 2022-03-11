@@ -1,6 +1,14 @@
 use super::*;
 use crate::ast::*;
 
+impl HasType for TypedExpr {
+  fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
+    let TypedExpr(t, expr) = self;
+    *t = expr.get_type(scope)?;
+    Ok(t.clone())
+  }
+}
+
 impl HasType for Expr {
   fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
     Ok(match self {
@@ -104,17 +112,15 @@ mod tests {
     let type_defs = TypeDefs::default();
     let scope = &mut ScopeBuilder::new(&mut symbol_table, &type_defs);
 
-    assert!(Expr::PairElem(Box::new(PairElem::Fst(
-      Type::default(),
+    assert!(Expr::PairElem(Box::new(PairElem::Fst(TypedExpr::new(
       Expr::NullPairLiter
-    )))
+    ))))
     .get_type(scope)
     .is_err());
 
-    assert!(Expr::PairElem(Box::new(PairElem::Fst(
-      Type::default(),
+    assert!(Expr::PairElem(Box::new(PairElem::Fst(TypedExpr::new(
       Expr::NullPairLiter
-    )))
+    ))))
     .get_type(scope)
     .is_err());
   }

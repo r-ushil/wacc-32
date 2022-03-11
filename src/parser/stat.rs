@@ -44,15 +44,15 @@ fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
   });
 
   let free = map(preceded(tok("free"), expr), |e| {
-    Stat::Free(Type::default(), e)
+    Stat::Free(TypedExpr::new(e))
   });
   let return_ = map(preceded(tok("return"), expr), Stat::Return);
   let exit = map(preceded(tok("exit"), expr), Stat::Exit);
   let print = map(preceded(tok("print"), expr), |e| {
-    Stat::Print(Type::default(), e)
+    Stat::Print(TypedExpr::new(e))
   });
   let println = map(preceded(tok("println"), expr), |e| {
-    Stat::Println(Type::default(), e)
+    Stat::Println(TypedExpr::new(e))
   });
 
   let if_ = map(
@@ -119,10 +119,10 @@ fn assign_lhs(input: &str) -> IResult<&str, AssignLhs, ErrorTree<&str>> {
 pub fn pair_elem(input: &str) -> IResult<&str, PairElem, ErrorTree<&str>> {
   ws(alt((
     map(preceded(tok("fst"), expr), |e| {
-      PairElem::Fst(Type::default(), e)
+      PairElem::Fst(TypedExpr::new(e))
     }),
     map(preceded(tok("snd"), expr), |e| {
-      PairElem::Snd(Type::default(), e)
+      PairElem::Snd(TypedExpr::new(e))
     }),
   )))(input)
 }
@@ -522,10 +522,10 @@ mod tests {
 
   #[test]
   fn test_stat_free() {
-    assert!(matches!(
-      stat("free 5"),
-      Ok(("", Stat::Free(Type::Any, Expr::IntLiter(5))))
-    ));
+    assert_eq!(
+      stat("free 5").unwrap().1,
+      Stat::Free(TypedExpr::new(Expr::IntLiter(5)))
+    );
   }
 
   #[test]
@@ -546,26 +546,26 @@ mod tests {
 
   #[test]
   fn test_stat_print() {
-    assert!(matches!(
-      stat("print 5"),
-      Ok(("", Stat::Print(Type::Any, Expr::IntLiter(5))))
-    ));
-    assert!(matches!(
-      stat("print \"hello\""),
-      Ok(("", ast)) if ast == Stat::Print(Type::Any, Expr::StrLiter("hello".to_string()))
-    ));
+    assert_eq!(
+      stat("print 5").unwrap().1,
+      Stat::Print(TypedExpr::new(Expr::IntLiter(5)))
+    );
+    assert_eq!(
+      stat("print \"hello\"").unwrap().1,
+      Stat::Print(TypedExpr::new(Expr::StrLiter("hello".to_string())))
+    );
   }
 
   #[test]
   fn test_stat_println() {
-    assert!(matches!(
-      stat("println 5"),
-      Ok(("", Stat::Println(Type::Any, Expr::IntLiter(5))))
-    ));
-    assert!(matches!(
-      stat("println \"hello\""),
-      Ok(("", ast)) if ast == Stat::Println(Type::Any, Expr::StrLiter("hello".to_string()))
-    ));
+    assert_eq!(
+      stat("println 5").unwrap().1,
+      Stat::Println(TypedExpr::new(Expr::IntLiter(5)))
+    );
+    assert_eq!(
+      stat("println \"hello\"").unwrap().1,
+      Stat::Println(TypedExpr::new(Expr::StrLiter("hello".to_string())))
+    );
   }
 
   #[test]
@@ -685,43 +685,37 @@ mod tests {
 
   #[test]
   fn test_pair_elem() {
-    assert!(matches!(
-      pair_elem("fst 5"),
-      Ok(("", PairElem::Fst(Type::Any, Expr::IntLiter(5))))
-    ));
-    assert!(matches!(
-      pair_elem("snd null"),
-      Ok(("", PairElem::Snd(Type::Any, Expr::NullPairLiter)))
-    ));
+    assert_eq!(
+      pair_elem("fst 5").unwrap().1,
+      PairElem::Fst(TypedExpr::new(Expr::IntLiter(5)))
+    );
+    assert_eq!(
+      pair_elem("snd null").unwrap().1,
+      PairElem::Snd(TypedExpr::new(Expr::NullPairLiter))
+    );
   }
 
   #[test]
   fn test_assign_lhs() {
-    assert!(matches!(
-      assign_lhs("foo"),
-      Ok(("", ast)) if ast == AssignLhs::Ident("foo".to_string()),
-    ));
-    assert!(matches!(
-      assign_lhs("foo [ 5]"),
-      Ok((
-        "",
-        ast)) if ast == AssignLhs::ArrayElem(ArrayElem("foo".to_string(), vec!(Expr::IntLiter(5)),
-      ))
-    ));
-    assert!(matches!(
-      assign_lhs("fst 5"),
-      Ok((
-        "",
-        AssignLhs::PairElem(PairElem::Fst(Type::Any, Expr::IntLiter(5)))
+    assert_eq!(
+      assign_lhs("foo").unwrap().1,
+      AssignLhs::Ident("foo".to_string())
+    );
+    assert_eq!(
+      assign_lhs("foo [ 5]").unwrap().1,
+      AssignLhs::ArrayElem(ArrayElem(
+        "foo".to_string(),
+        vec!(Expr::IntLiter(5))
       )),
-    ));
-    assert!(matches!(
-      assign_lhs("snd null"),
-      Ok((
-        "",
-        AssignLhs::PairElem(PairElem::Snd(Type::Any, Expr::NullPairLiter))
-      )),
-    ));
+    );
+    assert_eq!(
+      assign_lhs("fst 5").unwrap().1,
+      AssignLhs::PairElem(PairElem::Fst(TypedExpr::new(Expr::IntLiter(5))))
+    );
+    assert_eq!(
+      assign_lhs("snd null").unwrap().1,
+      AssignLhs::PairElem(PairElem::Snd(TypedExpr::new(Expr::NullPairLiter)))
+    );
   }
 
   #[test]

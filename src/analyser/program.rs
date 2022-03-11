@@ -159,10 +159,9 @@ mod tests {
     end*/
     let mut f5 = f.clone();
     f5.body = Stat::Sequence(
-      Box::new(Stat::Print(
-        Type::default(),
-        Expr::StrLiter(String::from("hello world")),
-      )),
+      Box::new(Stat::Print(TypedExpr::new(Expr::StrLiter(String::from(
+        "hello world",
+      ))))),
       Box::new(Stat::Return(Expr::IntLiter(5))),
     );
     let x = func(
@@ -183,10 +182,9 @@ mod tests {
         ScopedStat::new(Stat::Return(Expr::BoolLiter(true))),
         ScopedStat::new(Stat::Skip),
       )),
-      Box::new(Stat::Print(
-        Type::default(),
-        Expr::StrLiter(String::from("Hello World")),
-      )),
+      Box::new(Stat::Print(TypedExpr::new(Expr::StrLiter(String::from(
+        "Hello World",
+      ))))),
     );
     assert!(func(
       &mut ScopeBuilder::new(&mut SymbolTable::default(), &TypeDefs::default()),

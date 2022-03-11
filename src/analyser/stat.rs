@@ -129,7 +129,7 @@ impl HasType for PairElem {
 
     /* Gets type of thing being accessed, and stored type. */
     let pair_type = match self {
-      Fst(_, p) | Snd(_, p) => p.get_type(scope)?,
+      Fst(p) | Snd(p) => p.get_type(scope)?,
     };
 
     /* Gets type of left and right element of pair. */
@@ -154,12 +154,12 @@ impl HasType for PairElem {
 
     /* Gets the type of the element being accessed. */
     let elem_type = match self {
-      Fst(_, _) => left_type,
-      Snd(_, _) => right_type,
+      Fst(_) => left_type,
+      Snd(_) => right_type,
     };
 
     let stored_type = match self {
-      Fst(st, _) | Snd(st, _) => st,
+      Fst(TypedExpr(st, _)) | Snd(TypedExpr(st, _)) => st,
     };
 
     /* Stores this on the AST. */
@@ -250,11 +250,8 @@ pub fn stat(
         )), /*  */
       }
     }
-    Stat::Free(t, expr) => match expr.get_type(scope)? {
-      new_t @ (Type::Pair(_, _) | Type::Array(_)) => {
-        *t = new_t;
-        Ok(Never)
-      } /* Frees never return. */
+    Stat::Free(expr) => match expr.get_type(scope)? {
+      Type::Pair(_, _) | Type::Array(_) => Ok(Never), /* Frees never return. */
       actual_type => Err(SemanticError::Normal(format!(
         "TYPE ERROR: Expected Type\n\tExpected: Pair or Array\n\tActual:{:?}",
         actual_type
@@ -268,10 +265,9 @@ pub fn stat(
       wrong type, by using any it won't collide with another type. */
       Ok(AtEnd(Type::Any))
     }
-    Stat::Print(t, expr) | Stat::Println(t, expr) => {
+    Stat::Print(expr) | Stat::Println(expr) => {
       /* Any type can be printed. */
-      /* Store type on print so codegen knows which print to use. */
-      *t = expr.get_type(scope)?;
+      expr.get_type(scope)?;
 
       /* Prints never return. */
       Ok(Never)

@@ -37,11 +37,11 @@ pub enum Stat {
   Declaration(Type, Ident, AssignRhs),
   Assignment(AssignLhs, Type, AssignRhs),
   Read(Type, AssignLhs),
-  Free(Type, Expr),
+  Free(TypedExpr),
   Return(Expr),
   Exit(Expr),
-  Print(Type, Expr),
-  Println(Type, Expr),
+  Print(TypedExpr),
+  Println(TypedExpr),
   Sequence(Box<Stat>, Box<Stat>),
 
   /* SCOPING STATEMENTS */
@@ -101,8 +101,8 @@ where
 pub enum PairElem {
   /* Type of fst and snd elem respectively.
   (fst and snd are concidered generic functions) */
-  Fst(Type, Expr),
-  Snd(Type, Expr),
+  Fst(TypedExpr),
+  Snd(TypedExpr),
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -163,6 +163,15 @@ impl Type {
       Func(_) => 0,
       _ => 4,
     }
+  }
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct TypedExpr(pub Type, pub Expr);
+
+impl TypedExpr {
+  pub fn new(expr: Expr) -> Self {
+    TypedExpr(Type::default(), expr)
   }
 }
 
