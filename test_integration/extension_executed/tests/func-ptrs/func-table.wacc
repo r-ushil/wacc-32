@@ -1,0 +1,17 @@
+
+
+# Output:
+# 4
+
+begin
+  int one(int n) is return n + 1 end
+  int two(int n) is return n + 2 end
+  int three(int n) is return n + 3 end
+
+  int(int)[] fns = [one, two, three];
+
+  # two plus two is four!
+  int four = call fns[1](2);
+
+  println four
+end
