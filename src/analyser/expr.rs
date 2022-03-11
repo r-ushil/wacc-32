@@ -17,6 +17,12 @@ impl HasType for Expr {
       Expr::CharLiter(_) => Type::Char,
       Expr::StrLiter(_) => Type::String,
       Expr::NullPairLiter => Type::Pair(Box::new(Type::Any), Box::new(Type::Any)),
+      Expr::PairLiter(e1, e2) => {
+        let (lhs_type, rhs_type) =
+          e1.get_type(scope).join(e2.get_type(scope))?;
+
+        Type::Pair(Box::new(lhs_type), Box::new(rhs_type))
+      }
       Expr::PairElem(elem) => elem.get_type(scope)?,
       Expr::Ident(id) => id.get_type(scope)?,
       Expr::ArrayElem(elem) => elem.get_type(scope)?,

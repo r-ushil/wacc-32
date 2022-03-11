@@ -92,7 +92,7 @@ fn generate_assign_lhs_struct_elem(
 }
 
 /* Mallocs {bytes} bytes and leaves the address in {reg}. */
-fn generate_malloc(bytes: i32, code: &mut GeneratedCode, reg: Reg) {
+pub fn generate_malloc(bytes: i32, code: &mut GeneratedCode, reg: Reg) {
   /* LDR r0, ={bytes} */
   code.text.push(Asm::ldr(Reg::Arg(ArgReg::R0), bytes));
 
@@ -166,64 +166,6 @@ fn generate_assign_rhs_array_liter(
     .push(Asm::str(Reg::General(regs[1]), (Reg::General(regs[0]), 0)));
 }
 
-fn generate_assign_rhs_pair(
-  scope: &ScopeReader,
-  code: &mut GeneratedCode,
-  regs: &[GenReg],
-  t: Type,
-  e1: &Expr,
-  e2: &Expr,
-) {
-  let (e1_size, e2_size) = match t {
-    Type::Pair(t1, t2) => (t1.size(), t2.size()),
-    /* Semantic analyser should ensure this is a pair. */
-    _ => unreachable!(),
-  };
-
-  /* Malloc for the pair.
-  regs[0] = malloc(8) */
-  generate_malloc(8, code, Reg::General(regs[0]));
-
-  /* Evaluate e1.
-  regs[1] = eval(e1) */
-  e1.generate(scope, code, &regs[1..], ());
-
-  /* Malloc for e1.
-  r0 = malloc(e1_size) */
-  generate_malloc(e1_size, code, Reg::Arg(ArgReg::R0));
-
-  /* Write e1 to malloced space. */
-  code.text.push(
-    Asm::str(Reg::General(regs[1]), (Reg::Arg(ArgReg::R0), 0))
-      .size(e1_size.into()),
-  );
-
-  /* Write pointer to e1 to pair. */
-  code
-    .text
-    .push(Asm::str(Reg::Arg(ArgReg::R0), (Reg::General(regs[0]), 0)));
-
-  /* Evaluate e2.
-  regs[1] = eval(e2) */
-  e2.generate(scope, code, &regs[1..], ());
-
-  /* Malloc for e2.
-  r0 = malloc(e2_size) */
-  generate_malloc(e2_size, code, Reg::Arg(ArgReg::R0));
-
-  /* Write e2 to malloced space. */
-  code.text.push(
-    Asm::str(Reg::General(regs[1]), (Reg::Arg(ArgReg::R0), 0))
-      .size(e2_size.into()),
-  );
-
-  /* Write pointer to e2 to pair. */
-  code.text.push(Asm::str(
-    Reg::Arg(ArgReg::R0),
-    (Reg::General(regs[0]), ARM_DSIZE_WORD),
-  ))
-}
-
 fn generate_assign_rhs_call(
   scope: &ScopeReader,
   code: &mut GeneratedCode,
@@ -293,9 +235,6 @@ impl Generatable for AssignRhs {
       }
       AssignRhs::ArrayLiter(ArrayLiter(exprs)) => {
         generate_assign_rhs_array_liter(scope, code, regs, t, exprs)
-      }
-      AssignRhs::Pair(e1, e2) => {
-        generate_assign_rhs_pair(scope, code, regs, t, e1, e2)
       }
       AssignRhs::Call(ident, exprs) => {
         generate_assign_rhs_call(scope, code, regs, t, ident, exprs)

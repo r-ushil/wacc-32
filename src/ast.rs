@@ -74,7 +74,6 @@ pub enum AssignRhs {
   Expr(Expr),
   ArrayLiter(ArrayLiter),
   StructLiter(StructLiter),
-  Pair(Expr, Expr),
   Call(Ident, Vec<Expr>),
 }
 
@@ -182,6 +181,7 @@ pub enum Expr {
   CharLiter(char),
   StrLiter(String),
   NullPairLiter,
+  PairLiter(Box<TypedExpr>, Box<TypedExpr>),
   Ident(Ident),
   ArrayElem(ArrayElem),
   StructElem(StructElem),

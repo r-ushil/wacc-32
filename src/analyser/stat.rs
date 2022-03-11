@@ -32,12 +32,6 @@ impl HasType for AssignRhs {
     match self {
       AssignRhs::Expr(exp) => exp.get_type(scope),
       AssignRhs::ArrayLiter(lit) => lit.get_type(scope),
-      AssignRhs::Pair(e1, e2) => {
-        let (lhs_type, rhs_type) =
-          e1.get_type(scope).join(e2.get_type(scope))?;
-
-        Ok(Type::Pair(Box::new(lhs_type), Box::new(rhs_type)))
-      }
       AssignRhs::Call(id, args) => {
         /* TODO: make it never replace id in the first place,
         so we don't have to set it back again after. */

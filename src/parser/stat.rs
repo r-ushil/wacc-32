@@ -145,10 +145,6 @@ fn assign_rhs(input: &str) -> IResult<&str, AssignRhs, ErrorTree<&str>> {
       )),
       |(_, id, _, exprs, _)| AssignRhs::Call(id, exprs),
     ),
-    map(
-      tuple((tok("newpair"), tok("("), expr, tok(","), expr, tok(")"))),
-      |(_, _, e1, _, e2, _)| AssignRhs::Pair(e1, e2),
-    ),
     map(struct_liter, AssignRhs::StructLiter),
     map(expr, AssignRhs::Expr),
     map(array_liter, AssignRhs::ArrayLiter),
@@ -392,33 +388,35 @@ mod tests {
 
   #[test]
   fn test_stat_dec_pair_int_int() {
-    assert!(matches!(
-      stat("pair(int, int) x = newpair(1,2)"),
-      Ok((
-        "",
-        ast)) if ast == Stat::Declaration(
-          Type::Pair(Box::new(Type::Int), Box::new(Type::Int)),
-          "x".to_string(),
-          AssignRhs::Pair(Expr::IntLiter(1), Expr::IntLiter(2)),
-        )
-    ));
+    assert_eq!(
+      stat("pair(int, int) x = newpair(1,2)").unwrap().1,
+      Stat::Declaration(
+        Type::Pair(Box::new(Type::Int), Box::new(Type::Int)),
+        "x".to_string(),
+        AssignRhs::Expr(Expr::PairLiter(
+          Box::new(TypedExpr::new(Expr::IntLiter(1))),
+          Box::new(TypedExpr::new(Expr::IntLiter(2)))
+        )),
+      )
+    );
   }
 
   #[test]
   fn test_stat_dec_pair_pair() {
-    assert!(matches!(
-      stat("pair(pair, pair) x = newpair(null, null)"),
-      Ok((
-        "",
-        ast)) if ast == Stat::Declaration(
-          Type::Pair(
-            Box::new(Type::Pair(Box::new(Type::Any), Box::new(Type::Any))),
-            Box::new(Type::Pair(Box::new(Type::Any), Box::new(Type::Any)))
-          ),
-          "x".to_string(),
-          AssignRhs::Pair(Expr::NullPairLiter, Expr::NullPairLiter),
-        )
-    ));
+    assert_eq!(
+      stat("pair(pair, pair) x = newpair(null, null)").unwrap().1,
+      Stat::Declaration(
+        Type::Pair(
+          Box::new(Type::Pair(Box::new(Type::Any), Box::new(Type::Any))),
+          Box::new(Type::Pair(Box::new(Type::Any), Box::new(Type::Any)))
+        ),
+        "x".to_string(),
+        AssignRhs::Expr(Expr::PairLiter(
+          Box::new(TypedExpr::new(Expr::NullPairLiter)),
+          Box::new(TypedExpr::new(Expr::NullPairLiter))
+        )),
+      )
+    );
   }
 
   #[test]
@@ -440,19 +438,20 @@ mod tests {
 
   #[test]
   fn test_stat_dec_pair_int_pair() {
-    assert!(matches!(
-      stat("pair(int, pair) x = newpair(1,null)"),
-      Ok((
-        "",
-        ast)) if ast == Stat::Declaration(
-          Type::Pair(
-            Box::new(Type::Int),
-            Box::new(Type::Pair(Box::new(Type::Any), Box::new(Type::Any)))
-          ),
-          "x".to_string(),
-          AssignRhs::Pair(Expr::IntLiter(1), Expr::NullPairLiter),
-        )
-    ));
+    assert_eq!(
+      stat("pair(int, pair) x = newpair(1,null)").unwrap().1,
+      Stat::Declaration(
+        Type::Pair(
+          Box::new(Type::Int),
+          Box::new(Type::Pair(Box::new(Type::Any), Box::new(Type::Any)))
+        ),
+        "x".to_string(),
+        AssignRhs::Expr(Expr::PairLiter(
+          Box::new(TypedExpr::new(Expr::IntLiter(1))),
+          Box::new(TypedExpr::new(Expr::NullPairLiter))
+        ))
+      )
+    );
   }
 
   // TODO: https://gitlab.doc.ic.ac.uk/lab2122_spring/WACC_32/-/issues/2
@@ -500,16 +499,23 @@ mod tests {
 
   #[test]
   fn test_stat_ass_array_pair() {
-    assert!(matches!(
-      stat("array[2] = newpair (1, 'a') restOfString"),
-      Ok((
+    assert_eq!(
+      stat("array[2] = newpair (1, 'a') restOfString").unwrap(),
+      (
         "restOfString",
-        ast)) if ast == Stat::Assignment(
-          AssignLhs::ArrayElem(ArrayElem("array".to_string(), vec!(Expr::IntLiter(2)))),
+        Stat::Assignment(
+          AssignLhs::ArrayElem(ArrayElem(
+            "array".to_string(),
+            vec!(Expr::IntLiter(2))
+          )),
           Type::default(),
-          AssignRhs::Pair(Expr::IntLiter(1), Expr::CharLiter('a'))
+          AssignRhs::Expr(Expr::PairLiter(
+            Box::new(TypedExpr::new(Expr::IntLiter(1))),
+            Box::new(TypedExpr::new(Expr::CharLiter('a')))
+          ))
         )
-    ));
+      )
+    );
   }
 
   #[test]
@@ -755,10 +761,13 @@ mod tests {
   }
   #[test]
   fn test_assign_rhs5() {
-    assert!(matches!(
-      assign_rhs("newpair (1, 2)"),
-      Ok(("", AssignRhs::Pair(Expr::IntLiter(1), Expr::IntLiter(2))))
-    ));
+    assert_eq!(
+      assign_rhs("newpair (1, 2)").unwrap().1,
+      AssignRhs::Expr(Expr::PairLiter(
+        Box::new(TypedExpr::new(Expr::IntLiter(1))),
+        Box::new(TypedExpr::new(Expr::IntLiter(2)))
+      ))
+    );
   }
 
   #[test]

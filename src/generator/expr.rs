@@ -6,6 +6,7 @@ use super::predef::{
 };
 use super::*;
 use crate::generator::asm::*;
+use stat::generate_malloc;
 
 impl Generatable for Expr {
   type Input = ();
@@ -28,13 +29,68 @@ impl Generatable for Expr {
       Expr::BinaryApp(expr1, op, expr2) => {
         generate_binary_app(code, regs, scope, expr1, op, expr2)
       }
-      Expr::NullPairLiter => generate_pair_liter(code, regs),
+      Expr::NullPairLiter => generate_null_pair_liter(code, regs),
+      Expr::PairLiter(e1, e2) => generate_pair_liter(scope, code, regs, e1, e2),
       Expr::Ident(id) => generate_ident(scope, code, regs, id),
       Expr::ArrayElem(elem) => generate_array_elem(scope, code, regs, elem),
       Expr::StructElem(elem) => generate_struct_elem(scope, code, regs, elem),
       Expr::PairElem(elem) => generate_pair_elem(scope, code, regs, elem),
     }
   }
+}
+
+fn generate_pair_liter(
+  scope: &ScopeReader,
+  code: &mut GeneratedCode,
+  regs: &[GenReg],
+  TypedExpr(e1_type, e1): &TypedExpr,
+  TypedExpr(e2_type, e2): &TypedExpr,
+) {
+  let e1_size = e1_type.size();
+  let e2_size = e2_type.size();
+
+  /* Malloc for the pair.
+  regs[0] = malloc(8) */
+  generate_malloc(8, code, Reg::General(regs[0]));
+
+  /* Evaluate e1.
+  regs[1] = eval(e1) */
+  e1.generate(scope, code, &regs[1..], ());
+
+  /* Malloc for e1.
+  r0 = malloc(e1_size) */
+  generate_malloc(e1_size, code, Reg::Arg(ArgReg::R0));
+
+  /* Write e1 to malloced space. */
+  code.text.push(
+    Asm::str(Reg::General(regs[1]), (Reg::Arg(ArgReg::R0), 0))
+      .size(e1_size.into()),
+  );
+
+  /* Write pointer to e1 to pair. */
+  code
+    .text
+    .push(Asm::str(Reg::Arg(ArgReg::R0), (Reg::General(regs[0]), 0)));
+
+  /* Evaluate e2.
+  regs[1] = eval(e2) */
+  e2.generate(scope, code, &regs[1..], ());
+
+  /* Malloc for e2.
+  r0 = malloc(e2_size) */
+  generate_malloc(e2_size, code, Reg::Arg(ArgReg::R0));
+
+  /* Write e2 to malloced space. */
+  code.text.push(
+    Asm::str(Reg::General(regs[1]), (Reg::Arg(ArgReg::R0), 0))
+      .size(e2_size.into()),
+  );
+
+  /* Write pointer to e2 to pair. */
+  code.text.push(Asm::str(
+    Reg::Arg(ArgReg::R0),
+    (Reg::General(regs[0]), ARM_DSIZE_WORD),
+  ))
 }
 
 fn generate_pair_elem(
@@ -76,7 +132,7 @@ fn generate_struct_elem(
   );
 }
 
-fn generate_pair_liter(code: &mut GeneratedCode, regs: &[GenReg]) {
+fn generate_null_pair_liter(code: &mut GeneratedCode, regs: &[GenReg]) {
   /* LDR reg[0] =0 */
   code
     .text

@@ -5,7 +5,7 @@ use nom::{
   character::complete::{char as char_, digit1, none_of},
   combinator::{map, opt, value},
   multi::{many0, many1},
-  sequence::{delimited, pair, preceded},
+  sequence::{delimited, pair, preceded, tuple},
   IResult,
 };
 use nom_supreme::error::ErrorTree;
@@ -51,6 +51,16 @@ fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
     tag("\""),
   ));
 
+  let pair_liter = map(
+    tuple((tok("newpair"), tok("("), expr, tok(","), expr, tok(")"))),
+    |(_, _, e1, _, e2, _)| {
+      Expr::PairLiter(
+        Box::new(TypedExpr::new(e1)),
+        Box::new(TypedExpr::new(e2)),
+      )
+    },
+  );
+
   let unary_app = map(pair(unary_oper, expr), |(op, expr)| {
     Expr::UnaryApp(op, Box::new(expr))
   });
@@ -61,6 +71,7 @@ fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
     char_liter,
     str_liter,
     value(Expr::NullPairLiter, tok("null")),
+    pair_liter,
     map(array_elem, Expr::ArrayElem),
     map(pair_elem, |elem| Expr::PairElem(Box::new(elem))),
     unary_app,
