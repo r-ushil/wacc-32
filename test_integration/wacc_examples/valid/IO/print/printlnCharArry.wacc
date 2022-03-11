@@ -1,0 +1,17 @@
+# You cannot directly print a char[] in WACC
+
+# Output:
+# Hello World!
+
+# Exit:
+# 0
+
+# Program:
+
+begin
+  println ['H','e','l','l','o',' ','W','o','r','l','d','!'];
+
+  exit 5
+end
+
+# EXTENSION HAS MADE THIS ONCE INVALID TEST CASE VALID
