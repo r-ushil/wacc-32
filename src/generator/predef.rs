@@ -59,7 +59,13 @@ impl RequiredPredefs {
 impl Generatable for RequiredPredefs {
   type Input = ();
   type Output = ();
-  fn generate(&self, _scope: &ScopeReader, code: &mut GeneratedCode, _regs: &[GenReg], _aux: ()) {
+  fn generate(
+    &self,
+    _scope: &ScopeReader,
+    code: &mut GeneratedCode,
+    _regs: &[GenReg],
+    _aux: (),
+  ) {
     match *self {
       RequiredPredefs::PrintInt => print_int_or_ref(code, PrintFmt::Int),
       RequiredPredefs::PrintString => print_string(code),
@@ -248,7 +254,8 @@ fn check_null_pointer(code: &mut GeneratedCode) {
   use Asm::*;
 
   /* Create a msg label to display when derefencing a null pointer. */
-  let msg_label = code.get_msg("NullReferenceError: dereference a null reference\n\0");
+  let msg_label =
+    code.get_msg("NullReferenceError: dereference a null reference\n\0");
 
   /* Generate label to throw a runtime error for whatever's in registers */
   /* p_check_null_pointer: */
@@ -290,7 +297,8 @@ fn check_divide_by_zero(code: &mut GeneratedCode) {
 
   /* Create a msg label to display when divide by zero occurs. */
   /* msg_divide_by_zero: */
-  let msg_label = code.get_msg("DivideByZeroError: divide or modulo by zero\n\0");
+  let msg_label =
+    code.get_msg("DivideByZeroError: divide or modulo by zero\n\0");
 
   /* Generate label to throw a runtime error for whatever's in registers */
   /* p_check_divide_by_zero: */
@@ -365,7 +373,8 @@ fn free_array(code: &mut GeneratedCode) {
   use self::Instr::*;
   use Asm::*;
 
-  let msg_label = code.get_msg("NullReferenceError: dereference a null reference\n\0");
+  let msg_label =
+    code.get_msg("NullReferenceError: dereference a null reference\n\0");
 
   /* p_free_pair: */
   code
@@ -410,7 +419,8 @@ fn free_pair(code: &mut GeneratedCode) {
 
   /* Create a msg label to display in an attempt to free a null pair */
   /* msg_null_deref: */
-  let msg_label = code.get_msg("NullReferenceError: dereference a null reference\n\0");
+  let msg_label =
+    code.get_msg("NullReferenceError: dereference a null reference\n\0");
 
   /* Generate the p_free_pair label to free the pair in r0, predefined */
 

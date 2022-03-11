@@ -32,19 +32,23 @@ mod tests {
     assert_eq!(Bool.unify(Bool), Some(Bool));
     assert_eq!(Bool.unify(Int), None);
     assert_eq!(
-      Pair(Box::new(Int), Box::new(Int)).unify(Pair(Box::new(Any), Box::new(Int))),
+      Pair(Box::new(Int), Box::new(Int))
+        .unify(Pair(Box::new(Any), Box::new(Int))),
       Some(Pair(Box::new(Int), Box::new(Int)))
     );
     assert_eq!(
-      Pair(Box::new(Int), Box::new(Int)).unify(Pair(Box::new(Int), Box::new(Any))),
+      Pair(Box::new(Int), Box::new(Int))
+        .unify(Pair(Box::new(Int), Box::new(Any))),
       Some(Pair(Box::new(Int), Box::new(Int)))
     );
     assert_eq!(
-      Pair(Box::new(Int), Box::new(Int)).unify(Pair(Box::new(Any), Box::new(Any))),
+      Pair(Box::new(Int), Box::new(Int))
+        .unify(Pair(Box::new(Any), Box::new(Any))),
       Some(Pair(Box::new(Int), Box::new(Int)))
     );
     assert_eq!(
-      Pair(Box::new(Any), Box::new(Any)).unify(Pair(Box::new(Any), Box::new(Any))),
+      Pair(Box::new(Any), Box::new(Any))
+        .unify(Pair(Box::new(Any), Box::new(Any))),
       Some(Pair(Box::new(Any), Box::new(Any)))
     );
     assert_eq!(
@@ -60,7 +64,8 @@ mod tests {
       Some(Array(Box::new(Any)))
     );
     assert_eq!(
-      Array(Box::new(Pair(Box::new(Any), Box::new(Int)))).unify(Array(Box::new(Any))),
+      Array(Box::new(Pair(Box::new(Any), Box::new(Int))))
+        .unify(Array(Box::new(Any))),
       Some(Array(Box::new(Pair(Box::new(Any), Box::new(Int)))))
     );
     assert_eq!(Int.unify(Int), Some(Int)); // Some means ==
@@ -68,7 +73,8 @@ mod tests {
     assert_eq!(Int.unify(Any), Some(Int)); // Any unifies with anything
     assert_ne!(Any.unify(Int), Some(Any)); // Its commutativitiytyty
     assert_eq!(
-      Pair(Box::new(Any), Box::new(Int)).unify(Pair(Box::new(Int), Box::new(Int))),
+      Pair(Box::new(Any), Box::new(Int))
+        .unify(Pair(Box::new(Int), Box::new(Int))),
       Some(Pair(Box::new(Int), Box::new(Int)))
     ); // Anys get overridden by other things recursive
     assert_eq!(

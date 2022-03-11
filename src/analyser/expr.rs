@@ -151,7 +151,8 @@ mod tests {
     /* BANG */
     /* !false: Bool */
     assert_eq!(
-      Expr::UnaryApp(UnaryOper::Bang, Box::new(Expr::BoolLiter(false))).get_type(scope),
+      Expr::UnaryApp(UnaryOper::Bang, Box::new(Expr::BoolLiter(false)))
+        .get_type(scope),
       Ok(Type::Bool)
     );
 
@@ -165,7 +166,8 @@ mod tests {
     /* NEG */
     /* -5: Int */
     assert_eq!(
-      Expr::UnaryApp(UnaryOper::Neg, Box::new(Expr::IntLiter(5))).get_type(scope),
+      Expr::UnaryApp(UnaryOper::Neg, Box::new(Expr::IntLiter(5)))
+        .get_type(scope),
       Ok(Type::Int)
     );
 
@@ -194,7 +196,8 @@ mod tests {
     /* ORD */
     /* ord 'a': Int */
     assert_eq!(
-      Expr::UnaryApp(UnaryOper::Ord, Box::new(Expr::CharLiter('a'))).get_type(scope),
+      Expr::UnaryApp(UnaryOper::Ord, Box::new(Expr::CharLiter('a')))
+        .get_type(scope),
       Ok(Type::Int)
     );
 
@@ -206,7 +209,8 @@ mod tests {
     /* CHR */
     /* chr 5: Char */
     assert_eq!(
-      Expr::UnaryApp(UnaryOper::Chr, Box::new(Expr::IntLiter(5))).get_type(scope),
+      Expr::UnaryApp(UnaryOper::Chr, Box::new(Expr::IntLiter(5)))
+        .get_type(scope),
       Ok(Type::Char)
     );
 
@@ -317,7 +321,8 @@ mod tests {
     ] {
       for oper in vec![BinaryOper::Eq, BinaryOper::Neq] {
         assert_eq!(
-          Expr::BinaryApp(Box::new(expr.clone()), oper, Box::new(expr.clone())).get_type(scope),
+          Expr::BinaryApp(Box::new(expr.clone()), oper, Box::new(expr.clone()))
+            .get_type(scope),
           Ok(Type::Bool)
         );
       }
@@ -331,7 +336,8 @@ mod tests {
         BinaryOper::Lte,
       ] {
         assert_eq!(
-          Expr::BinaryApp(Box::new(expr.clone()), oper, Box::new(expr.clone())).get_type(scope),
+          Expr::BinaryApp(Box::new(expr.clone()), oper, Box::new(expr.clone()))
+            .get_type(scope),
           Ok(Type::Bool)
         );
       }

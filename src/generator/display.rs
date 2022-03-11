@@ -103,7 +103,9 @@ impl Display for Asm {
             )
           }
 
-          Multiply(r1, r2, r3, r4) => write!(f, "SMULL{} {}, {}, {}, {}", cond, r1, r2, r3, r4),
+          Multiply(r1, r2, r3, r4) => {
+            write!(f, "SMULL{} {}, {}, {}, {}", cond, r1, r2, r3, r4)
+          }
         }
       }
     }

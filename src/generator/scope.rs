@@ -22,7 +22,10 @@ pub struct ScopeReader<'a> {
 
 impl ScopeReader<'_> {
   /* Makes new Symbol table with initial global scope. */
-  pub fn new<'a>(st: &'a SymbolTable, type_defs: &'a TypeDefs) -> ScopeReader<'a> {
+  pub fn new<'a>(
+    st: &'a SymbolTable,
+    type_defs: &'a TypeDefs,
+  ) -> ScopeReader<'a> {
     /* When symbol tables are used in the analyser, they're used by callers
     who only have the origional idents the programmer gave to them, now we're
     in code General, the global rename has been done to the whole AST.
@@ -97,7 +100,10 @@ impl ScopeReader<'_> {
     Some(self.type_defs.get(ident)?.clone())
   }
 
-  pub fn new_scope<'a>(&'a self, symbol_table: &'a SymbolTable) -> ScopeReader<'a> {
+  pub fn new_scope<'a>(
+    &'a self,
+    symbol_table: &'a SymbolTable,
+  ) -> ScopeReader<'a> {
     let mut st = ScopeReader::new(symbol_table, self.type_defs);
 
     /* The parent of the returned scope is the caller. */

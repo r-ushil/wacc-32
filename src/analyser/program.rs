@@ -34,7 +34,8 @@ fn func(scope: &ScopeBuilder, func: &mut Func) -> AResult<()> {
 #[allow(dead_code)]
 pub fn program(program: &mut Program) -> AResult<()> {
   /* root, global scope. */
-  let mut scope = ScopeBuilder::new(&mut program.symbol_table, &program.type_defs);
+  let mut scope =
+    ScopeBuilder::new(&mut program.symbol_table, &program.type_defs);
 
   /* Add all function signatures to global before analysing. (hoisting) */
   for func in program.funcs.iter() {

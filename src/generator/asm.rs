@@ -208,7 +208,9 @@ impl Asm {
   }
   pub fn pre_indexed(mut self) -> Self {
     match &mut self {
-      Self::Instr(_, Instr::Store(_, _, _, mode)) => *mode = AddressingMode::PreIndexed,
+      Self::Instr(_, Instr::Store(_, _, _, mode)) => {
+        *mode = AddressingMode::PreIndexed
+      }
       _ => panic!("Can only pre-index a store."),
     }
     self
@@ -218,7 +220,9 @@ impl Asm {
   }
   pub fn size(mut self, size: DataSize) -> Self {
     match &mut self {
-      Self::Instr(_, Instr::Store(s, _, _, _) | Instr::Load(s, _, _)) => *s = size,
+      Self::Instr(_, Instr::Store(s, _, _, _) | Instr::Load(s, _, _)) => {
+        *s = size
+      }
       _ => panic!("Can only put loads and stores into size mode."),
     }
     self
@@ -235,9 +239,10 @@ impl Asm {
   /* FLAGS */
   pub fn flags(mut self) -> Self {
     match &mut self {
-      Asm::Instr(_, Instr::Unary(_, _, _, flags) | Instr::Binary(_, _, _, _, flags)) => {
-        *flags = true
-      }
+      Asm::Instr(
+        _,
+        Instr::Unary(_, _, _, flags) | Instr::Binary(_, _, _, _, flags),
+      ) => *flags = true,
       _ => panic!("Can only set flags on unary and binary instructions."),
     }
     self
@@ -368,12 +373,12 @@ pub enum UnaryInstr {
 /* Instructions which take the form "XXX{flags}{cond} Rd, Rn, Operand2" */
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum BinaryInstr {
-  Add,    // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289861747.htm
-  Sub,    // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289908389.htm
+  Add, // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289861747.htm
+  Sub, // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289908389.htm
   RevSub, // ??
-  And,    // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289863017.htm
-  Or,     // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289884183.htm
-  Eor,    // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289871065.htm
+  And, // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289863017.htm
+  Or, // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289884183.htm
+  Eor, // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289871065.htm
 }
 
 /* ======== Helper types for use within assembly representations.  ======== */

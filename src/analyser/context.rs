@@ -42,7 +42,10 @@ pub struct ScopeBuilder<'a> {
 #[allow(dead_code)]
 impl ScopeBuilder<'_> {
   /* Makes new Symbol table with initial global scope. */
-  pub fn new<'a>(symbol_table: &'a mut SymbolTable, type_defs: &'a TypeDefs) -> ScopeBuilder<'a> {
+  pub fn new<'a>(
+    symbol_table: &'a mut SymbolTable,
+    type_defs: &'a TypeDefs,
+  ) -> ScopeBuilder<'a> {
     /* This is base symbol table, depth = 0. */
     symbol_table.prefix = String::new();
 
@@ -103,7 +106,10 @@ impl ScopeBuilder<'_> {
     }
   }
 
-  pub fn new_scope<'a>(&'a self, symbol_table: &'a mut SymbolTable) -> ScopeBuilder<'a> {
+  pub fn new_scope<'a>(
+    &'a self,
+    symbol_table: &'a mut SymbolTable,
+  ) -> ScopeBuilder<'a> {
     /* Every time we enter a new scope, add another _ to all the variable names. */
     symbol_table.prefix = format!("{}_", self.current.prefix);
 
