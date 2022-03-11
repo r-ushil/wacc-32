@@ -31,7 +31,6 @@ impl HasType for AssignRhs {
   fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
     match self {
       AssignRhs::Expr(exp) => exp.get_type(scope),
-      AssignRhs::ArrayLiter(lit) => lit.get_type(scope),
       AssignRhs::Call(id, args) => {
         /* TODO: make it never replace id in the first place,
         so we don't have to set it back again after. */
@@ -165,7 +164,7 @@ impl HasType for PairElem {
 
 impl HasType for ArrayLiter {
   fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
-    let ArrayLiter(exprs) = self;
+    let ArrayLiter(stored_type, exprs) = self;
 
     /* Take first element as source of truth. */
     let mut array_type = Some(Type::Any);
@@ -180,7 +179,10 @@ impl HasType for ArrayLiter {
     }
 
     match array_type {
-      Some(t) => Ok(Type::Array(Box::new(t))),
+      Some(t) => {
+        *stored_type = t.clone();
+        Ok(Type::Array(Box::new(t)))
+      }
       None => Err(SemanticError::Normal(format!(
         "Expressions making up array literal have inconsistent types."
       ))),

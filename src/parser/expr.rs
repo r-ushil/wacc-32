@@ -72,6 +72,7 @@ fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
     str_liter,
     value(Expr::NullPairLiter, tok("null")),
     pair_liter,
+    map(array_liter, Expr::ArrayLiter),
     map(array_elem, Expr::ArrayElem),
     map(pair_elem, |elem| Expr::PairElem(Box::new(elem))),
     unary_app,
@@ -109,6 +110,17 @@ fn expr_binary_app(
   }
 
   Ok((input, lhs))
+}
+
+/* 〈array-liter〉::= ‘[’ (〈expr〉 (‘,’〈expr〉)* )? ‘]’ */
+fn array_liter(input: &str) -> IResult<&str, ArrayLiter, ErrorTree<&str>> {
+  ws(delimited(
+    tok("["),
+    map(many0_delimited(expr, tok(",")), |es| {
+      ArrayLiter(Type::default(), es)
+    }),
+    tok("]"),
+  ))(input)
 }
 
 //〈int-liter〉::= (‘+’ | ‘-’) ? (‘0’-‘9’)

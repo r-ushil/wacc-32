@@ -147,7 +147,6 @@ fn assign_rhs(input: &str) -> IResult<&str, AssignRhs, ErrorTree<&str>> {
     ),
     map(struct_liter, AssignRhs::StructLiter),
     map(expr, AssignRhs::Expr),
-    map(array_liter, AssignRhs::ArrayLiter),
   ))(input)
 }
 
@@ -170,15 +169,6 @@ fn struct_liter(input: &str) -> IResult<&str, StructLiter, ErrorTree<&str>> {
 /* <field-liter> ::= <ident> ':' <expr> */
 fn field_liter(input: &str) -> IResult<&str, (Ident, Expr), ErrorTree<&str>> {
   separated_pair(ident, tok(":"), expr)(input)
-}
-
-/* 〈array-liter〉::= ‘[’ (〈expr〉 (‘,’〈expr〉)* )? ‘]’ */
-fn array_liter(input: &str) -> IResult<&str, ArrayLiter, ErrorTree<&str>> {
-  ws(delimited(
-    tok("["),
-    map(many0_delimited(expr, tok(",")), ArrayLiter),
-    tok("]"),
-  ))(input)
 }
 
 #[cfg(test)]
@@ -333,7 +323,7 @@ mod tests {
         ast)) if ast == Stat::Declaration(
           Type::Array(Box::new(Type::Int)),
           "arr".to_string(),
-          AssignRhs::ArrayLiter(ArrayLiter((1..=5).map(Expr::IntLiter).collect()))
+          AssignRhs::Expr(Expr::ArrayLiter(ArrayLiter(Type::default(), (1..=5).map(Expr::IntLiter).collect())))
         )
     ));
   }
@@ -347,7 +337,7 @@ mod tests {
         ast)) if ast == Stat::Declaration(
           Type::Array(Box::new(Type::Char)),
           "arr".to_string(),
-          AssignRhs::ArrayLiter(ArrayLiter(('a'..='e').map(Expr::CharLiter).collect()))
+          AssignRhs::Expr(Expr::ArrayLiter(ArrayLiter(Type::default(), ('a'..='e').map(Expr::CharLiter).collect())))
         )
     ));
   }
@@ -361,10 +351,10 @@ mod tests {
         ast)) if ast == Stat::Declaration(
           Type::Array(Box::new(Type::String)),
           "arr".to_string(),
-          AssignRhs::ArrayLiter(ArrayLiter(vec![
+          AssignRhs::Expr(Expr::ArrayLiter(ArrayLiter(Type::default(), vec![
             Expr::StrLiter("hello".to_string()),
             Expr::StrLiter("world".to_string())
-          ]))
+          ])))
         )
     ));
   }
@@ -381,7 +371,7 @@ mod tests {
             Box::new(Type::Int)
           ))),
           "arr".to_string(),
-          AssignRhs::ArrayLiter(ArrayLiter(vec![Expr::NullPairLiter; 3]))
+          AssignRhs::Expr(Expr::ArrayLiter(ArrayLiter(Type::default(), vec![Expr::NullPairLiter; 3])))
         )
     ));
   }
@@ -478,7 +468,7 @@ mod tests {
         ast)) if ast == Stat::Declaration(
           Type::Array(Box::new(Type::Int)),
           "arr".to_string(),
-          AssignRhs::ArrayLiter(ArrayLiter((1..=5).map(Expr::IntLiter).collect()))
+          AssignRhs::Expr(Expr::ArrayLiter(ArrayLiter(Type::default(), (1..=5).map(Expr::IntLiter).collect())))
         )
     ));
   }
@@ -655,10 +645,10 @@ mod tests {
         ast)) if ast == Stat::Declaration(
           Type::Array(Box::new(Type::Bool)),
           String::from("bools"),
-          AssignRhs::ArrayLiter(ArrayLiter(vec!(
+          AssignRhs::Expr(Expr::ArrayLiter(ArrayLiter(Type::default(), vec!(
             Expr::BoolLiter(false),
             Expr::BoolLiter(true)
-          )))
+          ))))
         )
     ));
   }
@@ -738,7 +728,7 @@ mod tests {
       assign_rhs("[1, 2 ,3 ,4,5]"),
       Ok((
         "",
-        ast)) if ast == AssignRhs::ArrayLiter(ArrayLiter((1..=5).map(Expr::IntLiter).collect()))
+        ast)) if ast == AssignRhs::Expr(Expr::ArrayLiter(ArrayLiter(Type::default(), (1..=5).map(Expr::IntLiter).collect())))
     ));
   }
 
@@ -748,7 +738,7 @@ mod tests {
       assign_rhs("[1, 'c']"),
       Ok((
         "",
-        ast)) if ast == AssignRhs::ArrayLiter(ArrayLiter(vec!(Expr::IntLiter(1), Expr::CharLiter('c'))))
+        ast)) if ast == AssignRhs::Expr(Expr::ArrayLiter(ArrayLiter(Type::default(), vec!(Expr::IntLiter(1), Expr::CharLiter('c')))))
     ));
   }
 
@@ -756,7 +746,7 @@ mod tests {
   fn test_assign_rhs4() {
     assert!(matches!(
       assign_rhs("[]"),
-      Ok(("", ast)) if ast == AssignRhs::ArrayLiter(ArrayLiter(vec!()))
+      Ok(("", ast)) if ast == AssignRhs::Expr(Expr::ArrayLiter(ArrayLiter(Type::default(), vec!())))
     ));
   }
   #[test]
@@ -783,10 +773,10 @@ mod tests {
       assign_rhs("[ false, true ]"),
       Ok((
         "",
-        ast)) if ast == AssignRhs::ArrayLiter(ArrayLiter(vec!(
+        ast)) if ast == AssignRhs::Expr(Expr::ArrayLiter(ArrayLiter(Type::default(), vec!(
           Expr::BoolLiter(false),
           Expr::BoolLiter(true)
-        )
+        ))
       ))
     ));
   }

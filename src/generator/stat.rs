@@ -116,56 +116,6 @@ fn generate_assign_rhs_expr(
   expr.generate(scope, code, regs, ())
 }
 
-fn generate_assign_rhs_array_liter(
-  scope: &ScopeReader,
-  code: &mut GeneratedCode,
-  regs: &[GenReg],
-  t: Type,
-  exprs: &[Expr],
-) {
-  /* Calculate size of elements. */
-  let elem_size = match t {
-    Type::Array(elem_type) => elem_type.size(),
-    /* Semantic analyser should ensure this is an array. */
-    _ => unreachable!(),
-  };
-
-  /* Malloc space for array. */
-  generate_malloc(
-    ARM_DSIZE_WORD + elem_size * exprs.len() as i32,
-    code,
-    Reg::General(regs[0]),
-  );
-
-  /* Write each expression to the array. */
-  for (i, expr) in exprs.iter().enumerate() {
-    /* Evaluate expr to r5. */
-    expr.generate(scope, code, &regs[1..], ());
-
-    /* Write r5 array. */
-    code.text.push(
-      Asm::str(
-        Reg::General(regs[1]),
-        (
-          Reg::General(regs[0]),
-          ARM_DSIZE_WORD + (i as i32) * elem_size,
-        ),
-      )
-      .size(elem_size.into()),
-    );
-  }
-
-  /* Write length to first byte.
-  LDR r5, =3
-  STR r5, [r4] */
-  code
-    .text
-    .push(Asm::ldr(Reg::General(regs[1]), exprs.len() as i32));
-  code
-    .text
-    .push(Asm::str(Reg::General(regs[1]), (Reg::General(regs[0]), 0)));
-}
-
 fn generate_assign_rhs_call(
   scope: &ScopeReader,
   code: &mut GeneratedCode,
@@ -232,9 +182,6 @@ impl Generatable for AssignRhs {
     match self {
       AssignRhs::Expr(expr) => {
         generate_assign_rhs_expr(scope, code, regs, expr)
-      }
-      AssignRhs::ArrayLiter(ArrayLiter(exprs)) => {
-        generate_assign_rhs_array_liter(scope, code, regs, t, exprs)
       }
       AssignRhs::Call(ident, exprs) => {
         generate_assign_rhs_call(scope, code, regs, t, ident, exprs)

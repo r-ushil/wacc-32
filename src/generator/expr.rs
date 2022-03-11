@@ -23,6 +23,10 @@ impl Generatable for Expr {
       Expr::BoolLiter(val) => generate_bool_liter(code, regs, val),
       Expr::CharLiter(val) => generate_char_liter(code, regs, val),
       Expr::StrLiter(val) => generate_string_liter(code, regs, val),
+
+      Expr::ArrayLiter(ArrayLiter(t, exprs)) => {
+        generate_array_liter(scope, code, regs, t, exprs)
+      }
       Expr::UnaryApp(op, expr) => {
         generate_unary_app(code, regs, scope, op, expr)
       }
@@ -91,6 +95,52 @@ fn generate_pair_liter(
     Reg::Arg(ArgReg::R0),
     (Reg::General(regs[0]), ARM_DSIZE_WORD),
   ))
+}
+
+fn generate_array_liter(
+  scope: &ScopeReader,
+  code: &mut GeneratedCode,
+  regs: &[GenReg],
+  elem_type: &Type,
+  exprs: &[Expr],
+) {
+  /* Calculate size of elements. */
+  let elem_size = elem_type.size();
+
+  /* Malloc space for array. */
+  generate_malloc(
+    ARM_DSIZE_WORD + elem_size * exprs.len() as i32,
+    code,
+    Reg::General(regs[0]),
+  );
+
+  /* Write each expression to the array. */
+  for (i, expr) in exprs.iter().enumerate() {
+    /* Evaluate expr to r5. */
+    expr.generate(scope, code, &regs[1..], ());
+
+    /* Write r5 array. */
+    code.text.push(
+      Asm::str(
+        Reg::General(regs[1]),
+        (
+          Reg::General(regs[0]),
+          ARM_DSIZE_WORD + (i as i32) * elem_size,
+        ),
+      )
+      .size(elem_size.into()),
+    );
+  }
+
+  /* Write length to first byte.
+  LDR r5, =3
+  STR r5, [r4] */
+  code
+    .text
+    .push(Asm::ldr(Reg::General(regs[1]), exprs.len() as i32));
+  code
+    .text
+    .push(Asm::str(Reg::General(regs[1]), (Reg::General(regs[0]), 0)));
 }
 
 fn generate_pair_elem(
