@@ -9,6 +9,7 @@ impl HasType for Expr {
       Expr::CharLiter(_) => Type::Char,
       Expr::StrLiter(_) => Type::String,
       Expr::PairLiter => Type::Pair(Box::new(Type::Any), Box::new(Type::Any)),
+      Expr::PairElem(elem) => elem.get_type(scope)?,
       Expr::Ident(id) => id.get_type(scope)?,
       Expr::ArrayElem(elem) => elem.get_type(scope)?,
       Expr::StructElem(elem) => elem.get_type(scope)?,
@@ -95,6 +96,27 @@ mod tests {
       let t = Type::Int;
       scope.insert(&ident, t);
     }
+  }
+
+  #[test]
+  fn pair_elems() {
+    let mut symbol_table = SymbolTable::default();
+    let type_defs = TypeDefs::default();
+    let scope = &mut ScopeBuilder::new(&mut symbol_table, &type_defs);
+
+    assert!(Expr::PairElem(Box::new(PairElem::Fst(
+      Type::default(),
+      Expr::PairLiter
+    )))
+    .get_type(scope)
+    .is_err());
+
+    assert!(Expr::PairElem(Box::new(PairElem::Fst(
+      Type::default(),
+      Expr::PairLiter
+    )))
+    .get_type(scope)
+    .is_err());
   }
 
   #[test]

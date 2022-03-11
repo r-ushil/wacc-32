@@ -11,6 +11,7 @@ use nom::{
 use nom_supreme::error::ErrorTree;
 
 use super::shared::*;
+use super::stat::pair_elem;
 use crate::ast::*;
 
 const BINARY_OP_MAX_PREC: u8 = 6;
@@ -61,6 +62,7 @@ fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
     str_liter,
     value(Expr::PairLiter, tok("null")),
     map(array_elem, Expr::ArrayElem),
+    map(pair_elem, |elem| Expr::PairElem(Box::new(elem))),
     unary_app,
     map(ident, Expr::Ident),
     delimited(tok("("), expr, tok(")")),
@@ -198,6 +200,30 @@ fn character(input: &str) -> IResult<&str, char, ErrorTree<&str>> {
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  #[test]
+  fn test_pair_elem6() {
+    assert_eq!(
+      expr("fst 5").unwrap().1,
+      Expr::PairElem(Box::new(PairElem::Fst(Type::Any, Expr::IntLiter(5))))
+    );
+  }
+
+  #[test]
+  fn test_pair_elem7() {
+    assert_eq!(
+      expr("snd null").unwrap().1,
+      Expr::PairElem(Box::new(PairElem::Snd(Type::Any, Expr::PairLiter)))
+    );
+  }
+
+  #[test]
+  fn test_pair_elem8() {
+    assert_eq!(
+      expr("fst 1 ; snd 2").unwrap().1,
+      Expr::PairElem(Box::new(PairElem::Fst(Type::Any, Expr::IntLiter(1))))
+    );
+  }
 
   #[test]
   fn test_struct_liter() {

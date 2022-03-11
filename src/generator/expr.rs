@@ -32,8 +32,24 @@ impl Generatable for Expr {
       Expr::Ident(id) => generate_ident(scope, code, regs, id),
       Expr::ArrayElem(elem) => generate_array_elem(scope, code, regs, elem),
       Expr::StructElem(elem) => generate_struct_elem(scope, code, regs, elem),
+      Expr::PairElem(elem) => generate_pair_elem(scope, code, regs, elem),
     }
   }
+}
+
+fn generate_pair_elem(
+  scope: &ScopeReader,
+  code: &mut GeneratedCode,
+  regs: &[GenReg],
+  elem: &PairElem,
+) {
+  /* Puts element address in regs[0]. */
+  let elem_size = elem.generate(scope, code, regs, ());
+
+  /* Dereference. */
+  code.text.push(
+    Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), 0)).size(elem_size),
+  );
 }
 
 fn generate_struct_elem(

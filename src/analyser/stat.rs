@@ -38,7 +38,6 @@ impl HasType for AssignRhs {
 
         Ok(Type::Pair(Box::new(lhs_type), Box::new(rhs_type)))
       }
-      AssignRhs::PairElem(elem) => elem.get_type(scope),
       AssignRhs::Call(id, args) => {
         /* TODO: make it never replace id in the first place,
         so we don't have to set it back again after. */
@@ -398,20 +397,6 @@ mod tests {
     let x_type = Type::Array(Box::new(Type::Int));
     scope.insert(&x_id, x_type.clone()).unwrap();
     assert_eq!(AssignLhs::Ident(x_id.clone()).get_type(scope), Ok(x_type));
-
-    assert!(AssignRhs::PairElem(PairElem::Fst(
-      Type::default(),
-      Expr::PairLiter
-    ))
-    .get_type(scope)
-    .is_err());
-
-    assert!(AssignRhs::PairElem(PairElem::Fst(
-      Type::default(),
-      Expr::PairLiter
-    ))
-    .get_type(scope)
-    .is_err());
 
     assert_eq!(
       AssignLhs::ArrayElem(ArrayElem(x_id.clone(), vec!(Expr::IntLiter(5))))

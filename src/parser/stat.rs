@@ -116,7 +116,7 @@ fn assign_lhs(input: &str) -> IResult<&str, AssignLhs, ErrorTree<&str>> {
 }
 
 /* pair-elem ::= 'fst' <expr> | 'snd' <expr> */
-fn pair_elem(input: &str) -> IResult<&str, PairElem, ErrorTree<&str>> {
+pub fn pair_elem(input: &str) -> IResult<&str, PairElem, ErrorTree<&str>> {
   ws(alt((
     map(preceded(tok("fst"), expr), |e| {
       PairElem::Fst(Type::default(), e)
@@ -149,7 +149,6 @@ fn assign_rhs(input: &str) -> IResult<&str, AssignRhs, ErrorTree<&str>> {
       tuple((tok("newpair"), tok("("), expr, tok(","), expr, tok(")"))),
       |(_, _, e1, _, e2, _)| AssignRhs::Pair(e1, e2),
     ),
-    map(pair_elem, AssignRhs::PairElem),
     map(struct_liter, AssignRhs::StructLiter),
     map(expr, AssignRhs::Expr),
     map(array_liter, AssignRhs::ArrayLiter),
@@ -765,39 +764,6 @@ mod tests {
     assert!(matches!(
       assign_rhs("newpair (1, 2)"),
       Ok(("", AssignRhs::Pair(Expr::IntLiter(1), Expr::IntLiter(2))))
-    ));
-  }
-
-  #[test]
-  fn test_assign_rhs6() {
-    assert!(matches!(
-      assign_rhs("fst 5"),
-      Ok((
-        "",
-        AssignRhs::PairElem(PairElem::Fst(Type::Any, Expr::IntLiter(5)))
-      ))
-    ));
-  }
-
-  #[test]
-  fn test_assign_rhs7() {
-    assert!(matches!(
-      assign_rhs("snd null"),
-      Ok((
-        "",
-        AssignRhs::PairElem(PairElem::Snd(Type::Any, Expr::PairLiter))
-      ))
-    ));
-  }
-
-  #[test]
-  fn test_assign_rhs8() {
-    assert!(matches!(
-      assign_rhs("fst 1 ; snd 2"),
-      Ok((
-        "; snd 2",
-        AssignRhs::PairElem(PairElem::Fst(Type::Any, Expr::IntLiter(1)))
-      ))
     ));
   }
 

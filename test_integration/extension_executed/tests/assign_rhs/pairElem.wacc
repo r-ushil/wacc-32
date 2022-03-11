@@ -1,0 +1,17 @@
+begin
+  int foo(pair(int, int) x) is
+    # 1. checks it can be put into returns
+    return fst x
+  end
+
+  int bar(int x) is
+    return x
+  end
+
+  pair(int, int) p = newpair(1, 2);
+
+  int y = call foo(p);
+
+  # 2. checks it can be put into function args
+  int z = call bar(fst p)
+end

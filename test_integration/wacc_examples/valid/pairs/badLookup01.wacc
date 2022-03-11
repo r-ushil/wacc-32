@@ -1,10 +1,10 @@
 # try to directly print pair's first element
 
 # Output:
-# #syntax_error#
+# 10
 
 # Exit:
-# 100
+# 0
 
 # Program:
 
@@ -12,3 +12,5 @@ begin
 	pair(int, char) p = newpair(10, 'a') ;
   println fst p
 end
+
+# ORIGIONALLY THIS WAS A FAIL, BUT PAIR ELEMS ARE EXPRESSIONS NOW

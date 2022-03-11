@@ -4,3 +4,4 @@
 ./tests/structs/fnParam.wacc,./tests/structs/fnParam.output.observed,./tests/structs/fnParam.output.expected,pass
 ./tests/structs/fieldAccess.wacc,./tests/structs/fieldAccess.output.observed,./tests/structs/fieldAccess.output.expected,pass
 ./tests/structs/assignment.wacc,./tests/structs/assignment.output.observed,./tests/structs/assignment.output.expected,pass
+./tests/assign_rhs/pairElem.wacc,./tests/assign_rhs/pairElem.output.observed,./tests/assign_rhs/pairElem.output.expected,pass

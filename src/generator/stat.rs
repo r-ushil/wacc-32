@@ -224,22 +224,6 @@ fn generate_assign_rhs_pair(
   ))
 }
 
-fn generate_assign_rhs_pair_elem(
-  scope: &ScopeReader,
-  code: &mut GeneratedCode,
-  regs: &[GenReg],
-  _t: Type,
-  elem: &PairElem,
-) {
-  /* Puts element address in regs[0]. */
-  let elem_size = elem.generate(scope, code, regs, ());
-
-  /* Dereference. */
-  code.text.push(
-    Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), 0)).size(elem_size),
-  );
-}
-
 fn generate_assign_rhs_call(
   scope: &ScopeReader,
   code: &mut GeneratedCode,
@@ -312,9 +296,6 @@ impl Generatable for AssignRhs {
       }
       AssignRhs::Pair(e1, e2) => {
         generate_assign_rhs_pair(scope, code, regs, t, e1, e2)
-      }
-      AssignRhs::PairElem(elem) => {
-        generate_assign_rhs_pair_elem(scope, code, regs, t, elem)
       }
       AssignRhs::Call(ident, exprs) => {
         generate_assign_rhs_call(scope, code, regs, t, ident, exprs)

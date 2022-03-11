@@ -86,8 +86,8 @@
 ../wacc_examples/invalid/syntaxErr/if/ifNoelse.wacc,./wacc_examples_exit_codes_ours/invalid/syntaxErr/if/ifNoelse.exitcode,./wacc_examples_exit_codes/invalid/syntaxErr/if/ifNoelse.exitcode,pass
 ../wacc_examples/invalid/syntaxErr/if/ifNofi.wacc,./wacc_examples_exit_codes_ours/invalid/syntaxErr/if/ifNofi.exitcode,./wacc_examples_exit_codes/invalid/syntaxErr/if/ifNofi.exitcode,pass
 ../wacc_examples/invalid/syntaxErr/if/ifNothen.wacc,./wacc_examples_exit_codes_ours/invalid/syntaxErr/if/ifNothen.exitcode,./wacc_examples_exit_codes/invalid/syntaxErr/if/ifNothen.exitcode,pass
-../wacc_examples/invalid/syntaxErr/pairs/badLookup01.wacc,./wacc_examples_exit_codes_ours/invalid/syntaxErr/pairs/badLookup01.exitcode,./wacc_examples_exit_codes/invalid/syntaxErr/pairs/badLookup01.exitcode,pass
-../wacc_examples/invalid/syntaxErr/pairs/badLookup02.wacc,./wacc_examples_exit_codes_ours/invalid/syntaxErr/pairs/badLookup02.exitcode,./wacc_examples_exit_codes/invalid/syntaxErr/pairs/badLookup02.exitcode,pass
+../wacc_examples/valid/pairs/badLookup01.wacc,./wacc_examples_exit_codes_ours/valid/pairs/badLookup01.exitcode,./wacc_examples_exit_codes/valid/pairs/badLookup01.exitcode,pass
+../wacc_examples/valid/pairs/badLookup02.wacc,./wacc_examples_exit_codes_ours/valid/pairs/badLookup02.exitcode,./wacc_examples_exit_codes/valid/pairs/badLookup02.exitcode,pass
 ../wacc_examples/invalid/syntaxErr/print/printlnCharArry.wacc,./wacc_examples_exit_codes_ours/invalid/syntaxErr/print/printlnCharArry.exitcode,./wacc_examples_exit_codes/invalid/syntaxErr/print/printlnCharArry.exitcode,pass
 ../wacc_examples/invalid/syntaxErr/sequence/doubleSeq.wacc,./wacc_examples_exit_codes_ours/invalid/syntaxErr/sequence/doubleSeq.exitcode,./wacc_examples_exit_codes/invalid/syntaxErr/sequence/doubleSeq.exitcode,pass
 ../wacc_examples/invalid/syntaxErr/sequence/emptySeq.wacc,./wacc_examples_exit_codes_ours/invalid/syntaxErr/sequence/emptySeq.exitcode,./wacc_examples_exit_codes/invalid/syntaxErr/sequence/emptySeq.exitcode,pass
