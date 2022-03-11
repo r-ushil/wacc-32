@@ -155,9 +155,13 @@ impl Asm {
     Self::instr(Instr::Branch(false, label.into()))
   }
 
+  pub fn bx(reg: Reg) -> Self {
+    Self::instr(Instr::BranchReg(false, reg))
+  }
+
   pub fn link(mut self) -> Self {
     match &mut self {
-      Self::Instr(_, Instr::Branch(l, _)) => *l = true,
+      Self::Instr(_, Instr::Branch(l, _) | Instr::BranchReg(l, _)) => *l = true,
       _ => panic!("Can only apply link to branches."),
     }
     self
@@ -283,8 +287,10 @@ pub enum Instr {
   // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289863797.htm
   // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289865686.htm
 
-  /* B{L?} */
-  // BranchReg(bool, Reg),
+  /* B{L?}X{CondCode} {Reg} */
+  /* Jumps to address specified by register. (Function pointers) */
+  BranchReg(bool, Reg),
+  // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289866466.htm
 
   /* Instructions which take an operand2 and store result in a register. */
   /* {UnaryInstr}{UnaryArgs}Flags){CondCode} {UnaryArgs.Reg,Reg,Op2) */

@@ -39,15 +39,12 @@ impl HasType for AssignRhs {
         Ok(Type::Pair(Box::new(lhs_type), Box::new(rhs_type)))
       }
       AssignRhs::PairElem(elem) => elem.get_type(scope),
-      AssignRhs::Call(id, args) => {
-        /* TODO: make it never replace id in the first place,
-        so we don't have to set it back again after. */
-        let old_id = id.clone();
-
-        match id.get_type(scope)? {
+      AssignRhs::Call(t, func_expr, args) => {
+        match func_expr.get_type(scope)? {
+          
           Type::Func(bx) => {
-            /* Function idents shouldn't be renamed. */
-            *id = old_id;
+            /* Populate the type in call. */
+            *t = Type::Func(bx.clone());
 
             let FuncSig {
               param_types,

@@ -36,13 +36,7 @@ impl ScopeReader<'_> {
       /* Only rename local variables. */
       if let IdentInfo::LocalVar(t, offset) = entry {
         /* Calculate what it got renamed to. */
-        let new_id = if let Type::Func(_) = t {
-          /* Functions don't get renamed. */
-          id.clone()
-        } else {
-          /* Everything else does. */
-          format!("{}{}", st.prefix, offset)
-        };
+        let new_id = format!("{}{}", st.prefix, offset);
 
         new_st
           .table

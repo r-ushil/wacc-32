@@ -58,7 +58,7 @@ function main() {
   run_tests ./wacc_examples_exit_codes "$1"
   # During the extension, we might want to change the assembly
   # output without failing tests, while implementing optimisations for example.
-  run_tests ./wacc_examples_assembled "$1"
+  # run_tests ./wacc_examples_assembled "$1"
   run_tests ./wacc_examples_executed "$1"
   run_tests ./extension_executed "$1"
 

@@ -18,7 +18,7 @@ fn generate_assign_lhs_ident(
 
   let offset = match scope.get(id) {
     Some(LocalVar(_, offset)) => offset,
-    _ => unreachable!("ident must be a local variable"),
+    v => unreachable!("ident must be a local variable, it's {:?}", v),
   };
 
   (Reg::StackPointer, offset, t.size().into())
@@ -250,21 +250,16 @@ fn generate_assign_rhs_call(
   scope: &ScopeReader,
   code: &mut GeneratedCode,
   regs: &[GenReg],
-  _t: Type,
-  ident: &Expr,
+  func_type: Type,
+  func: &Expr,
   exprs: &[Expr],
 ) {
-  let id = match ident {
-    Expr::LocalVar(id) => id,
-    _ => unreachable!("must be a localvar"),
-  };
-  let arg_types = if let Type::Func(function_sig) = scope
-    .get_type(id)
-    .expect("Analyser guarentees this ident is valid.")
-  {
-    &function_sig.param_types
-  } else {
-    unreachable!();
+  /* Get arg types. */
+
+  // println!("{:#?}", func_type);
+  let arg_types = match func_type {
+    Type::Func(sig) => sig.param_types,
+    _ => unreachable!("Analyser guarentees this is a function."),
   };
 
   let mut args_offset = 0;
@@ -289,9 +284,11 @@ fn generate_assign_rhs_call(
     args_offset += arg_type.size();
   }
 
-  code
-    .text
-    .push(Asm::b(generate_function_name(id.to_string())).link());
+  /* Generate function pointer. */
+  func.generate(scope, code, regs, ());
+
+  /* Jump to function pointer. */
+  code.text.push(Asm::bx(Reg::General(regs[0])).link());
 
   /* Stack space was given to parameter to call function.
   We've finished calling so we can deallocate this space now. */
@@ -330,9 +327,14 @@ impl Generatable for AssignRhs {
       AssignRhs::PairElem(elem) => {
         generate_assign_rhs_pair_elem(scope, code, regs, t, elem)
       }
-      AssignRhs::Call(ident, exprs) => {
-        generate_assign_rhs_call(scope, code, regs, t, ident, exprs)
-      }
+      AssignRhs::Call(func_type, ident, exprs) => generate_assign_rhs_call(
+        scope,
+        code,
+        regs,
+        func_type.clone(),
+        ident,
+        exprs,
+      ),
       AssignRhs::StructLiter(liter) => liter.generate(scope, code, regs, ()),
     }
   }
@@ -349,7 +351,6 @@ impl Generatable for StructLiter {
     regs: &[GenReg],
     aux: Self::Input,
   ) -> Self::Output {
-    // println!("incorrect: scope = {:#?}", scope);
     let StructLiter { id, fields } = self;
 
     /* Get size of struct. */
@@ -762,7 +763,8 @@ impl Generatable for Stat {
     match self {
       Stat::Skip => (),
       Stat::Declaration(t, id, rhs) => {
-        generate_stat_declaration(scope, code, regs, t, id, rhs)
+        // println!("scope = {:#?}", scope);
+        generate_stat_declaration(scope, code, regs, t, id, rhs);
       }
       Stat::Assignment(lhs, t, rhs) => {
         generate_stat_assignment(scope, code, regs, lhs, t, rhs)

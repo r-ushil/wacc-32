@@ -106,6 +106,7 @@ impl Display for Asm {
           Multiply(r1, r2, r3, r4) => {
             write!(f, "SMULL{} {}, {}, {}, {}", cond, r1, r2, r3, r4)
           }
+          BranchReg(link, reg) => write!(f, "B{}X{} {}", if *link { "L" } else { "" }, cond, reg),
         }
       }
     }

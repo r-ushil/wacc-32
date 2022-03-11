@@ -32,8 +32,6 @@ pub fn program(input: &str) -> IResult<&str, Program, ErrorTree<&str>> {
       .insert(struct_name, IdentInfo::TypeDef(struct_def));
   }
 
-  println!("symbol_table = {:#?}", symbol_table);
-
   Ok((
     input,
     Program {
@@ -136,6 +134,7 @@ mod tests {
           Type::Int,
           "y".to_string(),
           AssignRhs::Call(
+            Type::default(),
             Expr::LocalVar("foo".to_string()),
             vec!(Expr::BinaryApp(
               Box::new(Expr::IntLiter(5)),
@@ -215,7 +214,7 @@ mod tests {
             return_type:Type::Int,
           },
           body:Stat::Sequence(
-            Box::new(Stat::Declaration(Type::Int, "y".to_string(), AssignRhs::Call(Expr::LocalVar("foo".to_string()), vec!(Expr::LocalVar("x".to_string()))))),
+            Box::new(Stat::Declaration(Type::Int, "y".to_string(), AssignRhs::Call(Type::default(), Expr::LocalVar("foo".to_string()), vec!(Expr::LocalVar("x".to_string()))))),
             Box::new(Stat::Return(Expr::LocalVar("y".to_string()))),
           ),
           params_st:SymbolTable::default(),
