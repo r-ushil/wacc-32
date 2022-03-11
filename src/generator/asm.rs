@@ -283,6 +283,9 @@ pub enum Instr {
   // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289863797.htm
   // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289865686.htm
 
+  /* B{L?} */
+  // BranchReg(bool, Reg),
+
   /* Instructions which take an operand2 and store result in a register. */
   /* {UnaryInstr}{UnaryArgs}Flags){CondCode} {UnaryArgs.Reg,Reg,Op2) */
   Unary(UnaryInstr, Reg, Op2, Flags),

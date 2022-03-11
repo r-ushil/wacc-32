@@ -136,7 +136,7 @@ mod tests {
           Type::Int,
           "y".to_string(),
           AssignRhs::Call(
-            "foo".to_string(),
+            Expr::LocalVar("foo".to_string()),
             vec!(Expr::BinaryApp(
               Box::new(Expr::IntLiter(5)),
               BinaryOper::Add,
@@ -215,7 +215,7 @@ mod tests {
             return_type:Type::Int,
           },
           body:Stat::Sequence(
-            Box::new(Stat::Declaration(Type::Int, "y".to_string(), AssignRhs::Call("foo".to_string(), vec!(Expr::LocalVar("x".to_string()))))),
+            Box::new(Stat::Declaration(Type::Int, "y".to_string(), AssignRhs::Call(Expr::LocalVar("foo".to_string()), vec!(Expr::LocalVar("x".to_string()))))),
             Box::new(Stat::Return(Expr::LocalVar("y".to_string()))),
           ),
           params_st:SymbolTable::default(),

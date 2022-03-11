@@ -3,7 +3,7 @@ use nom::{
   branch::alt,
   combinator::{map, value},
   multi::many0,
-  sequence::{pair, tuple},
+  sequence::{delimited, pair, tuple},
   IResult,
 };
 use nom_supreme::{error::ErrorTree, ParserExt};
@@ -11,28 +11,16 @@ use nom_supreme::{error::ErrorTree, ParserExt};
 use super::shared::*;
 use crate::ast::*;
 
-pub fn func_type(input: &str) -> IResult<&str, Type, ErrorTree<&str>> {
-  map(
-    tuple((
-      base_type,
-      tok("("),
-      many0_delimited(type_, tok(",")),
-      tok(")"),
-    )),
-    |(return_type, _, param_types, _)| {
-      Type::Func(Box::new(FuncSig {
-        param_types,
-        return_type,
-      }))
-    },
-  )(input)
+pub fn func_param_types(
+  input: &str,
+) -> IResult<&str, Vec<Type>, ErrorTree<&str>> {
+  delimited(tok("("), many0_delimited(type_, tok(",")), tok(")"))(input)
 }
 
 /* type ::= <base-type> | <array-type> | <pair-type> */
 pub fn type_(input: &str) -> IResult<&str, Type, ErrorTree<&str>> {
   /* Parses everything apart from the trailing array notes. */
-  let (input, mut t) = alt((
-    func_type,
+  let (mut input, mut t) = alt((
     base_type,
     map(
       tuple((
@@ -47,6 +35,30 @@ pub fn type_(input: &str) -> IResult<&str, Type, ErrorTree<&str>> {
     ),
     map(ident, Type::Custom),
   ))(input)?;
+
+  loop {
+    if let Ok((i, _)) =
+      pair::<_, _, _, ErrorTree<&str>, _, _>(tok("["), tok("]"))(input)
+    {
+      /* Consume input. */
+      input = i;
+
+      /* Array type. */
+      t = Type::Array(Box::new(t));
+    } else if let Ok((i, param_types)) = func_param_types(input) {
+      /* Consume input. */
+      input = i;
+
+      /* Function type. */
+      t = Type::Func(Box::new(FuncSig {
+        param_types,
+        return_type: t,
+      }));
+    } else {
+      /* No trailing parsers, finished with suffixes. */
+      break;
+    }
+  }
 
   /* Counts how many '[]' trail. */
   let (input, arrs) = many0(pair(tok("["), tok("]")))(input)?;

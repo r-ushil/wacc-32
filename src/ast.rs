@@ -75,7 +75,7 @@ pub enum AssignRhs {
   StructLiter(StructLiter),
   Pair(Expr, Expr),
   PairElem(PairElem),
-  Call(Ident, Vec<Expr>),
+  Call(Expr, Vec<Expr>),
 }
 
 #[derive(PartialEq, Debug, Clone)]

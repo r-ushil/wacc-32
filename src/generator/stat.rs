@@ -251,11 +251,15 @@ fn generate_assign_rhs_call(
   code: &mut GeneratedCode,
   regs: &[GenReg],
   _t: Type,
-  ident: &Ident,
+  ident: &Expr,
   exprs: &[Expr],
 ) {
+  let id = match ident {
+    Expr::LocalVar(id) => id,
+    _ => unreachable!("must be a localvar"),
+  };
   let arg_types = if let Type::Func(function_sig) = scope
-    .get_type(ident)
+    .get_type(id)
     .expect("Analyser guarentees this ident is valid.")
   {
     &function_sig.param_types
@@ -287,7 +291,7 @@ fn generate_assign_rhs_call(
 
   code
     .text
-    .push(Asm::b(generate_function_name(ident.to_string())).link());
+    .push(Asm::b(generate_function_name(id.to_string())).link());
 
   /* Stack space was given to parameter to call function.
   We've finished calling so we can deallocate this space now. */
