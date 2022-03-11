@@ -9,7 +9,7 @@ impl HasType for Expr {
       Expr::CharLiter(_) => Type::Char,
       Expr::StrLiter(_) => Type::String,
       Expr::PairLiter => Type::Pair(Box::new(Type::Any), Box::new(Type::Any)),
-      Expr::Ident(id) => id.get_type(scope)?,
+      Expr::LocalVar(id) => id.get_type(scope)?,
       Expr::ArrayElem(elem) => elem.get_type(scope)?,
       Expr::StructElem(elem) => elem.get_type(scope)?,
       Expr::UnaryApp(op, exp) => match op {
@@ -91,17 +91,16 @@ mod tests {
    * with 0..10 */
   fn populate_scope(scope: &mut ScopeBuilder, prefix: &str) {
     for i in 0..10 {
-      let ident = format!("{}{}", prefix, i);
+      let mut ident = format!("{}{}", prefix, i);
       let t = Type::Int;
-      scope.insert(&ident, t);
+      scope.insert_var(&mut ident, t);
     }
   }
 
   #[test]
   fn literals() {
     let mut symbol_table = SymbolTable::default();
-    let type_defs = TypeDefs::default();
-    let scope = &ScopeBuilder::new(&mut symbol_table, &type_defs);
+    let scope = &ScopeBuilder::new(&mut symbol_table);
 
     assert_eq!(Expr::IntLiter(5).get_type(scope), Ok(Type::Int));
     assert_eq!(Expr::BoolLiter(false).get_type(scope), Ok(Type::Bool));
@@ -115,12 +114,11 @@ mod tests {
   #[test]
   fn idents() {
     let mut symbol_table = SymbolTable::default();
-    let type_defs = TypeDefs::default();
-    let mut scope = ScopeBuilder::new(&mut symbol_table, &type_defs);
+    let mut scope = ScopeBuilder::new(&mut symbol_table);
     populate_scope(&mut scope, "var");
 
     assert_eq!(
-      Expr::Ident(String::from("var1")).get_type(&scope),
+      Expr::LocalVar(String::from("var1")).get_type(&scope),
       Ok(Type::Int),
     );
   }
@@ -131,9 +129,8 @@ mod tests {
     let x_type = Type::Array(Box::new(Type::Int));
 
     let mut symbol_table = SymbolTable::default();
-    let type_defs = TypeDefs::default();
-    let mut scope = ScopeBuilder::new(&mut symbol_table, &type_defs);
-    scope.insert(&x, x_type);
+    let mut scope = ScopeBuilder::new(&mut symbol_table);
+    scope.insert_var(&mut x.clone(), x_type);
 
     assert_eq!(
       Expr::ArrayElem(ArrayElem(x, vec!(Expr::IntLiter(5)))).get_type(&scope),
@@ -145,8 +142,7 @@ mod tests {
   fn unary_apps() {
     /* Symbol Table */
     let mut symbol_table = SymbolTable::default();
-    let type_defs = TypeDefs::default();
-    let scope = &mut ScopeBuilder::new(&mut symbol_table, &type_defs);
+    let scope = &mut ScopeBuilder::new(&mut symbol_table);
 
     /* BANG */
     /* !false: Bool */
@@ -182,9 +178,10 @@ mod tests {
     /* len [1,2,3]: Int */
     let x = String::from("x");
     let x_type = Type::Array(Box::new(Type::Int));
-    scope.insert(&x, x_type);
+    scope.insert_var(&mut x.clone(), x_type);
     assert_eq!(
-      Expr::UnaryApp(UnaryOper::Len, Box::new(Expr::Ident(x))).get_type(scope),
+      Expr::UnaryApp(UnaryOper::Len, Box::new(Expr::LocalVar(x)))
+        .get_type(scope),
       Ok(Type::Int)
     );
 
@@ -225,8 +222,7 @@ mod tests {
   #[test]
   fn binary_apps() {
     let mut symbol_table = SymbolTable::default();
-    let type_defs = TypeDefs::default();
-    let scope = &mut ScopeBuilder::new(&mut symbol_table, &type_defs);
+    let scope = &mut ScopeBuilder::new(&mut symbol_table);
 
     /* 5 + false: ERROR */
     assert!(Expr::BinaryApp(

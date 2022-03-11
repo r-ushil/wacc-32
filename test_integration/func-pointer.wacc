@@ -1,0 +1,14 @@
+begin
+    int bar(int x) is 
+        int y = x + 1;
+        return y
+    end
+
+    int foo(int(int) bar, int w) is
+        int z = call bar(w);
+        return z
+    end
+
+    int res = call foo(bar, 3);
+    return res
+end

@@ -4,3 +4,6 @@
 ./tests/structs/fnParam.wacc,./tests/structs/fnParam.output.observed,./tests/structs/fnParam.output.expected,pass
 ./tests/structs/fieldAccess.wacc,./tests/structs/fieldAccess.output.observed,./tests/structs/fieldAccess.output.expected,pass
 ./tests/structs/assignment.wacc,./tests/structs/assignment.output.observed,./tests/structs/assignment.output.expected,pass
+./tests/func-ptrs/func-pointer.wacc,./tests/func-ptrs/func-pointer.output.observed,./tests/func-ptrs/func-pointer.output.expected,pass
+./tests/func-ptrs/simple.wacc,./tests/func-ptrs/simple.output.observed,./tests/func-ptrs/simple.output.expected,pass
+./tests/func-ptrs/func-table.wacc,./tests/func-ptrs/func-table.output.observed,./tests/func-ptrs/func-table.output.expected,pass

@@ -6,9 +6,12 @@ use ReturnBehaviour::*;
 fn func(scope: &ScopeBuilder, func: &mut Func) -> AResult<()> {
   let scope = &mut scope.new_scope(&mut func.params_st);
 
+  let pts = func.signature.param_types.iter().rev();
+  let pis = func.param_ids.iter_mut().rev();
+
   /* Add parameters to parameter scope. */
-  for (pt, pi) in func.signature.params.iter().rev() {
-    scope.insert(pi, pt.clone())?;
+  for (pt, pi) in pts.zip(pis) {
+    scope.insert_var(pi, pt.clone())?;
   }
 
   /* Enter body scope. */
@@ -34,12 +37,17 @@ fn func(scope: &ScopeBuilder, func: &mut Func) -> AResult<()> {
 #[allow(dead_code)]
 pub fn program(program: &mut Program) -> AResult<()> {
   /* root, global scope. */
-  let mut scope =
-    ScopeBuilder::new(&mut program.symbol_table, &program.type_defs);
+  let mut scope = ScopeBuilder::new(&mut program.symbol_table);
 
   /* Add all function signatures to global before analysing. (hoisting) */
   for func in program.funcs.iter() {
-    scope.insert(&func.ident, Type::Func(Box::new(func.signature.clone())))?;
+    scope.insert(
+      &func.ident,
+      IdentInfo::Label(
+        Type::Func(Box::new(func.signature.clone())),
+        format!("f_{}", func.ident),
+      ),
+    )?;
   }
 
   /* Analyse functions. */
@@ -65,24 +73,24 @@ mod tests {
   #[test]
   fn func_parameters_checked() {
     let mut symbol_table = SymbolTable::default();
-    let type_defs = TypeDefs::default();
-    let scope = &mut ScopeBuilder::new(&mut symbol_table, &type_defs);
+    let scope = &mut ScopeBuilder::new(&mut symbol_table);
 
     /* Function */
     /* int double(int x) is return x * 2 end */
     let f = Func {
       ident: String::from("double"),
       signature: FuncSig {
-        params: vec![(Type::Int, String::from("x"))],
+        param_types: vec![Type::Int],
         return_type: Type::Int,
       },
       body: Stat::Return(Expr::BinaryApp(
-        Box::new(Expr::Ident(String::from("x"))),
+        Box::new(Expr::LocalVar(String::from("x"))),
         BinaryOper::Mul,
         Box::new(Expr::IntLiter(2)),
       )),
       params_st: SymbolTable::default(),
       body_st: SymbolTable::default(),
+      param_ids: vec![String::from("x")],
     };
 
     /* Works in it's default form. */
@@ -98,7 +106,7 @@ mod tests {
     /* bool double(int x) is return x end */
     let mut f2 = f;
     f2.signature.return_type = Type::Bool;
-    f2.body = Stat::Return(Expr::Ident(String::from("x")));
+    f2.body = Stat::Return(Expr::LocalVar(String::from("x")));
     assert!(func(scope, &mut f2).is_err());
   }
 
@@ -109,16 +117,17 @@ mod tests {
     let f = Func {
       ident: String::from("double"),
       signature: FuncSig {
-        params: vec![(Type::Int, String::from("x"))],
+        param_types: vec![Type::Int],
         return_type: Type::Int,
       },
       body: Stat::Return(Expr::BinaryApp(
-        Box::new(Expr::Ident(String::from("x"))),
+        Box::new(Expr::LocalVar(String::from("x"))),
         BinaryOper::Mul,
         Box::new(Expr::IntLiter(2)),
       )),
       params_st: SymbolTable::default(),
       body_st: SymbolTable::default(),
+      param_ids: vec![String::from("x")],
     };
 
     /* Both branches of if statements must return correct type. */
@@ -131,11 +140,10 @@ mod tests {
       ScopedStat::new(Stat::Return(Expr::IntLiter(5))),
       ScopedStat::new(Stat::Return(Expr::IntLiter(2))),
     );
-    assert!(func(
-      &mut ScopeBuilder::new(&mut SymbolTable::default(), &TypeDefs::default()),
-      &mut f3
-    )
-    .is_ok());
+    assert!(
+      func(&mut ScopeBuilder::new(&mut SymbolTable::default()), &mut f3)
+        .is_ok()
+    );
 
     /* int double(int x) is
       if true then return false else return 2 fi
@@ -147,11 +155,10 @@ mod tests {
       ScopedStat::new(Stat::Return(Expr::IntLiter(2))),
     );
 
-    assert!(func(
-      &mut ScopeBuilder::new(&mut SymbolTable::default(), &TypeDefs::default()),
-      &mut f4
-    )
-    .is_err());
+    assert!(
+      func(&mut ScopeBuilder::new(&mut SymbolTable::default()), &mut f4)
+        .is_err()
+    );
 
     /* Only one statement has to return. */
     /* int double(int x) is
@@ -165,10 +172,7 @@ mod tests {
       )),
       Box::new(Stat::Return(Expr::IntLiter(5))),
     );
-    let x = func(
-      &mut ScopeBuilder::new(&mut SymbolTable::default(), &TypeDefs::default()),
-      &mut f5,
-    );
+    let x = func(&mut ScopeBuilder::new(&mut SymbolTable::default()), &mut f5);
     assert!(x.is_ok());
 
     /* Spots erroneous returns. */
@@ -188,10 +192,9 @@ mod tests {
         Expr::StrLiter(String::from("Hello World")),
       )),
     );
-    assert!(func(
-      &mut ScopeBuilder::new(&mut SymbolTable::default(), &TypeDefs::default()),
-      &mut f6
-    )
-    .is_err());
+    assert!(
+      func(&mut ScopeBuilder::new(&mut SymbolTable::default()), &mut f6)
+        .is_err()
+    );
   }
 }

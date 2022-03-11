@@ -6,7 +6,7 @@ use crate::ast::*;
 
 pub use context::SymbolTable;
 
-use super::asm::ARM_DSIZE_WORD;
+use super::asm::{Label, Offset, ARM_DSIZE_WORD};
 
 #[derive(Debug)]
 pub struct ScopeReader<'a> {
@@ -16,16 +16,11 @@ pub struct ScopeReader<'a> {
   and where abouts within that scope it is. */
   /* context: None means this is the global scope. */
   parents: Option<&'a ScopeReader<'a>>,
-  /* Pointer to type defs hashmap on root ast node. */
-  type_defs: &'a TypeDefs,
 }
 
 impl ScopeReader<'_> {
   /* Makes new Symbol table with initial global scope. */
-  pub fn new<'a>(
-    st: &'a SymbolTable,
-    type_defs: &'a TypeDefs,
-  ) -> ScopeReader<'a> {
+  pub fn new<'a>(st: &'a SymbolTable) -> ScopeReader<'a> {
     /* When symbol tables are used in the analyser, they're used by callers
     who only have the origional idents the programmer gave to them, now we're
     in code General, the global rename has been done to the whole AST.
@@ -37,50 +32,79 @@ impl ScopeReader<'_> {
     let mut new_st = SymbolTable::empty(st.size);
     new_st.prefix = st.prefix.clone();
 
-    for (id, (t, offset)) in st.table.iter() {
-      /* Calculate what it got renamed to. */
-      let new_id = if let Type::Func(_) = t {
-        /* Functions don't get renamed. */
-        id.clone()
-      } else {
-        /* Everything else does. */
-        format!("{}{}", st.prefix, offset)
-      };
+    for (id, entry) in st.table.iter() {
+      /* Only rename local variables. */
+      if let IdentInfo::LocalVar(t, offset) = entry {
+        /* Calculate what it got renamed to. */
+        let new_id = format!("{}{}", st.prefix, offset);
 
-      new_st.table.insert(new_id, (t.clone(), *offset));
+        new_st
+          .table
+          .insert(new_id, IdentInfo::LocalVar(t.clone(), *offset));
+      } else {
+        new_st.table.insert(id.clone(), entry.clone());
+      }
     }
 
     ScopeReader {
       current: new_st,
       parents: None,
-      type_defs,
+    }
+  }
+
+  /* Get the information about this ident,
+  renames it if it's a local variable (global rename). */
+  /* The offsets returned are distances from THE BOTTOM
+  of this scope. (THE STACK POINTER) */
+  /* ONLY CALL THIS ONCE PER AST IDENT, OTHERWISE THE RENAME WILL HAPPEN TWICE. */
+  pub fn get(&self, ident: &Ident) -> Option<IdentInfo> {
+    use IdentInfo::*;
+    match self.current.table.get(ident) {
+      /* Identifier declared in this scope, return. */
+      Some(info) => {
+        if let LocalVar(type_, offset) = info {
+          Some(LocalVar(type_.clone(), self.current.size - offset))
+        } else {
+          Some(info.clone())
+        }
+      }
+      /* Look for identifier in parent scope, recurse. */
+      None => match self.parents?.get(ident)? {
+        LocalVar(t, offset) => Some(LocalVar(t, offset + self.current.size)),
+        info => Some(info),
+      },
+    }
+  }
+
+  pub fn get_var(&self, ident: &Ident) -> Option<(Type, Offset)> {
+    match self.get(ident)? {
+      IdentInfo::LocalVar(t, offset) => Some((t, offset)),
+      _ => None,
+    }
+  }
+
+  pub fn get_def(&self, ident: &Ident) -> Option<Struct> {
+    match self.get(ident)? {
+      IdentInfo::TypeDef(def) => Some(def),
+      _ => None,
+    }
+  }
+
+  pub fn get_label(&self, ident: &Ident) -> Option<(Type, Label)> {
+    match self.get(ident)? {
+      IdentInfo::Label(t, label) => Some((t, label)),
+      _ => None,
     }
   }
 
   /* Returns type of given ident */
+
   pub fn get_type(&self, ident: &Ident) -> Option<&Type> {
+    use IdentInfo::*;
     match self.current.table.get(ident) {
-      /* Identifier declared in this scope, return. */
-      Some((t, _)) => Some(t),
-      /* Look for identifier in parent scope, recurse. */
+      Some(LocalVar(t, _) | Label(t, _)) => Some(t),
       None => self.parents?.get_type(ident),
-    }
-  }
-
-  pub fn get_offset(&self, ident: &Ident) -> Option<Offset> {
-    match self.current.table.get(ident) {
-      /* Identifier declared in this scope, return. */
-      Some((_, base_offset)) => Some(self.current.size - base_offset),
-      /* Look for identifier in parent scope, recurse. */
-      None => Some(self.parents?.get_offset(ident)? + self.current.size),
-    }
-  }
-
-  /* Same as get_type, but only checks the bottom most table. */
-  pub fn get_bottom(&self, ident: &Ident) -> Option<&Type> {
-    match self.parents {
-      Some(parent) => parent.get_bottom(ident),
-      None => Some(&self.current.table.get(ident)?.0),
+      Some(TypeDef(_)) => None,
     }
   }
 
@@ -95,16 +119,11 @@ impl ScopeReader<'_> {
     }
   }
 
-  /* Retrieves a type's definition from it's identifier. */
-  pub fn get_def(&self, ident: &Ident) -> Option<Struct> {
-    Some(self.type_defs.get(ident)?.clone())
-  }
-
   pub fn new_scope<'a>(
     &'a self,
     symbol_table: &'a SymbolTable,
   ) -> ScopeReader<'a> {
-    let mut st = ScopeReader::new(symbol_table, self.type_defs);
+    let mut st = ScopeReader::new(symbol_table);
 
     /* The parent of the returned scope is the caller. */
     st.parents = Some(self);

@@ -1,0 +1,11 @@
+begin
+  int foo() is
+    return 5
+  end
+
+  int() f = foo;
+
+  int x = call f();
+
+  exit x
+end
