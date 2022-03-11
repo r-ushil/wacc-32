@@ -3,12 +3,12 @@ begin
         return x + 1
     end
 
-    int apply(int(int) b) is
+    int applyThree(int(int) b) is
         int z = call b(3);
         return z
     end
 
-    int res = call apply(succ);
+    int res = call applyThree(succ);
     
     exit res
 end

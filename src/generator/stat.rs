@@ -256,7 +256,6 @@ fn generate_assign_rhs_call(
 ) {
   /* Get arg types. */
 
-  // println!("{:#?}", func_type);
   let arg_types = match func_type {
     Type::Func(sig) => sig.param_types,
     _ => unreachable!("Analyser guarentees this is a function."),
@@ -285,7 +284,13 @@ fn generate_assign_rhs_call(
   }
 
   /* Generate function pointer. */
-  func.generate(scope, code, regs, ());
+  func.generate(
+    /* Offset all stack accesses by the size the args take up. */
+    &scope.new_scope(&SymbolTable::empty(args_offset)),
+    code,
+    regs,
+    (),
+  );
 
   /* Jump to function pointer. */
   code.text.push(Asm::bx(Reg::General(regs[0])).link());
