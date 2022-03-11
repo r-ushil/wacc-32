@@ -1,17 +1,14 @@
 begin
-    int bar(int x) is 
-        int y = x + 1;
-        return y
+    int succ(int x) is
+        return x + 1
     end
 
-    int foo(int(int) b, int w) is
-        println w;
-        int z = call b(w);
-        println z;
+    int apply(int(int) b) is
+        int z = call b(3);
         return z
     end
 
-    int res = call foo(bar, 3);
-    println res;
+    int res = call apply(succ);
+    
     exit res
 end

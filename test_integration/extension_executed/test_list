@@ -5,4 +5,4 @@
 ./tests/structs/fieldAccess.wacc,./tests/structs/fieldAccess.output.observed,./tests/structs/fieldAccess.output.expected,pass
 ./tests/structs/assignment.wacc,./tests/structs/assignment.output.observed,./tests/structs/assignment.output.expected,pass
 ./tests/func-ptrs/func-pointer.wacc,./tests/func-ptrs/func-pointer.output.observed,./tests/func-ptrs/func-pointer.output.expected,fail
-./tests/func-ptrs/simple.wacc,./tests/func-ptrs/simple.output.observed,./tests/func-ptrs/simple.output.expected,fail;
+./tests/func-ptrs/simple.wacc,./tests/func-ptrs/simple.output.observed,./tests/func-ptrs/simple.output.expected,pass
