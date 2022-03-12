@@ -80,16 +80,17 @@ fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
     tuple((
       tok("for"),
       tok("("),
-      many_m_n(0, 1, stat),
+      many_m_n(0, 1, ws(stat_unit)),
       tok(";"),
-      expr,
+      ws(expr),
       tok(";"),
-      stat,
-      tok(";"),
+      ws(stat_unit),
       tok(")"),
-      stat,
+      tok("do"),
+      ws(stat),
+      tok("done"),
     )),
-    |(_, _, decl, _, cond, _, assign, _, _, body)| {
+    |(_, _, decl, _, cond, _, assign, _, _, body, _)| {
       let new_decl = if decl.is_empty() {
         Stat::Skip
       } else {

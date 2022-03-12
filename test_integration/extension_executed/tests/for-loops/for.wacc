@@ -1,7 +1,7 @@
 begin
     int a = 0;
-    for (int i = 0; i < 5; i = i+1) do
-        a = a + 1;
+    for (int i = 0; i < 5; i = i + 1) do
+        a = a + 1
     done ;
 
     exit a
