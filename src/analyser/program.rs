@@ -3,32 +3,39 @@ use crate::ast::*;
 use stat::*;
 use ReturnBehaviour::*;
 
-fn func(scope: &ScopeBuilder, func: &mut Func) -> AResult<()> {
-  let scope = &mut scope.new_scope(&mut func.params_st);
+impl Analysable for Func {
+  type Input = ();
+  type Output = ();
 
-  let pts = func.signature.param_types.iter().rev();
-  let pis = func.param_ids.iter_mut().rev();
+  fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<()> {
+    let scope = &mut scope.new_scope(&mut self.params_st);
 
-  /* Add parameters to parameter scope. */
-  for (pt, pi) in pts.zip(pis) {
-    scope.insert_var(pi, pt.clone())?;
-  }
+    let pts = self.signature.param_types.iter().rev();
+    let pis = self.param_ids.iter_mut().rev();
 
-  /* Enter body scope. */
-  let scope = &mut scope.new_scope(&mut func.body_st);
-
-  /* Type check function body and make sure it returns value of correct type. */
-  match stat(scope, &mut func.body)? {
-    AtEnd(t) if t.clone().unify(func.signature.return_type.clone()) == None => {
-      Err(SemanticError::Normal(format!(
-        "Function body returns {:?} but function signature expects {:?}",
-        t, func.signature.return_type
-      )))
+    /* Add parameters to parameter scope. */
+    for (pt, pi) in pts.zip(pis) {
+      scope.insert_var(pi, pt.clone())?;
     }
-    AtEnd(_) => Ok(()),
-    _ => Err(SemanticError::Syntax(
-      "The last statement should be a return or exit.".to_string(),
-    )),
+
+    /* Enter body scope. */
+    let scope = &mut scope.new_scope(&mut self.body_st);
+
+    /* Type check function body and make sure it returns value of correct type. */
+    match stat(scope, &mut self.body)? {
+      AtEnd(t)
+        if t.clone().unify(self.signature.return_type.clone()) == None =>
+      {
+        Err(SemanticError::Normal(format!(
+          "Function body returns {:?} but function signature expects {:?}",
+          t, self.signature.return_type
+        )))
+      }
+      AtEnd(_) => Ok(()),
+      _ => Err(SemanticError::Syntax(
+        "The last statement should be a return or exit.".to_string(),
+      )),
+    }
   }
 }
 
@@ -55,7 +62,7 @@ impl Analysable for Program {
 
     /* Analyse functions. */
     for f in self.funcs.iter_mut() {
-      func(&scope, f)?;
+      f.analyse(&mut scope, ())?;
     }
 
     /* Program body must never return, but it can exit. */
@@ -98,20 +105,20 @@ mod tests {
     };
 
     /* Works in it's default form. */
-    assert!(func(scope, &mut f.clone()).is_ok());
+    assert!(f.clone().analyse(scope, ()).is_ok());
 
     /* Doesn't work if wrong type returned. */
     /* int double(int x) is return false end */
     let mut f1 = f.clone();
     f1.body = Stat::Return(Expr::BoolLiter(false));
-    assert!(func(scope, &mut f1).is_err());
+    assert!(f1.analyse(scope, ()).is_err());
 
     /* Can compare parameter type with return type. */
     /* bool double(int x) is return x end */
     let mut f2 = f;
     f2.signature.return_type = Type::Bool;
     f2.body = Stat::Return(Expr::Ident(String::from("x")));
-    assert!(func(scope, &mut f2).is_err());
+    assert!(f2.analyse(scope, ()).is_err());
   }
 
   #[test]
@@ -144,10 +151,9 @@ mod tests {
       ScopedStat::new(Stat::Return(Expr::IntLiter(5))),
       ScopedStat::new(Stat::Return(Expr::IntLiter(2))),
     );
-    assert!(
-      func(&mut ScopeBuilder::new(&mut SymbolTable::default()), &mut f3)
-        .is_ok()
-    );
+    assert!(f3
+      .analyse(&mut ScopeBuilder::new(&mut SymbolTable::default()), ())
+      .is_ok());
 
     /* int double(int x) is
       if true then return false else return 2 fi
@@ -159,10 +165,9 @@ mod tests {
       ScopedStat::new(Stat::Return(Expr::IntLiter(2))),
     );
 
-    assert!(
-      func(&mut ScopeBuilder::new(&mut SymbolTable::default()), &mut f4)
-        .is_err()
-    );
+    assert!(f4
+      .analyse(&mut ScopeBuilder::new(&mut SymbolTable::default()), ())
+      .is_err());
 
     /* Only one statement has to return. */
     /* int double(int x) is
@@ -175,7 +180,7 @@ mod tests {
       ))))),
       Box::new(Stat::Return(Expr::IntLiter(5))),
     );
-    let x = func(&mut ScopeBuilder::new(&mut SymbolTable::default()), &mut f5);
+    let x = f5.analyse(&mut ScopeBuilder::new(&mut SymbolTable::default()), ());
     assert!(x.is_ok());
 
     /* Spots erroneous returns. */
@@ -194,9 +199,8 @@ mod tests {
         "Hello World",
       ))))),
     );
-    assert!(
-      func(&mut ScopeBuilder::new(&mut SymbolTable::default()), &mut f6)
-        .is_err()
-    );
+    assert!(f6
+      .analyse(&mut ScopeBuilder::new(&mut SymbolTable::default()), ())
+      .is_err());
   }
 }
