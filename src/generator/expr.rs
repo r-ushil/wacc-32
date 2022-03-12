@@ -105,32 +105,37 @@ fn generate_array_liter(
   elem_type: &Type,
   exprs: &[Expr],
 ) {
-  /* Calculate size of elements. */
-  let elem_size = elem_type.size();
+  if exprs.len() > 0 {
+    /* Calculate size of elements. */
+    let elem_size = elem_type.size();
 
-  /* Malloc space for array. */
-  generate_malloc(
-    ARM_DSIZE_WORD + elem_size * exprs.len() as i32,
-    code,
-    Reg::General(regs[0]),
-  );
-
-  /* Write each expression to the array. */
-  for (i, expr) in exprs.iter().enumerate() {
-    /* Evaluate expr to r5. */
-    expr.generate(scope, code, &regs[1..], ());
-
-    /* Write r5 array. */
-    code.text.push(
-      Asm::str(
-        Reg::General(regs[1]),
-        (
-          Reg::General(regs[0]),
-          ARM_DSIZE_WORD + (i as i32) * elem_size,
-        ),
-      )
-      .size(elem_size.into()),
+    /* Malloc space for array. */
+    generate_malloc(
+      ARM_DSIZE_WORD + elem_size * exprs.len() as i32,
+      code,
+      Reg::General(regs[0]),
     );
+
+    /* Write each expression to the array. */
+    for (i, expr) in exprs.iter().enumerate() {
+      /* Evaluate expr to r5. */
+      expr.generate(scope, code, &regs[1..], ());
+
+      /* Write r5 array. */
+      code.text.push(
+        Asm::str(
+          Reg::General(regs[1]),
+          (
+            Reg::General(regs[0]),
+            ARM_DSIZE_WORD + (i as i32) * elem_size,
+          ),
+        )
+        .size(elem_size.into()),
+      );
+    }
+  } else {
+    /* Malloc space for array. */
+    generate_malloc(ARM_DSIZE_WORD, code, Reg::General(regs[0]));
   }
 
   /* Write length to first byte.
