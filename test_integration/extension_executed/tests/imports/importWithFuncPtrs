@@ -1,0 +1,7 @@
+#using import before lib.wacc
+
+import test_integration/extension_executed/imports/peano.wacc
+begin
+    int x = call ccus(succ, 3);
+    exit(x)
+end

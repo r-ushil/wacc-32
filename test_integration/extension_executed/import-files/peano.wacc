@@ -1,0 +1,18 @@
+# some defined functions to be used for import
+
+begin
+    int succ(int x) is
+        return x + 1
+    end
+
+    int blow(int y) is 
+        return y - 1
+    end
+
+    int ccus(int(int) s, int z) is
+        int a = call s(z);
+        return -a
+    end
+
+    exit(0)
+end
