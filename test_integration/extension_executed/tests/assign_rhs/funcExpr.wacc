@@ -4,7 +4,7 @@
 # #syntax_error#
 
 # Exit:
-# 100
+# 0
 
 # Program:
 
@@ -12,6 +12,10 @@ begin
   int f() is
     return 0 
   end
-  int x = f() + f()
+  int x = f() + f();
+
+  # should output 0
+  println x
 end
-	
+
+# UPDATE: THIS IS NOW A VALID TEST CASE

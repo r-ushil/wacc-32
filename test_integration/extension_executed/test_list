@@ -10,6 +10,9 @@
 ./tests/func-ptrs/func-pointer.wacc,./tests/func-ptrs/func-pointer.output.observed,./tests/func-ptrs/func-pointer.output.expected,pass
 ./tests/func-ptrs/simple.wacc,./tests/func-ptrs/simple.output.observed,./tests/func-ptrs/simple.output.expected,pass
 ./tests/func-ptrs/func-table.wacc,./tests/func-ptrs/func-table.output.observed,./tests/func-ptrs/func-table.output.expected,pass
+./tests/assign_rhs/funcExpr.wacc,./tests/assign_rhs/funcExpr.output.observed,./tests/assign_rhs/funcExpr.output.expected,pass
+./tests/assign_rhs/funcExpr2.wacc,./tests/assign_rhs/funcExpr2.output.observed,./tests/assign_rhs/funcExpr2.output.expected,pass
+./tests/assign_rhs/functionMissingCall.wacc,./tests/assign_rhs/functionMissingCall.output.observed,./tests/assign_rhs/functionMissingCall.output.expected,pass
 ./tests/imports/import.wacc,./tests/imports/import.output.observed,./tests/imports/import.output.expected,pass
 ./tests/imports/importWithFuncPtrs.wacc,./tests/imports/importWithFuncPtrs.output.observed,./tests/imports/importWithFuncPtrs.output.expected,pass
 

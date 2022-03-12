@@ -29,17 +29,6 @@ impl Analysable for AssignLhs {
   }
 }
 
-impl Analysable for AssignRhs {
-  type Input = ();
-  type Output = Type;
-
-  fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
-    match self {
-      AssignRhs::Expr(exp) => exp.analyse(scope, ()),
-    }
-  }
-}
-
 impl Analysable for StructLiter {
   type Input = ();
   type Output = Type;
@@ -390,8 +379,7 @@ mod tests {
     int x = 5
     */
     let x = || String::from("x");
-    let mut intx5 =
-      Stat::Declaration(Type::Int, x(), AssignRhs::Expr(Expr::IntLiter(5)));
+    let mut intx5 = Stat::Declaration(Type::Int, x(), Expr::IntLiter(5));
 
     let mut outer_symbol_table = SymbolTable::default();
     let mut outer_scope = ScopeBuilder::new(&mut outer_symbol_table);
@@ -422,12 +410,9 @@ mod tests {
     let x = || String::from("x");
     let y = || String::from("y");
     let z = || String::from("z");
-    let intx5 =
-      Stat::Declaration(Type::Int, x(), AssignRhs::Expr(Expr::IntLiter(5)));
-    let intyx =
-      Stat::Declaration(Type::Int, y(), AssignRhs::Expr(Expr::Ident(x())));
-    let intz7 =
-      Stat::Declaration(Type::Int, z(), AssignRhs::Expr(Expr::IntLiter(7)));
+    let intx5 = Stat::Declaration(Type::Int, x(), Expr::IntLiter(5));
+    let intyx = Stat::Declaration(Type::Int, y(), Expr::Ident(x()));
+    let intz7 = Stat::Declaration(Type::Int, z(), Expr::IntLiter(7));
     let mut statement = Stat::Scope(ScopedStat::new(Stat::Sequence(
       Box::new(intx5),
       Box::new(Stat::Sequence(
