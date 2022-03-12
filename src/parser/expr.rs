@@ -32,6 +32,14 @@ pub fn expr(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
 }
 
 fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
+  /* EXCEPTION: Expressions may be preceded by 'call' if they
+  are a function call. */
+  if let Ok((input, e @ Expr::Call(_, _, _))) =
+    preceded(tok("call"), expr_atom)(input)
+  {
+    return Ok((input, e));
+  }
+
   let bool_liter = alt((
     value(Expr::BoolLiter(true), tok("true")),
     value(Expr::BoolLiter(false), tok("false")),
@@ -79,25 +87,22 @@ fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
     unary_app,
     map(ident, Expr::Ident),
     delimited(tok("("), expr, tok(")")),
-    map(
-      tuple((
-        tok("call"),
-        expr,
-        tok("("),
-        many0_delimited(expr, tok(",")),
-        tok(")"),
-      )),
-      |(_, func, _, args, _)| Expr::Call(Type::default(), Box::new(func), args),
-    ),
   ))(input)?;
 
-  /* Check if the expression is followed by a .field_name (StructElem) */
-  while let Ok((i, id)) = preceded(tok("."), ident)(input) {
-    /* Shuffle input up. */
-    input = i;
-
-    /* Nest expression in a struct elem. */
-    e = Expr::StructElem(StructElem(Ident::default(), Box::new(e), id));
+  loop {
+    if let Ok((i, id)) = preceded(tok("."), ident)(input) {
+      /* Check if the expression is followed by a .field_name (StructElem) */
+      input = i;
+      e = Expr::StructElem(StructElem(Ident::default(), Box::new(e), id));
+    } else if let Ok((i, args)) =
+      delimited(tok("("), many0_delimited(expr, tok(",")), tok(")"))(input)
+    {
+      /* Check if expression followed by function call. */
+      input = i;
+      e = Expr::Call(Type::default(), Box::new(e), args)
+    } else {
+      break;
+    }
   }
 
   Ok((input, e))

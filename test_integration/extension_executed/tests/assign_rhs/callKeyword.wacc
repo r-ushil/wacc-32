@@ -1,0 +1,13 @@
+begin
+  int three() is return 3 end
+
+  # Function calls don't need 'call' keyword anymore.
+  int x = three();
+
+  # But they can still have it if they want.
+  int y = call three();
+
+  println x;
+
+  println y
+end
