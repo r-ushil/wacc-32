@@ -66,7 +66,7 @@ impl Analysable for Program {
     }
 
     /* Program body must never return, but it can exit. */
-    match scoped_stat(&scope, &mut self.statement)? {
+    match self.statement.analyse(&mut scope, ())? {
       MidWay(t) | AtEnd(t) if t != Type::Any => Err(SemanticError::Normal(
         "Cannot have 'return' statement in main".to_string(),
       )),

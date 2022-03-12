@@ -15,28 +15,35 @@ impl ReturnBehaviour {
   }
 }
 
-impl HasType for AssignLhs {
-  fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
+impl Analysable for AssignLhs {
+  type Input = ();
+  type Output = Type;
+
+  fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
     match self {
-      AssignLhs::Ident(id) => id.get_type(scope),
-      AssignLhs::ArrayElem(elem) => elem.get_type(scope),
-      AssignLhs::PairElem(elem) => elem.get_type(scope),
-      AssignLhs::StructElem(elem) => elem.get_type(scope),
+      AssignLhs::Ident(id) => id.analyse(scope, ()),
+      AssignLhs::ArrayElem(elem) => elem.analyse(scope, ()),
+      AssignLhs::PairElem(elem) => elem.analyse(scope, ()),
+      AssignLhs::StructElem(elem) => elem.analyse(scope, ()),
     }
   }
 }
 
-#[allow(unused_variables)]
-impl HasType for AssignRhs {
-  fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
+impl Analysable for AssignRhs {
+  type Input = ();
+  type Output = Type;
+
+  fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
     match self {
-      AssignRhs::Expr(exp) => exp.get_type(scope),
+      AssignRhs::Expr(exp) => exp.analyse(scope, ()),
     }
   }
 }
 
-impl HasType for StructLiter {
-  fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
+impl Analysable for StructLiter {
+  type Input = ();
+  type Output = Type;
+  fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
     let StructLiter { id, fields } = self;
 
     /* Fetch struct definition. */
@@ -78,13 +85,15 @@ impl HasType for StructLiter {
   }
 }
 
-impl HasType for PairElem {
-  fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
+impl Analysable for PairElem {
+  type Input = ();
+  type Output = Type;
+  fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
     use PairElem::*;
 
     /* Gets type of thing being accessed, and stored type. */
     let pair_type = match self {
-      Fst(p) | Snd(p) => p.get_type(scope)?,
+      Fst(p) | Snd(p) => p.analyse(scope, ())?,
     };
 
     /* Gets type of left and right element of pair. */
@@ -124,8 +133,11 @@ impl HasType for PairElem {
   }
 }
 
-impl HasType for ArrayLiter {
-  fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
+impl Analysable for ArrayLiter {
+  type Input = ();
+  type Output = Type;
+
+  fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
     let ArrayLiter(stored_type, exprs) = self;
 
     /* Take first element as source of truth. */
@@ -133,7 +145,7 @@ impl HasType for ArrayLiter {
 
     /* Ensure every other element has same type. */
     for expr in exprs {
-      if let Ok(expr_type) = expr.get_type(scope) {
+      if let Ok(expr_type) = expr.analyse(scope, ()) {
         if let Some(t) = array_type {
           array_type = t.unify(expr_type)
         }
@@ -152,16 +164,25 @@ impl HasType for ArrayLiter {
   }
 }
 
-pub fn scoped_stat(
-  scope: &ScopeBuilder,
-  ScopedStat(new_symbol_table, statement): &mut ScopedStat,
-) -> AResult<ReturnBehaviour> {
-  /* Create a new scope, so declarations in {statement} don't bleed into
-  surrounding scope. */
-  let mut new_scope = scope.new_scope(new_symbol_table);
+impl Analysable for ScopedStat {
+  type Input = ();
 
-  /* Analyse statement. */
-  statement.analyse(&mut new_scope, ())
+  type Output = ReturnBehaviour;
+
+  fn analyse(
+    &mut self,
+    scope: &mut ScopeBuilder,
+    _: (),
+  ) -> AResult<ReturnBehaviour> {
+    let ScopedStat(new_symbol_table, statement) = self;
+
+    /* Create a new scope, so declarations in {statement} don't bleed into
+    surrounding scope. */
+    let mut new_scope = scope.new_scope(new_symbol_table);
+
+    /* Analyse statement. */
+    statement.analyse(&mut new_scope, ())
+  }
 }
 
 impl Analysable for Stat {
@@ -198,7 +219,7 @@ impl Analysable for Stat {
       }
       Stat::Read(t, dest) => {
         /* Any type can be read. */
-        match dest.get_type(scope)? {
+        match dest.analyse(scope, ())? {
           /* Reads never return. */
           new_t @ (Type::Int | Type::Char) => {
             *t = new_t;
@@ -209,14 +230,14 @@ impl Analysable for Stat {
           )), /*  */
         }
       }
-      Stat::Free(expr) => match expr.get_type(scope)? {
+      Stat::Free(expr) => match expr.analyse(scope, ())? {
         Type::Pair(_, _) | Type::Array(_) => Ok(Never), /* Frees never return. */
         actual_type => Err(SemanticError::Normal(format!(
           "TYPE ERROR: Expected Type\n\tExpected: Pair or Array\n\tActual:{:?}",
           actual_type
         ))),
       },
-      Stat::Return(expr) => Ok(AtEnd(expr.get_type(scope)?)), /* Returns always return. */
+      Stat::Return(expr) => Ok(AtEnd(expr.analyse(scope, ())?)), /* Returns always return. */
       Stat::Exit(expr) => {
         /* Exit codes must be integers. */
         expected_type(scope, &Type::Int, expr)?;
@@ -226,7 +247,7 @@ impl Analysable for Stat {
       }
       Stat::Print(expr) | Stat::Println(expr) => {
         /* Any type can be printed. */
-        expr.get_type(scope)?;
+        expr.analyse(scope, ())?;
 
         /* Prints never return. */
         Ok(Never)
@@ -234,8 +255,8 @@ impl Analysable for Stat {
       Stat::If(cond, if_stat, else_stat) => {
         let ((_, true_behaviour), false_behaviour) =
           expected_type(scope, &Type::Bool, cond)
-            .join(scoped_stat(scope, if_stat))
-            .join(scoped_stat(scope, else_stat))?;
+            .join(if_stat.analyse(scope, ()))
+            .join(else_stat.analyse(scope, ()))?;
 
         /* If both branches return the same type, the if statement can
         be relied on to return that type. */
@@ -267,7 +288,7 @@ impl Analysable for Stat {
       }
       Stat::While(cond, body) => {
         let (_, statement_result) = expected_type(scope, &Type::Bool, cond)
-          .join(scoped_stat(scope, body))?;
+          .join(body.analyse(scope, ()))?;
 
         Ok(match statement_result {
           /* If the body always returns, while loop might still not return
@@ -277,7 +298,7 @@ impl Analysable for Stat {
           b => b,
         })
       }
-      Stat::Scope(body) => scoped_stat(scope, body),
+      Stat::Scope(body) => body.analyse(scope, ()),
       Stat::Sequence(fst, snd) => {
         /* CHECK: no definite returns before last line. */
         let (lhs, rhs) = fst.analyse(scope, ()).join(snd.analyse(scope, ()))?;
@@ -319,7 +340,7 @@ mod tests {
       id: format!("IntBox"),
       fields: HashMap::from([(format!("x"), Expr::IntLiter(5))]),
     })
-    .get_type(scope)
+    .analyse(scope, ())
     .is_ok());
 
     /* Wrong amount of fields. */
@@ -330,7 +351,7 @@ mod tests {
         (format!("y"), Expr::IntLiter(6)),
       ])
     })
-    .get_type(scope)
+    .analyse(scope, ())
     .is_err());
 
     /* Field has wrong type. */
@@ -338,7 +359,7 @@ mod tests {
       id: format!("IntBox"),
       fields: HashMap::from([(format!("x"), Expr::BoolLiter(true)),])
     })
-    .get_type(scope)
+    .analyse(scope, ())
     .is_err());
   }
 
@@ -351,11 +372,14 @@ mod tests {
     let x_id = String::from("x");
     let x_type = Type::Array(Box::new(Type::Int));
     scope.insert_var(&mut x_id.clone(), x_type.clone()).unwrap();
-    assert_eq!(AssignLhs::Ident(x_id.clone()).get_type(scope), Ok(x_type));
+    assert_eq!(
+      AssignLhs::Ident(x_id.clone()).analyse(scope, ()),
+      Ok(x_type)
+    );
 
     assert_eq!(
       AssignLhs::ArrayElem(ArrayElem(x_id.clone(), vec!(Expr::IntLiter(5))))
-        .get_type(scope),
+        .analyse(scope, ()),
       Ok(Type::Int)
     );
   }
