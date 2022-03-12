@@ -12,28 +12,28 @@ impl HasType for TypedExpr {
 
 impl HasType for Expr {
   fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
-    Ok(match self {
-      IntLiter(_) => Type::Int,
-      BoolLiter(_) => Type::Bool,
-      CharLiter(_) => Type::Char,
-      StrLiter(_) => Type::String,
-      NullPairLiter => Type::Pair(Box::new(Type::Any), Box::new(Type::Any)),
+    match self {
+      IntLiter(_) => Ok(Type::Int),
+      BoolLiter(_) => Ok(Type::Bool),
+      CharLiter(_) => Ok(Type::Char),
+      StrLiter(_) => Ok(Type::String),
+      NullPairLiter => Ok(Type::Pair(Box::new(Type::Any), Box::new(Type::Any))),
       PairLiter(e1, e2) => {
         let (lhs_type, rhs_type) =
           e1.get_type(scope).join(e2.get_type(scope))?;
 
-        Type::Pair(Box::new(lhs_type), Box::new(rhs_type))
+        Ok(Type::Pair(Box::new(lhs_type), Box::new(rhs_type)))
       }
-      Expr::ArrayLiter(lit) => lit.get_type(scope)?,
-      StructLiter(s) => s.get_type(scope)?,
-      PairElem(elem) => elem.get_type(scope)?,
-      Ident(id) => id.get_type(scope)?,
-      Expr::ArrayElem(elem) => elem.get_type(scope)?,
-      Expr::StructElem(elem) => elem.get_type(scope)?,
-      Call(t, func_expr, args) => analyse_call(scope, t, func_expr, args)?,
-      UnaryApp(op, exp) => analyse_unary(scope, op, exp)?,
-      BinaryApp(exp1, op, exp2) => analyse_binary(scope, exp1, op, exp2)?,
-    })
+      Expr::ArrayLiter(lit) => lit.get_type(scope),
+      StructLiter(s) => s.get_type(scope),
+      PairElem(elem) => elem.get_type(scope),
+      Ident(id) => id.get_type(scope),
+      Expr::ArrayElem(elem) => elem.get_type(scope),
+      Expr::StructElem(elem) => elem.get_type(scope),
+      Call(t, func_expr, args) => analyse_call(scope, t, func_expr, args),
+      UnaryApp(op, exp) => analyse_unary(scope, op, exp),
+      BinaryApp(exp1, op, exp2) => analyse_binary(scope, exp1, op, exp2),
+    }
   }
 }
 
