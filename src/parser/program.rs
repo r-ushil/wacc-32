@@ -3,10 +3,11 @@ use std::fs;
 
 use nom::{
   branch::alt,
+  bytes::complete::tag,
   character::complete::alphanumeric1,
   combinator::map,
-  multi::many0,
-  sequence::{delimited, pair, preceded, tuple, terminated},
+  multi::{many0, many1},
+  sequence::{delimited, pair, preceded, terminated, tuple},
   IResult,
 };
 use nom_supreme::{error::ErrorTree, final_parser};
@@ -20,23 +21,22 @@ use crate::{
   parse, read_file,
 };
 
-fn import_file(input: &str) -> IResult<&str, Vec<Func>, ErrorTree<&str>> {
-  map(
-    terminated(alt((alphanumeric1, tok("/"))), tok(".wacc")),
-    |filename| {
-      let program_string =
-        read_file(fs::File::open(format!("{}.wacc", filename)).unwrap());
-      let program_str = program_string.as_str();
+fn file_name(input: &str) -> IResult<&str, &str, ErrorTree<&str>> {
+  alt((alphanumeric1, tag("/"), tag("-"), tag("_"), tag("../")))(input)
+}
 
-      parse(program_str).funcs
-    },
-  )(input)
+fn import_file(input: &str) -> IResult<&str, Vec<Func>, ErrorTree<&str>> {
+  map(terminated(many1(file_name), tok(".wacc")), |filename| {
+    let program_string =
+      read_file(fs::File::open(format!("{}.wacc", filename.join(""))).unwrap());
+    let program_str = program_string.as_str();
+
+    parse(program_str).funcs
+  })(input)
 }
 
 fn import_stat(input: &str) -> IResult<&str, Vec<Func>, ErrorTree<&str>> {
-  map(preceded(tok("import"), import_file), | ast| {
-    ast
-  })(input)
+  preceded(tok("import"), import_file)(input)
 }
 
 pub fn final_program_parser(input: &str) -> Result<Program, ErrorTree<&str>> {
@@ -45,6 +45,7 @@ pub fn final_program_parser(input: &str) -> Result<Program, ErrorTree<&str>> {
 
 /* program ::= 'begin' <func>* <stat> 'end' */
 pub fn program(input: &str) -> IResult<&str, Program, ErrorTree<&str>> {
+  let (input, _) = comment_or_ws(input)?;
   let (input, funcs) = many0(import_stat)(input)?;
   //println!("{:#?}", input);
   let mut funcs = funcs.into_iter().flatten().collect::<Vec<Func>>();

@@ -2,6 +2,6 @@
 
 import import-files/peano.wacc
 begin
-    int x = call succ(-1);
+    int x = call ccus(succ, 3);
     exit(x)
 end
