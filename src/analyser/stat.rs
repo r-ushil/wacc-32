@@ -15,28 +15,35 @@ impl ReturnBehaviour {
   }
 }
 
-impl HasType for AssignLhs {
-  fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
+impl Analysable for AssignLhs {
+  type Input = ();
+  type Output = Type;
+
+  fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
     match self {
-      AssignLhs::Ident(id) => id.get_type(scope),
-      AssignLhs::ArrayElem(elem) => elem.get_type(scope),
-      AssignLhs::PairElem(elem) => elem.get_type(scope),
-      AssignLhs::StructElem(elem) => elem.get_type(scope),
+      AssignLhs::Ident(id) => id.analyse(scope, ()),
+      AssignLhs::ArrayElem(elem) => elem.analyse(scope, ()),
+      AssignLhs::PairElem(elem) => elem.analyse(scope, ()),
+      AssignLhs::StructElem(elem) => elem.analyse(scope, ()),
     }
   }
 }
 
-#[allow(unused_variables)]
-impl HasType for AssignRhs {
-  fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
+impl Analysable for AssignRhs {
+  type Input = ();
+  type Output = Type;
+
+  fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
     match self {
-      AssignRhs::Expr(exp) => exp.get_type(scope),
+      AssignRhs::Expr(exp) => exp.analyse(scope, ()),
     }
   }
 }
 
-impl HasType for StructLiter {
-  fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
+impl Analysable for StructLiter {
+  type Input = ();
+  type Output = Type;
+  fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
     let StructLiter { id, fields } = self;
 
     /* Fetch struct definition. */
@@ -78,13 +85,15 @@ impl HasType for StructLiter {
   }
 }
 
-impl HasType for PairElem {
-  fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
+impl Analysable for PairElem {
+  type Input = ();
+  type Output = Type;
+  fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
     use PairElem::*;
 
     /* Gets type of thing being accessed, and stored type. */
     let pair_type = match self {
-      Fst(p) | Snd(p) => p.get_type(scope)?,
+      Fst(p) | Snd(p) => p.analyse(scope, ())?,
     };
 
     /* Gets type of left and right element of pair. */
@@ -124,8 +133,11 @@ impl HasType for PairElem {
   }
 }
 
-impl HasType for ArrayLiter {
-  fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
+impl Analysable for ArrayLiter {
+  type Input = ();
+  type Output = Type;
+
+  fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
     let ArrayLiter(stored_type, exprs) = self;
 
     /* Take first element as source of truth. */
@@ -133,7 +145,7 @@ impl HasType for ArrayLiter {
 
     /* Ensure every other element has same type. */
     for expr in exprs {
-      if let Ok(expr_type) = expr.get_type(scope) {
+      if let Ok(expr_type) = expr.analyse(scope, ()) {
         if let Some(t) = array_type {
           array_type = t.unify(expr_type)
         }
@@ -152,139 +164,153 @@ impl HasType for ArrayLiter {
   }
 }
 
-pub fn scoped_stat(
-  scope: &ScopeBuilder,
-  ScopedStat(new_symbol_table, statement): &mut ScopedStat,
-) -> AResult<ReturnBehaviour> {
-  /* Create a new scope, so declarations in {statement} don't bleed into
-  surrounding scope. */
-  let mut new_scope = scope.new_scope(new_symbol_table);
+impl Analysable for ScopedStat {
+  type Input = ();
 
-  /* Analyse statement. */
-  stat(&mut new_scope, statement)
+  type Output = ReturnBehaviour;
+
+  fn analyse(
+    &mut self,
+    scope: &mut ScopeBuilder,
+    _: (),
+  ) -> AResult<ReturnBehaviour> {
+    let ScopedStat(new_symbol_table, statement) = self;
+
+    /* Create a new scope, so declarations in {statement} don't bleed into
+    surrounding scope. */
+    let mut new_scope = scope.new_scope(new_symbol_table);
+
+    /* Analyse statement. */
+    statement.analyse(&mut new_scope, ())
+  }
 }
 
-/* Type checks a statement.
-Declarations will add to the symbol table.
-Scopes will make a new scope within the symbol table.
-If the statment ALWAYS returns with the same type, returns that type. */
-#[allow(dead_code)]
-pub fn stat(
-  scope: &mut ScopeBuilder,
-  statement: &mut Stat,
-) -> AResult<ReturnBehaviour> {
-  use ReturnBehaviour::*;
+impl Analysable for Stat {
+  type Input = ();
+  type Output = ReturnBehaviour;
 
-  /* Returns error if there is any. */
-  match statement {
-    Stat::Skip => Ok(Never), /* Skips never return. */
-    Stat::Declaration(expected, id, val) => {
-      expected_type(scope, expected, val)
-        .join(scope.insert_var(id, expected.clone()))?;
+  /* Type checks a statement.
+  Declarations will add to the symbol table.
+  Scopes will make a new scope within the symbol table.
+  If the statment ALWAYS returns with the same type, returns that type. */
+  fn analyse(
+    &mut self,
+    scope: &mut ScopeBuilder,
+    _: (),
+  ) -> AResult<ReturnBehaviour> {
+    use ReturnBehaviour::*;
 
-      /* Declarations never return. */
-      Ok(Never)
-    }
-    Stat::Assignment(lhs, t, rhs) => {
-      /* LHS and RHS must have same type. */
-      *t = equal_types(scope, lhs, rhs)?;
+    /* Returns error if there is any. */
+    match self {
+      Stat::Skip => Ok(Never), /* Skips never return. */
+      Stat::Declaration(expected, id, val) => {
+        expected_type(scope, expected, val)
+          .join(scope.insert_var(id, expected.clone()))?;
 
-      /* Assignments never return. */
-      Ok(Never)
-    }
-    Stat::Read(t, dest) => {
-      /* Any type can be read. */
-      match dest.get_type(scope)? {
-        /* Reads never return. */
-        new_t @ (Type::Int | Type::Char) => {
-          *t = new_t;
-          Ok(Never)
+        /* Declarations never return. */
+        Ok(Never)
+      }
+      Stat::Assignment(lhs, t, rhs) => {
+        /* LHS and RHS must have same type. */
+        *t = equal_types(scope, lhs, rhs)?;
+
+        /* Assignments never return. */
+        Ok(Never)
+      }
+      Stat::Read(t, dest) => {
+        /* Any type can be read. */
+        match dest.analyse(scope, ())? {
+          /* Reads never return. */
+          new_t @ (Type::Int | Type::Char) => {
+            *t = new_t;
+            Ok(Never)
+          }
+          _ => Err(SemanticError::Normal(
+            "Read statements must read char or int.".to_string(),
+          )), /*  */
         }
-        _ => Err(SemanticError::Normal(
-          "Read statements must read char or int.".to_string(),
-        )), /*  */
       }
-    }
-    Stat::Free(expr) => match expr.get_type(scope)? {
-      Type::Pair(_, _) | Type::Array(_) => Ok(Never), /* Frees never return. */
-      actual_type => Err(SemanticError::Normal(format!(
-        "TYPE ERROR: Expected Type\n\tExpected: Pair or Array\n\tActual:{:?}",
-        actual_type
-      ))),
-    },
-    Stat::Return(expr) => Ok(AtEnd(expr.get_type(scope)?)), /* Returns always return. */
-    Stat::Exit(expr) => {
-      /* Exit codes must be integers. */
-      expected_type(scope, &Type::Int, expr)?;
-      /* Exits can be concidered to return because they will never return the
-      wrong type, by using any it won't collide with another type. */
-      Ok(AtEnd(Type::Any))
-    }
-    Stat::Print(expr) | Stat::Println(expr) => {
-      /* Any type can be printed. */
-      expr.get_type(scope)?;
-
-      /* Prints never return. */
-      Ok(Never)
-    }
-    Stat::If(cond, if_stat, else_stat) => {
-      let ((_, true_behaviour), false_behaviour) =
-        expected_type(scope, &Type::Bool, cond)
-          .join(scoped_stat(scope, if_stat))
-          .join(scoped_stat(scope, else_stat))?;
-
-      /* If both branches return the same type, the if statement can
-      be relied on to return that type. */
-
-      /* If branches return with different types, if statement is error. */
-      if !true_behaviour.same_return(&false_behaviour) {
-        return Err(SemanticError::Normal(
-          "Branches of if statement return values of different types."
-            .to_string(),
-        ));
+      Stat::Free(expr) => match expr.analyse(scope, ())? {
+        Type::Pair(_, _) | Type::Array(_) => Ok(Never), /* Frees never return. */
+        actual_type => Err(SemanticError::Normal(format!(
+          "TYPE ERROR: Expected Type\n\tExpected: Pair or Array\n\tActual:{:?}",
+          actual_type
+        ))),
+      },
+      Stat::Return(expr) => Ok(AtEnd(expr.analyse(scope, ())?)), /* Returns always return. */
+      Stat::Exit(expr) => {
+        /* Exit codes must be integers. */
+        expected_type(scope, &Type::Int, expr)?;
+        /* Exits can be concidered to return because they will never return the
+        wrong type, by using any it won't collide with another type. */
+        Ok(AtEnd(Type::Any))
       }
+      Stat::Print(expr) | Stat::Println(expr) => {
+        /* Any type can be printed. */
+        expr.analyse(scope, ())?;
 
-      /* Get return type. */
-      let return_type = match (&true_behaviour, &false_behaviour) {
-        /* If both branches never return, if statement never returns. */
-        (Never, Never) => return Ok(Never),
-        /* Otherwise, if statement returns the same type as one of its branches. */
-        (MidWay(t) | AtEnd(t), _) | (_, MidWay(t) | AtEnd(t)) => t,
-      };
-
-      /* Determine how often that return type is returned. */
-      if let (AtEnd(_), AtEnd(_)) = (&true_behaviour, &false_behaviour) {
-        /* If both branches end in returns, the if statement ends in a return. */
-        Ok(AtEnd(return_type.clone()))
-      } else {
-        /* Otherwise, the if statement doesn't end with a return. */
-        Ok(MidWay(return_type.clone()))
+        /* Prints never return. */
+        Ok(Never)
       }
-    }
-    Stat::While(cond, body) => {
-      let (_, statement_result) = expected_type(scope, &Type::Bool, cond)
-        .join(scoped_stat(scope, body))?;
+      Stat::If(cond, if_stat, else_stat) => {
+        let ((_, true_behaviour), false_behaviour) =
+          expected_type(scope, &Type::Bool, cond)
+            .join(if_stat.analyse(scope, ()))
+            .join(else_stat.analyse(scope, ()))?;
 
-      Ok(match statement_result {
-        /* If the body always returns, while loop might still not return
-        because the cond might always be false and the body never run. */
-        AtEnd(t) => MidWay(t),
-        /* Otherwise white loop returns the same way it's body does. */
-        b => b,
-      })
-    }
-    Stat::Scope(body) => scoped_stat(scope, body),
-    Stat::Sequence(fst, snd) => {
-      /* CHECK: no definite returns before last line. */
-      let (lhs, rhs) = stat(scope, fst).join(stat(scope, snd))?;
+        /* If both branches return the same type, the if statement can
+        be relied on to return that type. */
 
-      /* Even if RHS never returns, the statement overall might still return
-      if the LHS returns some or all of the time. */
-      Ok(if let (Never, MidWay(t) | AtEnd(t)) = (&rhs, lhs) {
-        MidWay(t)
-      } else {
-        rhs
-      })
+        /* If branches return with different types, if statement is error. */
+        if !true_behaviour.same_return(&false_behaviour) {
+          return Err(SemanticError::Normal(
+            "Branches of if statement return values of different types."
+              .to_string(),
+          ));
+        }
+
+        /* Get return type. */
+        let return_type = match (&true_behaviour, &false_behaviour) {
+          /* If both branches never return, if statement never returns. */
+          (Never, Never) => return Ok(Never),
+          /* Otherwise, if statement returns the same type as one of its branches. */
+          (MidWay(t) | AtEnd(t), _) | (_, MidWay(t) | AtEnd(t)) => t,
+        };
+
+        /* Determine how often that return type is returned. */
+        if let (AtEnd(_), AtEnd(_)) = (&true_behaviour, &false_behaviour) {
+          /* If both branches end in returns, the if statement ends in a return. */
+          Ok(AtEnd(return_type.clone()))
+        } else {
+          /* Otherwise, the if statement doesn't end with a return. */
+          Ok(MidWay(return_type.clone()))
+        }
+      }
+      Stat::While(cond, body) => {
+        let (_, statement_result) = expected_type(scope, &Type::Bool, cond)
+          .join(body.analyse(scope, ()))?;
+
+        Ok(match statement_result {
+          /* If the body always returns, while loop might still not return
+          because the cond might always be false and the body never run. */
+          AtEnd(t) => MidWay(t),
+          /* Otherwise white loop returns the same way it's body does. */
+          b => b,
+        })
+      }
+      Stat::Scope(body) => body.analyse(scope, ()),
+      Stat::Sequence(fst, snd) => {
+        /* CHECK: no definite returns before last line. */
+        let (lhs, rhs) = fst.analyse(scope, ()).join(snd.analyse(scope, ()))?;
+
+        /* Even if RHS never returns, the statement overall might still return
+        if the LHS returns some or all of the time. */
+        Ok(if let (Never, MidWay(t) | AtEnd(t)) = (&rhs, lhs) {
+          MidWay(t)
+        } else {
+          rhs
+        })
+      }
     }
   }
 }
@@ -314,7 +340,7 @@ mod tests {
       id: format!("IntBox"),
       fields: HashMap::from([(format!("x"), Expr::IntLiter(5))]),
     })
-    .get_type(scope)
+    .analyse(scope, ())
     .is_ok());
 
     /* Wrong amount of fields. */
@@ -325,7 +351,7 @@ mod tests {
         (format!("y"), Expr::IntLiter(6)),
       ])
     })
-    .get_type(scope)
+    .analyse(scope, ())
     .is_err());
 
     /* Field has wrong type. */
@@ -333,7 +359,7 @@ mod tests {
       id: format!("IntBox"),
       fields: HashMap::from([(format!("x"), Expr::BoolLiter(true)),])
     })
-    .get_type(scope)
+    .analyse(scope, ())
     .is_err());
   }
 
@@ -346,11 +372,14 @@ mod tests {
     let x_id = String::from("x");
     let x_type = Type::Array(Box::new(Type::Int));
     scope.insert_var(&mut x_id.clone(), x_type.clone()).unwrap();
-    assert_eq!(AssignLhs::Ident(x_id.clone()).get_type(scope), Ok(x_type));
+    assert_eq!(
+      AssignLhs::Ident(x_id.clone()).analyse(scope, ()),
+      Ok(x_type)
+    );
 
     assert_eq!(
       AssignLhs::ArrayElem(ArrayElem(x_id.clone(), vec!(Expr::IntLiter(5))))
-        .get_type(scope),
+        .analyse(scope, ()),
       Ok(Type::Int)
     );
   }
@@ -367,7 +396,7 @@ mod tests {
     let mut outer_symbol_table = SymbolTable::default();
     let mut outer_scope = ScopeBuilder::new(&mut outer_symbol_table);
 
-    stat(&mut outer_scope, &mut intx5).unwrap();
+    intx5.analyse(&mut outer_scope, ()).unwrap();
 
     assert!(matches!(
       outer_scope.get(&mut x()),
@@ -410,7 +439,7 @@ mod tests {
     let mut outer_symbol_table = SymbolTable::default();
     let mut global_scope = ScopeBuilder::new(&mut outer_symbol_table);
 
-    stat(&mut global_scope, &mut statement).unwrap();
+    statement.analyse(&mut global_scope, ()).unwrap();
     /* x and z should now be in outer scope */
 
     /* Retrieve inner and outer st from statement ast. */

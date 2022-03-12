@@ -76,7 +76,7 @@ impl ScopeReader<'_> {
     }
   }
 
-  pub fn get_var(&self, ident: &Ident) -> Option<(Type, Offset)> {
+  pub fn _get_var(&self, ident: &Ident) -> Option<(Type, Offset)> {
     match self.get(ident)? {
       IdentInfo::LocalVar(t, offset) => Some((t, offset)),
       _ => None,
@@ -90,7 +90,7 @@ impl ScopeReader<'_> {
     }
   }
 
-  pub fn get_label(&self, ident: &Ident) -> Option<(Type, Label)> {
+  pub fn _get_label(&self, ident: &Ident) -> Option<(Type, Label)> {
     match self.get(ident)? {
       IdentInfo::Label(t, label) => Some((t, label)),
       _ => None,

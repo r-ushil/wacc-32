@@ -2,16 +2,20 @@ use super::*;
 use crate::ast::*;
 use Expr::*;
 
-impl HasType for TypedExpr {
-  fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
+impl Analysable for TypedExpr {
+  type Input = ();
+  type Output = Type;
+  fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
     let TypedExpr(t, expr) = self;
-    *t = expr.get_type(scope)?;
+    *t = expr.analyse(scope, ())?;
     Ok(t.clone())
   }
 }
 
-impl HasType for Expr {
-  fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
+impl Analysable for Expr {
+  type Input = ();
+  type Output = Type;
+  fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
     match self {
       IntLiter(_) => Ok(Type::Int),
       BoolLiter(_) => Ok(Type::Bool),
@@ -20,16 +24,16 @@ impl HasType for Expr {
       NullPairLiter => Ok(Type::Pair(Box::new(Type::Any), Box::new(Type::Any))),
       PairLiter(e1, e2) => {
         let (lhs_type, rhs_type) =
-          e1.get_type(scope).join(e2.get_type(scope))?;
+          e1.analyse(scope, ()).join(e2.analyse(scope, ()))?;
 
         Ok(Type::Pair(Box::new(lhs_type), Box::new(rhs_type)))
       }
-      Expr::ArrayLiter(lit) => lit.get_type(scope),
-      StructLiter(s) => s.get_type(scope),
-      PairElem(elem) => elem.get_type(scope),
-      Ident(id) => id.get_type(scope),
-      Expr::ArrayElem(elem) => elem.get_type(scope),
-      Expr::StructElem(elem) => elem.get_type(scope),
+      Expr::ArrayLiter(lit) => lit.analyse(scope, ()),
+      StructLiter(s) => s.analyse(scope, ()),
+      PairElem(elem) => elem.analyse(scope, ()),
+      Ident(id) => id.analyse(scope, ()),
+      Expr::ArrayElem(elem) => elem.analyse(scope, ()),
+      Expr::StructElem(elem) => elem.analyse(scope, ()),
       Call(t, func_expr, args) => analyse_call(scope, t, func_expr, args),
       UnaryApp(op, exp) => analyse_unary(scope, op, exp),
       BinaryApp(exp1, op, exp2) => analyse_binary(scope, exp1, op, exp2),
@@ -38,12 +42,12 @@ impl HasType for Expr {
 }
 
 fn analyse_call(
-  scope: &ScopeBuilder,
+  scope: &mut ScopeBuilder,
   t: &mut Type,
   func_expr: &mut Box<Expr>,
   args: &mut Vec<Expr>,
 ) -> AResult<Type> {
-  match func_expr.get_type(scope)? {
+  match func_expr.analyse(scope, ())? {
     Type::Func(bx) => {
       /* Populate the type in call. */
       *t = Type::Func(bx.clone());
@@ -78,14 +82,14 @@ fn analyse_call(
 }
 
 fn analyse_unary(
-  scope: &ScopeBuilder,
+  scope: &mut ScopeBuilder,
   op: &mut UnaryOper,
   exp: &mut Box<Expr>,
 ) -> AResult<Type> {
   match op {
     UnaryOper::Bang => Ok(expected_type(scope, &Type::Bool, exp)?.clone()),
     UnaryOper::Neg => Ok(expected_type(scope, &Type::Int, exp)?.clone()),
-    UnaryOper::Len => match exp.get_type(scope)? {
+    UnaryOper::Len => match exp.analyse(scope, ())? {
       Type::Array(_) => Ok(Type::Int),
       t => {
         Err(SemanticError::Normal(format!(
@@ -106,7 +110,7 @@ fn analyse_unary(
 }
 
 fn analyse_binary(
-  scope: &ScopeBuilder,
+  scope: &mut ScopeBuilder,
   exp1: &mut Box<Expr>,
   op: &mut BinaryOper,
   exp2: &mut Box<Expr>,
@@ -178,26 +182,26 @@ mod tests {
     assert!(Expr::PairElem(Box::new(PairElem::Fst(TypedExpr::new(
       Expr::NullPairLiter
     ))))
-    .get_type(scope)
+    .analyse(scope, ())
     .is_err());
 
     assert!(Expr::PairElem(Box::new(PairElem::Fst(TypedExpr::new(
       Expr::NullPairLiter
     ))))
-    .get_type(scope)
+    .analyse(scope, ())
     .is_err());
   }
 
   #[test]
   fn literals() {
     let mut symbol_table = SymbolTable::default();
-    let scope = &ScopeBuilder::new(&mut symbol_table);
+    let scope = &mut ScopeBuilder::new(&mut symbol_table);
 
-    assert_eq!(IntLiter(5).get_type(scope), Ok(Type::Int));
-    assert_eq!(BoolLiter(false).get_type(scope), Ok(Type::Bool));
-    assert_eq!(CharLiter('a').get_type(scope), Ok(Type::Char));
+    assert_eq!(IntLiter(5).analyse(scope, ()), Ok(Type::Int));
+    assert_eq!(BoolLiter(false).analyse(scope, ()), Ok(Type::Bool));
+    assert_eq!(CharLiter('a').analyse(scope, ()), Ok(Type::Char));
     assert_eq!(
-      NullPairLiter.get_type(scope),
+      NullPairLiter.analyse(scope, ()),
       Ok(Type::Pair(Box::new(Type::Any), Box::new(Type::Any))),
     );
   }
@@ -208,7 +212,10 @@ mod tests {
     let mut scope = ScopeBuilder::new(&mut symbol_table);
     populate_scope(&mut scope, "var");
 
-    assert_eq!(Ident(String::from("var1")).get_type(&scope), Ok(Type::Int),);
+    assert_eq!(
+      Ident(String::from("var1")).analyse(&mut scope, ()),
+      Ok(Type::Int),
+    );
   }
 
   #[test]
@@ -218,10 +225,11 @@ mod tests {
 
     let mut symbol_table = SymbolTable::default();
     let mut scope = ScopeBuilder::new(&mut symbol_table);
-    scope.insert_var(&mut x.clone(), x_type);
+    scope.insert_var(&mut x.clone(), x_type).unwrap();
 
     assert_eq!(
-      Expr::ArrayElem(ArrayElem(x, vec!(Expr::IntLiter(5)))).get_type(&scope),
+      Expr::ArrayElem(ArrayElem(x, vec!(Expr::IntLiter(5))))
+        .analyse(&mut scope, ()),
       Ok(Type::Int)
     );
   }
@@ -235,64 +243,64 @@ mod tests {
     /* BANG */
     /* !false: Bool */
     assert_eq!(
-      UnaryApp(UnaryOper::Bang, Box::new(BoolLiter(false))).get_type(scope),
+      UnaryApp(UnaryOper::Bang, Box::new(BoolLiter(false))).analyse(scope, ()),
       Ok(Type::Bool)
     );
 
     /* !'a': ERROR */
     assert!(UnaryApp(UnaryOper::Bang, Box::new(CharLiter('a')))
-      .get_type(scope)
+      .analyse(scope, ())
       .is_err());
 
     /* NEG */
     /* -5: Int */
     assert_eq!(
-      UnaryApp(UnaryOper::Neg, Box::new(IntLiter(5))).get_type(scope),
+      UnaryApp(UnaryOper::Neg, Box::new(IntLiter(5))).analyse(scope, ()),
       Ok(Type::Int)
     );
 
     /* -false: ERROR */
     assert!(UnaryApp(UnaryOper::Neg, Box::new(BoolLiter(false)))
-      .get_type(scope)
+      .analyse(scope, ())
       .is_err());
 
     /* LEN */
     /* len [1,2,3]: Int */
     let x = String::from("x");
     let x_type = Type::Array(Box::new(Type::Int));
-    scope.insert_var(&mut x.clone(), x_type);
+    scope.insert_var(&mut x.clone(), x_type).unwrap();
     assert_eq!(
-      UnaryApp(UnaryOper::Len, Box::new(Ident(x))).get_type(scope),
+      UnaryApp(UnaryOper::Len, Box::new(Ident(x))).analyse(scope, ()),
       Ok(Type::Int)
     );
 
     /* len 5: ERROR */
     assert!(UnaryApp(UnaryOper::Len, Box::new(IntLiter(5)))
-      .get_type(scope)
+      .analyse(scope, ())
       .is_err());
 
     /* ORD */
     /* ord 'a': Int */
     assert_eq!(
-      UnaryApp(UnaryOper::Ord, Box::new(CharLiter('a'))).get_type(scope),
+      UnaryApp(UnaryOper::Ord, Box::new(CharLiter('a'))).analyse(scope, ()),
       Ok(Type::Int)
     );
 
     /* ord 5: ERROR */
     assert!(UnaryApp(UnaryOper::Ord, Box::new(IntLiter(5)))
-      .get_type(scope)
+      .analyse(scope, ())
       .is_err());
 
     /* CHR */
     /* chr 5: Char */
     assert_eq!(
-      UnaryApp(UnaryOper::Chr, Box::new(IntLiter(5))).get_type(scope),
+      UnaryApp(UnaryOper::Chr, Box::new(IntLiter(5))).analyse(scope, ()),
       Ok(Type::Char)
     );
 
     /* chr 'a': ERROR */
     assert!(UnaryApp(UnaryOper::Chr, Box::new(CharLiter('a')))
-      .get_type(scope)
+      .analyse(scope, ())
       .is_err());
   }
 
@@ -307,7 +315,7 @@ mod tests {
       BinaryOper::Add,
       Box::new(BoolLiter(false))
     )
-    .get_type(scope)
+    .analyse(scope, ())
     .is_err());
 
     /* 5 * 'a': ERROR */
@@ -316,7 +324,7 @@ mod tests {
       BinaryOper::Mul,
       Box::new(CharLiter('a'))
     )
-    .get_type(scope)
+    .analyse(scope, ())
     .is_err());
 
     /* false / "hello": ERROR */
@@ -325,7 +333,7 @@ mod tests {
       BinaryOper::Div,
       Box::new(StrLiter(String::from("hello")))
     )
-    .get_type(scope)
+    .analyse(scope, ())
     .is_err());
 
     /* false && 6: ERROR */
@@ -334,7 +342,7 @@ mod tests {
       BinaryOper::And,
       Box::new(IntLiter(6))
     )
-    .get_type(scope)
+    .analyse(scope, ())
     .is_err());
 
     /* MATH CAN BE DONE ON INTS. */
@@ -345,7 +353,7 @@ mod tests {
         BinaryOper::Mul,
         Box::new(IntLiter(5)),
       )
-      .get_type(scope),
+      .analyse(scope, ()),
       Ok(Type::Int),
     );
 
@@ -356,7 +364,7 @@ mod tests {
         BinaryOper::Add,
         Box::new(IntLiter(5)),
       )
-      .get_type(scope),
+      .analyse(scope, ()),
       Ok(Type::Int),
     );
 
@@ -367,7 +375,7 @@ mod tests {
       BinaryOper::Add,
       Box::new(CharLiter('b'))
     )
-    .get_type(scope)
+    .analyse(scope, ())
     .is_err());
 
     /* false + false: ERROR */
@@ -376,7 +384,7 @@ mod tests {
       BinaryOper::Add,
       Box::new(BoolLiter(false))
     )
-    .get_type(scope)
+    .analyse(scope, ())
     .is_err());
 
     /* Any type can be comapred to itself. */
@@ -395,7 +403,7 @@ mod tests {
       for oper in vec![BinaryOper::Eq, BinaryOper::Neq] {
         assert_eq!(
           BinaryApp(Box::new(expr.clone()), oper, Box::new(expr.clone()))
-            .get_type(scope),
+            .analyse(scope, ()),
           Ok(Type::Bool)
         );
       }
@@ -410,7 +418,7 @@ mod tests {
       ] {
         assert_eq!(
           BinaryApp(Box::new(expr.clone()), oper, Box::new(expr.clone()))
-            .get_type(scope),
+            .analyse(scope, ()),
           Ok(Type::Bool)
         );
       }
@@ -423,7 +431,7 @@ mod tests {
       BinaryOper::And,
       Box::new(IntLiter(5)),
     )
-    .get_type(scope)
+    .analyse(scope, ())
     .is_err());
 
     /* 'a' || 'a': ERROR */
@@ -432,7 +440,7 @@ mod tests {
       BinaryOper::Or,
       Box::new(CharLiter('a')),
     )
-    .get_type(scope)
+    .analyse(scope, ())
     .is_err());
 
     /* true && true: bool */
@@ -442,7 +450,7 @@ mod tests {
         BinaryOper::And,
         Box::new(BoolLiter(true)),
       )
-      .get_type(scope),
+      .analyse(scope, ()),
       Ok(Type::Bool)
     );
   }

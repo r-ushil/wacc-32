@@ -11,7 +11,7 @@ use unify::Unifiable;
 
 use crate::ast::*;
 
-use self::context::IdentInfo;
+use self::context::*;
 
 /* Represents the result of a semantic analyse. */
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -110,12 +110,16 @@ check things, and when an AST represents a value, returns their type. */
 
 /* If types are the same, return that type.
 Otherwise, error. */
-fn equal_types<L: HasType, R: HasType>(
-  scope: &ScopeBuilder,
+fn equal_types<
+  L: Analysable<Input = (), Output = Type>,
+  R: Analysable<Input = (), Output = Type>,
+>(
+  scope: &mut ScopeBuilder,
   lhs: &mut L,
   rhs: &mut R,
 ) -> AResult<Type> {
-  let (lhs_type, rhs_type) = lhs.get_type(scope).join(rhs.get_type(scope))?;
+  let (lhs_type, rhs_type) =
+    lhs.analyse(scope, ()).join(rhs.analyse(scope, ()))?;
 
   if let Some(t) = lhs_type.clone().unify(rhs_type.clone()) {
     Ok(t)
@@ -128,12 +132,12 @@ fn equal_types<L: HasType, R: HasType>(
 }
 
 /* Errors if AST node does not have expected type. */
-fn expected_type<'a, A: HasType>(
-  scope: &ScopeBuilder,
+fn expected_type<'a, A: Analysable<Input = (), Output = Type>>(
+  scope: &mut ScopeBuilder,
   expected_type: &'a Type,
   actual: &mut A,
 ) -> AResult<&'a Type> {
-  let actual_type = actual.get_type(scope)?;
+  let actual_type = actual.analyse(scope, ())?;
 
   if expected_type.clone().unify(actual_type.clone()).is_some() {
     Ok(expected_type)
@@ -152,25 +156,50 @@ fn expected_type<'a, A: HasType>(
 /* Represents AST nodes which have an associated type and allows you to
 retrieve it without worrying what AST node it is. */
 /* E.g: IntLiter(5).get_type(_) = Ok(BaseType(Int)) */
-pub trait HasType {
-  // TODO: make this return a reference to the type instead of a copy.
-  fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type>;
+
+/* ======== MAIN ANALYSABLE TRAIT ======= */
+trait Analysable {
+  type Input;
+  type Output;
+
+  fn analyse(
+    &mut self,
+    scope: &mut ScopeBuilder,
+    aux: Self::Input,
+  ) -> AResult<Self::Output>;
 }
 
-impl<T: HasType> HasType for &mut T {
-  fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
-    (**self).get_type(scope)
+impl<T: Analysable<Output = Type>> Analysable for &mut T {
+  type Input = <T as Analysable>::Input;
+  type Output = Type;
+
+  fn analyse(
+    &mut self,
+    scope: &mut ScopeBuilder,
+    input: Self::Input,
+  ) -> AResult<Type> {
+    (**self).analyse(scope, input)
   }
 }
 
-impl<T: HasType> HasType for Box<T> {
-  fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
-    (**self).get_type(scope)
+impl<T: Analysable<Output = Type>> Analysable for Box<T> {
+  type Input = <T as Analysable>::Input;
+  type Output = Type;
+
+  fn analyse(
+    &mut self,
+    scope: &mut ScopeBuilder,
+    input: Self::Input,
+  ) -> AResult<Type> {
+    (**self).analyse(scope, input)
   }
 }
 
-impl HasType for Ident {
-  fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
+impl Analysable for Ident {
+  type Input = ();
+  type Output = Type;
+
+  fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
     use IdentInfo::*;
 
     match scope.get(self) {
@@ -183,8 +212,10 @@ impl HasType for Ident {
   }
 }
 
-impl HasType for ArrayElem {
-  fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
+impl Analysable for ArrayElem {
+  type Input = ();
+  type Output = Type;
+  fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
     let ArrayElem(id, indexes) = self;
 
     /* If any indexes aren't Int, return errors. */
@@ -195,7 +226,7 @@ impl HasType for ArrayElem {
     )?;
 
     /* Gets type of the array being looked up. */
-    let mut curr_type = id.get_type(scope)?;
+    let mut curr_type = id.analyse(scope, ())?;
 
     /* For each index, unwrap the type by one array. */
     for _ in indexes {
@@ -214,12 +245,14 @@ impl HasType for ArrayElem {
   }
 }
 
-impl HasType for StructElem {
-  fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
+impl Analysable for StructElem {
+  type Input = ();
+  type Output = Type;
+  fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
     let StructElem(struct_elem_id, expr, field_name) = self;
 
     /* Expression should have this type. */
-    let expr_type = expr.get_type(scope)?;
+    let expr_type = expr.analyse(scope, ())?;
 
     /* Get the struct's identifier. */
     let mut struct_id = match expr_type {
@@ -260,7 +293,8 @@ impl HasType for StructElem {
 }
 
 pub fn analyse(program: &mut Program) -> AResult<()> {
-  program::program(program)
+  /* Makes fake ScopeBuilder so all analysis has the same signature. */
+  program.analyse(&mut ScopeBuilder::new(&mut SymbolTable::default()), ())
 }
 
 /* ======== Type Checkers ======== */
@@ -302,7 +336,7 @@ mod tests {
       format!("y"),
     );
 
-    assert_eq!(elem.get_type(&mut scope), Ok(Type::Bool));
+    assert_eq!(elem.analyse(&mut scope, ()), Ok(Type::Bool));
   }
 
   #[test]
@@ -325,7 +359,7 @@ mod tests {
       id.clone(),
       vec![Expr::IntLiter(5), Expr::CharLiter('a')]
     )
-    .get_type(&scope)
+    .analyse(&mut scope, ())
     .is_err());
   }
 
@@ -339,8 +373,8 @@ mod tests {
     /* x: BaseType(Int) */
     scope.insert_var(&mut x.clone(), x_type.clone()).unwrap();
 
-    assert_eq!(x.clone().get_type(&scope), Ok(x_type));
-    assert!(String::from("hello").get_type(&scope).is_err());
+    assert_eq!(x.clone().analyse(&mut scope, ()), Ok(x_type));
+    assert!(String::from("hello").analyse(&mut scope, ()).is_err());
   }
 
   #[test]
@@ -351,15 +385,17 @@ mod tests {
     let mut scope = ScopeBuilder::new(&mut symbol_table);
 
     /* x: Array(Array(Int)) */
-    scope.insert_var(
-      &mut id.clone(),
-      Type::Array(Box::new(Type::Array(Box::new(Type::Int)))),
-    );
+    scope
+      .insert_var(
+        &mut id.clone(),
+        Type::Array(Box::new(Type::Array(Box::new(Type::Int)))),
+      )
+      .unwrap();
 
     /* x[5][2]: Int */
     assert_eq!(
       ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::IntLiter(2)])
-        .get_type(&scope),
+        .analyse(&mut scope, ()),
       Ok(Type::Int),
     );
 
@@ -368,12 +404,12 @@ mod tests {
       id.clone(),
       vec![Expr::IntLiter(5), Expr::CharLiter('a')]
     )
-    .get_type(&scope)
+    .analyse(&mut scope, ())
     .is_err());
 
     /* x[5]: Array(Int) */
     assert_eq!(
-      ArrayElem(id.clone(), vec![Expr::IntLiter(5)]).get_type(&scope),
+      ArrayElem(id.clone(), vec![Expr::IntLiter(5)]).analyse(&mut scope, ()),
       Ok(Type::Array(Box::new(Type::Int))),
     );
 
@@ -382,7 +418,7 @@ mod tests {
       id.clone(),
       vec![Expr::IntLiter(5), Expr::IntLiter(2), Expr::IntLiter(1)]
     )
-    .get_type(&scope)
+    .analyse(&mut scope, ())
     .is_err());
   }
 }
