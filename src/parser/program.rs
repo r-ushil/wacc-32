@@ -1,7 +1,13 @@
 extern crate nom;
+use std::fs;
+
 use nom::{
-  multi::many0,
-  sequence::{delimited, pair, preceded, tuple},
+  branch::alt,
+  bytes::complete::tag,
+  character::complete::alphanumeric1,
+  combinator::map,
+  multi::{many0, many1},
+  sequence::{delimited, pair, preceded, terminated, tuple},
   IResult,
 };
 use nom_supreme::{error::ErrorTree, final_parser};
@@ -9,8 +15,29 @@ use nom_supreme::{error::ErrorTree, final_parser};
 use super::shared::*;
 use super::stat::*;
 use super::type_::*;
-use crate::analyser::context::{IdentInfo, SymbolTable};
 use crate::ast::*;
+use crate::{
+  analyser::context::{IdentInfo, SymbolTable},
+  parse, read_file,
+};
+
+fn file_name(input: &str) -> IResult<&str, &str, ErrorTree<&str>> {
+  alt((alphanumeric1, tag("/"), tag("-"), tag("_"), tag("../")))(input)
+}
+
+fn import_file(input: &str) -> IResult<&str, Vec<Func>, ErrorTree<&str>> {
+  map(terminated(many1(file_name), tok(".wacc")), |filename| {
+    let program_string =
+      read_file(fs::File::open(format!("{}.wacc", filename.join(""))).unwrap());
+    let program_str = program_string.as_str();
+
+    parse(program_str).funcs
+  })(input)
+}
+
+fn import_stat(input: &str) -> IResult<&str, Vec<Func>, ErrorTree<&str>> {
+  preceded(tok("import"), import_file)(input)
+}
 
 pub fn final_program_parser(input: &str) -> Result<Program, ErrorTree<&str>> {
   final_parser::final_parser(program)(input)
@@ -18,11 +45,18 @@ pub fn final_program_parser(input: &str) -> Result<Program, ErrorTree<&str>> {
 
 /* program ::= 'begin' <func>* <stat> 'end' */
 pub fn program(input: &str) -> IResult<&str, Program, ErrorTree<&str>> {
-  let (input, (type_defs_vec, funcs, statement)) = delimited(
+  let (input, _) = comment_or_ws(input)?;
+  let (input, funcs) = many0(import_stat)(input)?;
+  //println!("{:#?}", input);
+  let mut funcs = funcs.into_iter().flatten().collect::<Vec<Func>>();
+
+  let (input, (type_defs_vec, mut prog_funcs, statement)) = delimited(
     preceded(comment_or_ws, tok("begin")),
     tuple((many0(type_def), many0(func), stat)),
     tok("end"),
   )(input)?;
+
+  funcs.append(&mut prog_funcs);
 
   /* Convert from vector of type defs to hashmap of typedefs. */
   let mut symbol_table = SymbolTable::default();
@@ -237,4 +271,17 @@ mod tests {
       )
     ));
   }
+
+  // #[test]
+  // fn test_import_statements() {
+  //   let (_, ast) = program(
+  //     "import test_integration/extension_executed/import-files/peano.wacc
+  //     begin
+  //     exit 0
+  //     end",
+  //   )
+  //   .unwrap();
+
+  //   assert!(ast.funcs.len() > 0);
+  // }
 }

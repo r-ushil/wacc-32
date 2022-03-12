@@ -1,0 +1,7 @@
+#using import before lib.wacc
+
+import import-files/peano.wacc
+begin
+    int x = call ccus(succ, 3);
+    exit(x)
+end

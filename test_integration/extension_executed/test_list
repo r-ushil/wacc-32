@@ -13,3 +13,6 @@
 ./tests/assign_rhs/funcExpr.wacc,./tests/assign_rhs/funcExpr.output.observed,./tests/assign_rhs/funcExpr.output.expected,pass
 ./tests/assign_rhs/funcExpr2.wacc,./tests/assign_rhs/funcExpr2.output.observed,./tests/assign_rhs/funcExpr2.output.expected,pass
 ./tests/assign_rhs/functionMissingCall.wacc,./tests/assign_rhs/functionMissingCall.output.observed,./tests/assign_rhs/functionMissingCall.output.expected,pass
+./tests/imports/import.wacc,./tests/imports/import.output.observed,./tests/imports/import.output.expected,pass
+./tests/imports/importWithFuncPtrs.wacc,./tests/imports/importWithFuncPtrs.output.observed,./tests/imports/importWithFuncPtrs.output.expected,pass
+

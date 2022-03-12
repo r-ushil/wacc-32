@@ -1,0 +1,7 @@
+#using import before lib.wacc
+
+import import-files/peano.wacc
+begin
+    int x = call succ(-1);
+    exit(x)
+end
