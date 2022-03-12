@@ -2,12 +2,6 @@ use crate::analyser::context::{Offset, SymbolTable};
 use std::collections::HashMap;
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct ProgImports {
-  pub program: Program,
-  pub imports: Vec<Func>,
-}
-
-#[derive(PartialEq, Debug, Clone)]
 pub struct Program {
   /* User defined functions. */
   pub funcs: Vec<Func>,
