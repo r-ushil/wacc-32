@@ -34,33 +34,37 @@ fn func(scope: &ScopeBuilder, func: &mut Func) -> AResult<()> {
 
 /* Semantically checks an entire program. */
 /* This function initialises the symbol table and function table. */
-#[allow(dead_code)]
-pub fn program(program: &mut Program) -> AResult<()> {
-  /* root, global scope. */
-  let mut scope = ScopeBuilder::new(&mut program.symbol_table);
+impl Analysable for Program {
+  type Input = ();
+  type Output = ();
 
-  /* Add all function signatures to global before analysing. (hoisting) */
-  for func in program.funcs.iter() {
-    scope.insert(
-      &func.ident,
-      IdentInfo::Label(
-        Type::Func(Box::new(func.signature.clone())),
-        format!("f_{}", func.ident),
-      ),
-    )?;
-  }
+  fn analyse(&mut self, _: &mut ScopeBuilder, _: ()) -> AResult<()> {
+    /* root, global scope. */
+    let mut scope = ScopeBuilder::new(&mut self.symbol_table);
 
-  /* Analyse functions. */
-  for f in program.funcs.iter_mut() {
-    func(&scope, f)?;
-  }
+    /* Add all function signatures to global before analysing. (hoisting) */
+    for func in self.funcs.iter() {
+      scope.insert(
+        &func.ident,
+        IdentInfo::Label(
+          Type::Func(Box::new(func.signature.clone())),
+          format!("f_{}", func.ident),
+        ),
+      )?;
+    }
 
-  /* Program body must never return, but it can exit. */
-  match scoped_stat(&scope, &mut program.statement)? {
-    MidWay(t) | AtEnd(t) if t != Type::Any => Err(SemanticError::Normal(
-      "Cannot have 'return' statement in main".to_string(),
-    )),
-    _ => Ok(()),
+    /* Analyse functions. */
+    for f in self.funcs.iter_mut() {
+      func(&scope, f)?;
+    }
+
+    /* Program body must never return, but it can exit. */
+    match scoped_stat(&scope, &mut self.statement)? {
+      MidWay(t) | AtEnd(t) if t != Type::Any => Err(SemanticError::Normal(
+        "Cannot have 'return' statement in main".to_string(),
+      )),
+      _ => Ok(()),
+    }
   }
 }
 

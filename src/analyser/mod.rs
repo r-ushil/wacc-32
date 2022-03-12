@@ -272,7 +272,8 @@ impl HasType for StructElem {
 }
 
 pub fn analyse(program: &mut Program) -> AResult<()> {
-  program::program(program)
+  /* Makes fake ScopeBuilder so all analysis has the same signature. */
+  program.analyse(&mut ScopeBuilder::new(&mut SymbolTable::default()), ())
 }
 
 /* ======== Type Checkers ======== */
