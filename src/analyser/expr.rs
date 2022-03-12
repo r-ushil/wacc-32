@@ -16,7 +16,9 @@ impl HasType for Expr {
       Expr::BoolLiter(_) => Type::Bool,
       Expr::CharLiter(_) => Type::Char,
       Expr::StrLiter(_) => Type::String,
-      Expr::NullPairLiter => Type::Pair(Box::new(Type::Any), Box::new(Type::Any)),
+      Expr::NullPairLiter => {
+        Type::Pair(Box::new(Type::Any), Box::new(Type::Any))
+      }
       Expr::PairLiter(e1, e2) => {
         let (lhs_type, rhs_type) =
           e1.get_type(scope).join(e2.get_type(scope))?;
@@ -29,29 +31,10 @@ impl HasType for Expr {
       Expr::Ident(id) => id.get_type(scope)?,
       Expr::ArrayElem(elem) => elem.get_type(scope)?,
       Expr::StructElem(elem) => elem.get_type(scope)?,
-      Expr::Call(t, func_expr, args) => analyse_call(scope, t, func_expr, args)?,
-      Expr::UnaryApp(op, exp) => match op {
-        UnaryOper::Bang => expected_type(scope, &Type::Bool, exp)?.clone(),
-        UnaryOper::Neg => expected_type(scope, &Type::Int, exp)?.clone(),
-        UnaryOper::Len => match exp.get_type(scope)? {
-          Type::Array(_) => Type::Int,
-          t => {
-            return Err(SemanticError::Normal(format!(
-              "TYPE ERROR: Attempt to find length of non array\n\tExpected: Array\n\tActual: {:?}",
-              t
-            )))
-          }
-        },
-        UnaryOper::Ord => {
-          expected_type(scope, &Type::Char, exp)?;
-          Type::Int
-        }
-        UnaryOper::Chr => {
-          expected_type(scope, &Type::Int, exp)?;
-          Type::Char
-        }
-      },
-
+      Expr::Call(t, func_expr, args) => {
+        analyse_call(scope, t, func_expr, args)?
+      }
+      Expr::UnaryApp(op, exp) => analyse_unary(scope, op, exp)?,
       Expr::BinaryApp(exp1, op, exp2) => {
         /* Every binary application requires both expressions to have the same type. */
         let expr_type = equal_types(scope, exp1, exp2)?;
@@ -135,6 +118,34 @@ fn analyse_call(
       "TYPE ERROR:\n\tExpected: Function\n\tActual: {:?}",
       t
     ))),
+  }
+}
+
+fn analyse_unary(
+  scope: &ScopeBuilder,
+  op: &mut UnaryOper,
+  exp: &mut Box<Expr>,
+) -> AResult<Type> {
+  match op {
+    UnaryOper::Bang => Ok(expected_type(scope, &Type::Bool, exp)?.clone()),
+    UnaryOper::Neg => Ok(expected_type(scope, &Type::Int, exp)?.clone()),
+    UnaryOper::Len => match exp.get_type(scope)? {
+      Type::Array(_) => Ok(Type::Int),
+      t => {
+        Err(SemanticError::Normal(format!(
+          "TYPE ERROR: Attempt to find length of non array\n\tExpected: Array\n\tActual: {:?}",
+          t
+        )))
+      }
+    },
+    UnaryOper::Ord => {
+      expected_type(scope, &Type::Char, exp)?;
+      Ok(Type::Int)
+    }
+    UnaryOper::Chr => {
+      expected_type (scope, &Type::Int, exp)?;
+      Ok(Type::Char)
+    }
   }
 }
 
