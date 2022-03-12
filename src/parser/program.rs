@@ -6,7 +6,7 @@ use nom::{
   character::complete::alphanumeric1,
   combinator::map,
   multi::many0,
-  sequence::{delimited, pair, preceded, tuple},
+  sequence::{delimited, pair, preceded, tuple, terminated},
   IResult,
 };
 use nom_supreme::{error::ErrorTree, final_parser};
@@ -22,10 +22,10 @@ use crate::{
 
 fn import_file(input: &str) -> IResult<&str, Vec<Func>, ErrorTree<&str>> {
   map(
-    tuple((alt((alphanumeric1, tok("/"))), tok(".wacc"))),
-    |(filename, ext)| {
+    terminated(alt((alphanumeric1, tok("/"))), tok(".wacc")),
+    |filename| {
       let program_string =
-        read_file(fs::File::open(format!("{}{}", filename, ext)).unwrap());
+        read_file(fs::File::open(format!("{}.wacc", filename)).unwrap());
       let program_str = program_string.as_str();
 
       parse(program_str).funcs
@@ -34,7 +34,9 @@ fn import_file(input: &str) -> IResult<&str, Vec<Func>, ErrorTree<&str>> {
 }
 
 fn import_stat(input: &str) -> IResult<&str, Vec<Func>, ErrorTree<&str>> {
-  map(tuple((tok("import"), import_file)), |(_, ast)| ast)(input)
+  map(preceded(tok("import"), import_file), | ast| {
+    ast
+  })(input)
 }
 
 pub fn final_program_parser(input: &str) -> Result<Program, ErrorTree<&str>> {
@@ -44,6 +46,7 @@ pub fn final_program_parser(input: &str) -> Result<Program, ErrorTree<&str>> {
 /* program ::= 'begin' <func>* <stat> 'end' */
 pub fn program(input: &str) -> IResult<&str, Program, ErrorTree<&str>> {
   let (input, funcs) = many0(import_stat)(input)?;
+  //println!("{:#?}", input);
   let mut funcs = funcs.into_iter().flatten().collect::<Vec<Func>>();
 
   let (input, (type_defs_vec, mut prog_funcs, statement)) = delimited(
