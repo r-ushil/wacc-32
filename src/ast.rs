@@ -172,7 +172,7 @@ pub enum Expr {
   CharLiter(char),
   StrLiter(String),
   PairLiter,
-  LocalVar(Ident),
+  Ident(Ident),
   ArrayElem(ArrayElem),
   StructElem(StructElem),
   UnaryApp(UnaryOper, Box<Expr>),

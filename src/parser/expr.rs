@@ -62,7 +62,7 @@ fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
     value(Expr::PairLiter, tok("null")),
     map(array_elem, Expr::ArrayElem),
     unary_app,
-    map(ident, Expr::LocalVar),
+    map(ident, Expr::Ident),
     delimited(tok("("), expr, tok(")")),
   ))(input)?;
 
@@ -205,7 +205,7 @@ mod tests {
       expr("x.foo").unwrap().1,
       Expr::StructElem(StructElem(
         Ident::default(),
-        Box::new(Expr::LocalVar(format!("x"))),
+        Box::new(Expr::Ident(format!("x"))),
         format!("foo")
       ))
     );
@@ -252,11 +252,11 @@ mod tests {
     assert!(matches!(expr("null"), Ok(("", ast)) if ast == Expr::PairLiter));
     assert!(matches!(expr("null  5"), Ok(("5", Expr::PairLiter))));
     assert!(
-      matches!(expr("hello "), Ok(("", ast)) if ast == Expr::LocalVar(String::from("hello")))
+      matches!(expr("hello "), Ok(("", ast)) if ast == Expr::Ident(String::from("hello")))
     );
     assert!(matches!(
       expr("hello  5"),
-      Ok(("5", ast)) if ast == Expr::LocalVar(String::from("hello"))
+      Ok(("5", ast)) if ast == Expr::Ident(String::from("hello"))
     ));
     assert!(matches!(
       expr("hello [ 2] "),
@@ -322,7 +322,7 @@ mod tests {
     ));
 
     assert!(
-      matches!(expr("lenx"), Ok(("", ast)) if ast == Expr::LocalVar("lenx".to_string()))
+      matches!(expr("lenx"), Ok(("", ast)) if ast == Expr::Ident("lenx".to_string()))
     );
   }
 
@@ -344,16 +344,16 @@ mod tests {
         "",
         ast)) if ast == Expr::BinaryApp(
           Box::new(Expr::BinaryApp(
-            Box::new(Expr::LocalVar("w".to_string())),
+            Box::new(Expr::Ident("w".to_string())),
             BinaryOper::Add,
             Box::new(Expr::BinaryApp(
-              Box::new(Expr::LocalVar("x".to_string())),
+              Box::new(Expr::Ident("x".to_string())),
               BinaryOper::Mul,
-              Box::new(Expr::LocalVar("y".to_string()))
+              Box::new(Expr::Ident("y".to_string()))
             )),
           )),
           BinaryOper::Add,
-          Box::new(Expr::LocalVar("z".to_string())),
+          Box::new(Expr::Ident("z".to_string())),
         )
     ))
   }
@@ -366,15 +366,15 @@ mod tests {
         "",
         ast)) if ast == Expr::BinaryApp(
           Box::new(Expr::BinaryApp(
-            Box::new(Expr::LocalVar("w".to_string())),
+            Box::new(Expr::Ident("w".to_string())),
             BinaryOper::Mul,
-            Box::new(Expr::LocalVar("x".to_string())),
+            Box::new(Expr::Ident("x".to_string())),
           )),
           BinaryOper::Add,
           Box::new(Expr::BinaryApp(
-            Box::new(Expr::LocalVar("y".to_string())),
+            Box::new(Expr::Ident("y".to_string())),
             BinaryOper::Mul,
-            Box::new(Expr::LocalVar("z".to_string())),
+            Box::new(Expr::Ident("z".to_string())),
           )),
         )
     ))
@@ -388,15 +388,15 @@ mod tests {
         "",
         ast)) if ast == Expr::BinaryApp(
           Box::new(Expr::BinaryApp(
-            Box::new(Expr::LocalVar("w".to_string())),
+            Box::new(Expr::Ident("w".to_string())),
             BinaryOper::Mul,
-            Box::new(Expr::LocalVar("x".to_string())),
+            Box::new(Expr::Ident("x".to_string())),
           )),
           BinaryOper::Eq,
           Box::new(Expr::BinaryApp(
-            Box::new(Expr::LocalVar("y".to_string())),
+            Box::new(Expr::Ident("y".to_string())),
             BinaryOper::Mul,
-            Box::new(Expr::LocalVar("z".to_string())),
+            Box::new(Expr::Ident("z".to_string())),
           )),
         )
     ))
@@ -410,16 +410,16 @@ mod tests {
         "",
         ast)) if ast == Expr::BinaryApp(
           Box::new(Expr::BinaryApp(
-            Box::new(Expr::LocalVar("w".to_string())),
+            Box::new(Expr::Ident("w".to_string())),
             BinaryOper::Mul,
             Box::new(Expr::BinaryApp(
-              Box::new(Expr::LocalVar("x".to_string())),
+              Box::new(Expr::Ident("x".to_string())),
               BinaryOper::Eq,
-              Box::new(Expr::LocalVar("y".to_string()))
+              Box::new(Expr::Ident("y".to_string()))
             )),
           )),
           BinaryOper::Mul,
-          Box::new(Expr::LocalVar("z".to_string())),
+          Box::new(Expr::Ident("z".to_string())),
         )
     ))
   }
@@ -431,15 +431,15 @@ mod tests {
       Ok((
         "",
         ast)) if ast == Expr::BinaryApp(
-          Box::new(Expr::LocalVar("w".to_string())),
+          Box::new(Expr::Ident("w".to_string())),
           BinaryOper::Mul,
           Box::new(Expr::BinaryApp(
-            Box::new(Expr::LocalVar("x".to_string())),
+            Box::new(Expr::Ident("x".to_string())),
             BinaryOper::Add,
             Box::new(Expr::BinaryApp(
-              Box::new(Expr::LocalVar("y".to_string())),
+              Box::new(Expr::Ident("y".to_string())),
               BinaryOper::Eq,
-              Box::new(Expr::LocalVar("z".to_string()))
+              Box::new(Expr::Ident("z".to_string()))
             ))
           )),
         )
