@@ -113,34 +113,6 @@ pub fn generate_malloc(bytes: i32, code: &mut GeneratedCode, reg: Reg) {
   }
 }
 
-fn generate_assign_rhs_expr(
-  scope: &ScopeReader,
-  code: &mut GeneratedCode,
-  regs: &[GenReg],
-  expr: &Expr,
-) {
-  expr.generate(scope, code, regs, ())
-}
-
-impl Generatable for AssignRhs {
-  type Input = ();
-  type Output = ();
-
-  fn generate(
-    &self,
-    scope: &ScopeReader,
-    code: &mut GeneratedCode,
-    regs: &[GenReg],
-    _: (),
-  ) {
-    match self {
-      AssignRhs::Expr(expr) => {
-        generate_assign_rhs_expr(scope, code, regs, expr)
-      }
-    }
-  }
-}
-
 impl Generatable for StructLiter {
   type Input = ();
   type Output = ();
@@ -260,7 +232,7 @@ fn generate_stat_declaration(
   regs: &[GenReg],
   t: &Type,
   id: &str,
-  rhs: &AssignRhs,
+  rhs: &Expr,
 ) {
   Stat::Assignment(AssignLhs::Ident(id.to_string()), t.clone(), rhs.clone())
     .generate(scope, code, regs, ());
@@ -272,7 +244,7 @@ fn generate_stat_assignment(
   regs: &[GenReg],
   lhs: &AssignLhs,
   t: &Type,
-  rhs: &AssignRhs,
+  rhs: &Expr,
 ) {
   /* regs[0] = eval(rhs) */
   rhs.generate(scope, code, regs, ());

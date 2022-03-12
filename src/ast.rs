@@ -31,8 +31,8 @@ pub struct FuncSig {
 #[derive(PartialEq, Debug, Clone)]
 pub enum Stat {
   Skip,
-  Declaration(Type, Ident, AssignRhs),
-  Assignment(AssignLhs, Type, AssignRhs),
+  Declaration(Type, Ident, Expr),
+  Assignment(AssignLhs, Type, Expr),
   Read(Type, AssignLhs),
   Free(TypedExpr),
   Return(Expr),
@@ -67,11 +67,6 @@ pub enum AssignLhs {
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub enum AssignRhs {
-  Expr(Expr),
-}
-
-#[derive(PartialEq, Debug, Clone)]
 pub struct StructLiter {
   pub id: Ident,
   pub fields: HashMap<Ident, Expr>,
@@ -79,16 +74,6 @@ pub struct StructLiter {
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct StructElem(pub Ident, pub Box<Expr>, pub Ident);
-
-/* Expr => AssignRhs::Expr */
-impl<E> From<E> for AssignRhs
-where
-  E: Into<Expr>,
-{
-  fn from(e: E) -> Self {
-    AssignRhs::Expr(e.into())
-  }
-}
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum PairElem {
