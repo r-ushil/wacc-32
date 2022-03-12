@@ -35,48 +35,7 @@ impl HasType for Expr {
         analyse_call(scope, t, func_expr, args)?
       }
       Expr::UnaryApp(op, exp) => analyse_unary(scope, op, exp)?,
-      Expr::BinaryApp(exp1, op, exp2) => {
-        /* Every binary application requires both expressions to have the same type. */
-        let expr_type = equal_types(scope, exp1, exp2)?;
-
-        match op {
-          /* Maths can only be done on ints. */
-          BinaryOper::Mul
-          | BinaryOper::Div
-          | BinaryOper::Mod
-          | BinaryOper::Add
-          | BinaryOper::Sub => match expr_type {
-            Type::Int => Type::Int,
-            t => {
-              return Err(SemanticError::Normal(format!(
-                "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
-                op, t
-              )))
-            }
-          },
-          /* Any types can be compared. */
-          BinaryOper::Gt | BinaryOper::Gte | BinaryOper::Lt | BinaryOper::Lte => match expr_type {
-            Type::Int | Type::Char => Type::Bool,
-            t => {
-              return Err(SemanticError::Normal(format!(
-                "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
-                op, t
-              )))
-            }
-          },
-          BinaryOper::Eq | BinaryOper::Neq => Type::Bool,
-          /* Boolean operators can only be applied to booleans. */
-          BinaryOper::And | BinaryOper::Or => match expr_type {
-            Type::Bool => Type::Bool,
-            t => {
-              return Err(SemanticError::Normal(format!(
-                "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
-                op, t
-              )))
-            }
-          },
-        }
-      }
+      Expr::BinaryApp(exp1, op, exp2) => analyse_binary(scope, exp1, op, exp2)?,
     })
   }
 }
@@ -146,6 +105,54 @@ fn analyse_unary(
       expected_type (scope, &Type::Int, exp)?;
       Ok(Type::Char)
     }
+  }
+}
+
+fn analyse_binary(
+  scope: &ScopeBuilder,
+  exp1: &mut Box<Expr>,
+  op: &mut BinaryOper,
+  exp2: &mut Box<Expr>,
+) -> AResult<Type> {
+  /* Every binary application requires both expressions to have the same type. */
+  let expr_type = equal_types(scope, exp1, exp2)?;
+
+  match op {
+    /* Maths can only be done on ints. */
+    BinaryOper::Mul
+    | BinaryOper::Div
+    | BinaryOper::Mod
+    | BinaryOper::Add
+    | BinaryOper::Sub => match expr_type {
+      Type::Int => Ok(Type::Int),
+      t => {
+        return Err(SemanticError::Normal(format!(
+          "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
+          op, t
+        )))
+      }
+    },
+    /* Any types can be compared. */
+    BinaryOper::Gt | BinaryOper::Gte | BinaryOper::Lt | BinaryOper::Lte => match expr_type {
+      Type::Int | Type::Char => Ok(Type::Bool),
+      t => {
+        return Err(SemanticError::Normal(format!(
+          "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
+          op, t
+        )))
+      }
+    },
+    BinaryOper::Eq | BinaryOper::Neq => Ok(Type::Bool),
+    /* Boolean operators can only be applied to booleans. */
+    BinaryOper::And | BinaryOper::Or => match expr_type {
+      Type::Bool => Ok(Type::Bool),
+      t => {
+        return Err(SemanticError::Normal(format!(
+          "TYPE ERROR: Unsupported type for {:?}\n\tExpected: Int\n\tActual: {:?}",
+          op, t
+        )))
+      }
+    },
   }
 }
 
