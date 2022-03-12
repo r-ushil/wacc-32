@@ -2,7 +2,7 @@ extern crate nom;
 use nom::{
   branch::alt,
   combinator::{map, value},
-  sequence::{delimited, pair, preceded, separated_pair, tuple},
+  sequence::{preceded, tuple},
   IResult,
 };
 use nom_supreme::error::ErrorTree;

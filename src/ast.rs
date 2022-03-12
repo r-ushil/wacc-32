@@ -1,8 +1,6 @@
 use crate::analyser::context::{Offset, SymbolTable};
 use std::collections::HashMap;
 
-pub type TypeDefs = HashMap<Ident, Struct>;
-
 #[derive(PartialEq, Debug, Clone)]
 pub struct Program {
   /* User defined functions. */

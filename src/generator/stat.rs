@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use super::{
   predef::{
     ReadFmt, PREDEF_CHECK_NULL_POINTER, PREDEF_FREE_ARRAY, PREDEF_FREE_PAIR,
@@ -125,7 +123,7 @@ fn generate_assign_rhs_expr(
 }
 
 impl Generatable for AssignRhs {
-  type Input = Type;
+  type Input = ();
   type Output = ();
 
   fn generate(
@@ -133,7 +131,7 @@ impl Generatable for AssignRhs {
     scope: &ScopeReader,
     code: &mut GeneratedCode,
     regs: &[GenReg],
-    t: Type,
+    _: (),
   ) {
     match self {
       AssignRhs::Expr(expr) => {
@@ -277,7 +275,7 @@ fn generate_stat_assignment(
   rhs: &AssignRhs,
 ) {
   /* regs[0] = eval(rhs) */
-  rhs.generate(scope, code, regs, t.clone());
+  rhs.generate(scope, code, regs, ());
 
   /* stores value of regs[0] into lhs */
   let (ptr_reg, offset, data_size) =
@@ -607,7 +605,6 @@ mod tests {
   #[test]
   fn exit_statement() {
     let symbol_table = SymbolTable::default();
-    let type_defs = TypeDefs::default();
     let scope = &ScopeReader::new(&symbol_table);
     let expr = Expr::IntLiter(0);
     let stat = Stat::Exit(expr.clone());

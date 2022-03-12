@@ -225,7 +225,7 @@ mod tests {
 
     let mut symbol_table = SymbolTable::default();
     let mut scope = ScopeBuilder::new(&mut symbol_table);
-    scope.insert_var(&mut x.clone(), x_type);
+    scope.insert_var(&mut x.clone(), x_type).unwrap();
 
     assert_eq!(
       Expr::ArrayElem(ArrayElem(x, vec!(Expr::IntLiter(5))))
@@ -268,7 +268,7 @@ mod tests {
     /* len [1,2,3]: Int */
     let x = String::from("x");
     let x_type = Type::Array(Box::new(Type::Int));
-    scope.insert_var(&mut x.clone(), x_type);
+    scope.insert_var(&mut x.clone(), x_type).unwrap();
     assert_eq!(
       UnaryApp(UnaryOper::Len, Box::new(Ident(x))).analyse(scope, ()),
       Ok(Type::Int)

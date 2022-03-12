@@ -385,10 +385,12 @@ mod tests {
     let mut scope = ScopeBuilder::new(&mut symbol_table);
 
     /* x: Array(Array(Int)) */
-    scope.insert_var(
-      &mut id.clone(),
-      Type::Array(Box::new(Type::Array(Box::new(Type::Int)))),
-    );
+    scope
+      .insert_var(
+        &mut id.clone(),
+        Type::Array(Box::new(Type::Array(Box::new(Type::Int)))),
+      )
+      .unwrap();
 
     /* x[5][2]: Int */
     assert_eq!(
