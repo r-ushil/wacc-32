@@ -429,7 +429,7 @@ impl From<Imm> for Op2 {
   }
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
 pub enum Reg {
   Arg(ArgReg),
   General(GenReg),
@@ -438,7 +438,7 @@ pub enum Reg {
   PC,
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
 pub enum ArgReg {
   R0,
   R1,
@@ -446,7 +446,7 @@ pub enum ArgReg {
   // R3, unused
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
 pub enum GenReg {
   R4,
   R5,

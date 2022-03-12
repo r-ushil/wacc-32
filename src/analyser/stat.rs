@@ -31,49 +31,6 @@ impl HasType for AssignRhs {
   fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
     match self {
       AssignRhs::Expr(exp) => exp.get_type(scope),
-      AssignRhs::ArrayLiter(lit) => lit.get_type(scope),
-      AssignRhs::Pair(e1, e2) => {
-        let (lhs_type, rhs_type) =
-          e1.get_type(scope).join(e2.get_type(scope))?;
-
-        Ok(Type::Pair(Box::new(lhs_type), Box::new(rhs_type)))
-      }
-      AssignRhs::PairElem(elem) => elem.get_type(scope),
-      AssignRhs::Call(t, func_expr, args) => {
-        match func_expr.get_type(scope)? {
-          Type::Func(bx) => {
-            /* Populate the type in call. */
-            *t = Type::Func(bx.clone());
-
-            let FuncSig {
-              param_types,
-              return_type,
-            } = *bx;
-
-            /* Types must be pairwise the same. */
-            SemanticError::join_iter(
-              args
-                .iter_mut()
-                .zip(param_types.iter())
-                .map(|(arg, param_type)| expected_type(scope, param_type, arg)),
-            )?;
-
-            /* Must be same amount of args as parameters */
-            if param_types.len() != args.len() {
-              Err(SemanticError::Normal(
-                "Function called with wrong amount of arguments.".to_string(),
-              ))
-            } else {
-              Ok(return_type)
-            }
-          }
-          t => Err(SemanticError::Normal(format!(
-            "TYPE ERROR:\n\tExpected: Function\n\tActual: {:?}",
-            t
-          ))),
-        }
-      }
-      AssignRhs::StructLiter(s) => s.get_type(scope),
     }
   }
 }
@@ -127,7 +84,7 @@ impl HasType for PairElem {
 
     /* Gets type of thing being accessed, and stored type. */
     let pair_type = match self {
-      Fst(_, p) | Snd(_, p) => p.get_type(scope)?,
+      Fst(p) | Snd(p) => p.get_type(scope)?,
     };
 
     /* Gets type of left and right element of pair. */
@@ -152,12 +109,12 @@ impl HasType for PairElem {
 
     /* Gets the type of the element being accessed. */
     let elem_type = match self {
-      Fst(_, _) => left_type,
-      Snd(_, _) => right_type,
+      Fst(_) => left_type,
+      Snd(_) => right_type,
     };
 
     let stored_type = match self {
-      Fst(st, _) | Snd(st, _) => st,
+      Fst(TypedExpr(st, _)) | Snd(TypedExpr(st, _)) => st,
     };
 
     /* Stores this on the AST. */
@@ -169,7 +126,7 @@ impl HasType for PairElem {
 
 impl HasType for ArrayLiter {
   fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
-    let ArrayLiter(exprs) = self;
+    let ArrayLiter(stored_type, exprs) = self;
 
     /* Take first element as source of truth. */
     let mut array_type = Some(Type::Any);
@@ -184,7 +141,10 @@ impl HasType for ArrayLiter {
     }
 
     match array_type {
-      Some(t) => Ok(Type::Array(Box::new(t))),
+      Some(t) => {
+        *stored_type = t.clone();
+        Ok(Type::Array(Box::new(t)))
+      }
       None => Err(SemanticError::Normal(format!(
         "Expressions making up array literal have inconsistent types."
       ))),
@@ -245,11 +205,8 @@ pub fn stat(
         )), /*  */
       }
     }
-    Stat::Free(t, expr) => match expr.get_type(scope)? {
-      new_t @ (Type::Pair(_, _) | Type::Array(_)) => {
-        *t = new_t;
-        Ok(Never)
-      } /* Frees never return. */
+    Stat::Free(expr) => match expr.get_type(scope)? {
+      Type::Pair(_, _) | Type::Array(_) => Ok(Never), /* Frees never return. */
       actual_type => Err(SemanticError::Normal(format!(
         "TYPE ERROR: Expected Type\n\tExpected: Pair or Array\n\tActual:{:?}",
         actual_type
@@ -263,10 +220,9 @@ pub fn stat(
       wrong type, by using any it won't collide with another type. */
       Ok(AtEnd(Type::Any))
     }
-    Stat::Print(t, expr) | Stat::Println(t, expr) => {
+    Stat::Print(expr) | Stat::Println(expr) => {
       /* Any type can be printed. */
-      /* Store type on print so codegen knows which print to use. */
-      *t = expr.get_type(scope)?;
+      expr.get_type(scope)?;
 
       /* Prints never return. */
       Ok(Never)
@@ -391,20 +347,6 @@ mod tests {
     let x_type = Type::Array(Box::new(Type::Int));
     scope.insert_var(&mut x_id.clone(), x_type.clone()).unwrap();
     assert_eq!(AssignLhs::Ident(x_id.clone()).get_type(scope), Ok(x_type));
-
-    assert!(AssignRhs::PairElem(PairElem::Fst(
-      Type::default(),
-      Expr::PairLiter
-    ))
-    .get_type(scope)
-    .is_err());
-
-    assert!(AssignRhs::PairElem(PairElem::Fst(
-      Type::default(),
-      Expr::PairLiter
-    ))
-    .get_type(scope)
-    .is_err());
 
     assert_eq!(
       AssignLhs::ArrayElem(ArrayElem(x_id.clone(), vec!(Expr::IntLiter(5))))

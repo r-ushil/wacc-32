@@ -86,9 +86,8 @@
 ../wacc_examples/invalid/syntaxErr/if/ifNoelse.wacc,./wacc_examples_exit_codes_ours/invalid/syntaxErr/if/ifNoelse.exitcode,./wacc_examples_exit_codes/invalid/syntaxErr/if/ifNoelse.exitcode,pass
 ../wacc_examples/invalid/syntaxErr/if/ifNofi.wacc,./wacc_examples_exit_codes_ours/invalid/syntaxErr/if/ifNofi.exitcode,./wacc_examples_exit_codes/invalid/syntaxErr/if/ifNofi.exitcode,pass
 ../wacc_examples/invalid/syntaxErr/if/ifNothen.wacc,./wacc_examples_exit_codes_ours/invalid/syntaxErr/if/ifNothen.exitcode,./wacc_examples_exit_codes/invalid/syntaxErr/if/ifNothen.exitcode,pass
-../wacc_examples/invalid/syntaxErr/pairs/badLookup01.wacc,./wacc_examples_exit_codes_ours/invalid/syntaxErr/pairs/badLookup01.exitcode,./wacc_examples_exit_codes/invalid/syntaxErr/pairs/badLookup01.exitcode,pass
-../wacc_examples/invalid/syntaxErr/pairs/badLookup02.wacc,./wacc_examples_exit_codes_ours/invalid/syntaxErr/pairs/badLookup02.exitcode,./wacc_examples_exit_codes/invalid/syntaxErr/pairs/badLookup02.exitcode,pass
-../wacc_examples/invalid/syntaxErr/print/printlnCharArry.wacc,./wacc_examples_exit_codes_ours/invalid/syntaxErr/print/printlnCharArry.exitcode,./wacc_examples_exit_codes/invalid/syntaxErr/print/printlnCharArry.exitcode,pass
+../wacc_examples/valid/pairs/badLookup01.wacc,./wacc_examples_exit_codes_ours/valid/pairs/badLookup01.exitcode,./wacc_examples_exit_codes/valid/pairs/badLookup01.exitcode,pass
+../wacc_examples/valid/pairs/badLookup02.wacc,./wacc_examples_exit_codes_ours/valid/pairs/badLookup02.exitcode,./wacc_examples_exit_codes/valid/pairs/badLookup02.exitcode,pass
 ../wacc_examples/invalid/syntaxErr/sequence/doubleSeq.wacc,./wacc_examples_exit_codes_ours/invalid/syntaxErr/sequence/doubleSeq.exitcode,./wacc_examples_exit_codes/invalid/syntaxErr/sequence/doubleSeq.exitcode,pass
 ../wacc_examples/invalid/syntaxErr/sequence/emptySeq.wacc,./wacc_examples_exit_codes_ours/invalid/syntaxErr/sequence/emptySeq.exitcode,./wacc_examples_exit_codes/invalid/syntaxErr/sequence/emptySeq.exitcode,pass
 ../wacc_examples/invalid/syntaxErr/sequence/endSeq.wacc,./wacc_examples_exit_codes_ours/invalid/syntaxErr/sequence/endSeq.exitcode,./wacc_examples_exit_codes/invalid/syntaxErr/sequence/endSeq.exitcode,pass
@@ -216,6 +215,7 @@
 ../wacc_examples/valid/IO/print/printEscChar.wacc,./wacc_examples_exit_codes_ours/valid/IO/print/printEscChar.exitcode,./wacc_examples_exit_codes/valid/IO/print/printEscChar.exitcode,pass
 ../wacc_examples/valid/IO/print/printInt.wacc,./wacc_examples_exit_codes_ours/valid/IO/print/printInt.exitcode,./wacc_examples_exit_codes/valid/IO/print/printInt.exitcode,pass
 ../wacc_examples/valid/IO/print/println.wacc,./wacc_examples_exit_codes_ours/valid/IO/print/println.exitcode,./wacc_examples_exit_codes/valid/IO/print/println.exitcode,pass
+../wacc_examples/valid/IO/print/printlnCharArry.wacc,./wacc_examples_exit_codes_ours/valid/IO/print/printlnCharArry.exitcode,./wacc_examples_exit_codes/valid/IO/print/printlnCharArry.exitcode,pass
 ../wacc_examples/valid/IO/print/print.wacc,./wacc_examples_exit_codes_ours/valid/IO/print/print.exitcode,./wacc_examples_exit_codes/valid/IO/print/print.exitcode,pass
 ../wacc_examples/valid/IO/read/echoBigInt.wacc,./wacc_examples_exit_codes_ours/valid/IO/read/echoBigInt.exitcode,./wacc_examples_exit_codes/valid/IO/read/echoBigInt.exitcode,pass
 ../wacc_examples/valid/IO/read/echoBigNegInt.wacc,./wacc_examples_exit_codes_ours/valid/IO/read/echoBigNegInt.exitcode,./wacc_examples_exit_codes/valid/IO/read/echoBigNegInt.exitcode,pass

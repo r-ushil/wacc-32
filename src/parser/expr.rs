@@ -5,12 +5,13 @@ use nom::{
   character::complete::{char as char_, digit1, none_of},
   combinator::{map, opt, value},
   multi::{many0, many1},
-  sequence::{delimited, pair, preceded},
+  sequence::{delimited, pair, preceded, separated_pair, tuple},
   IResult,
 };
 use nom_supreme::error::ErrorTree;
 
 use super::shared::*;
+use super::stat::pair_elem;
 use crate::ast::*;
 
 const BINARY_OP_MAX_PREC: u8 = 6;
@@ -50,6 +51,16 @@ fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
     tag("\""),
   ));
 
+  let pair_liter = map(
+    tuple((tok("newpair"), tok("("), expr, tok(","), expr, tok(")"))),
+    |(_, _, e1, _, e2, _)| {
+      Expr::PairLiter(
+        Box::new(TypedExpr::new(e1)),
+        Box::new(TypedExpr::new(e2)),
+      )
+    },
+  );
+
   let unary_app = map(pair(unary_oper, expr), |(op, expr)| {
     Expr::UnaryApp(op, Box::new(expr))
   });
@@ -59,11 +70,25 @@ fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
     bool_liter,
     char_liter,
     str_liter,
-    value(Expr::PairLiter, tok("null")),
+    value(Expr::NullPairLiter, tok("null")),
+    pair_liter,
+    map(array_liter, Expr::ArrayLiter),
+    map(struct_liter, Expr::StructLiter),
     map(array_elem, Expr::ArrayElem),
+    map(pair_elem, |elem| Expr::PairElem(Box::new(elem))),
     unary_app,
     map(ident, Expr::Ident),
     delimited(tok("("), expr, tok(")")),
+    map(
+      tuple((
+        tok("call"),
+        expr,
+        tok("("),
+        many0_delimited(expr, tok(",")),
+        tok(")"),
+      )),
+      |(_, func, _, args, _)| Expr::Call(Type::default(), Box::new(func), args),
+    ),
   ))(input)?;
 
   /* Check if the expression is followed by a .field_name (StructElem) */
@@ -76,6 +101,27 @@ fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
   }
 
   Ok((input, e))
+}
+
+/* <struct-liter> ::= <ident> '{' ( (<field-liter> ',')* <field-liter> )? '}' */
+fn struct_liter(input: &str) -> IResult<&str, StructLiter, ErrorTree<&str>> {
+  let (input, (id, fields)) = pair(
+    ident,
+    delimited(tok("{"), many0_delimited(field_liter, tok(",")), tok("}")),
+  )(input)?;
+
+  Ok((
+    input,
+    StructLiter {
+      id,
+      fields: fields.into_iter().collect(),
+    },
+  ))
+}
+
+/* <field-liter> ::= <ident> ':' <expr> */
+fn field_liter(input: &str) -> IResult<&str, (Ident, Expr), ErrorTree<&str>> {
+  separated_pair(ident, tok(":"), expr)(input)
 }
 
 fn expr_binary_app(
@@ -96,6 +142,17 @@ fn expr_binary_app(
   }
 
   Ok((input, lhs))
+}
+
+/* 〈array-liter〉::= ‘[’ (〈expr〉 (‘,’〈expr〉)* )? ‘]’ */
+fn array_liter(input: &str) -> IResult<&str, ArrayLiter, ErrorTree<&str>> {
+  ws(delimited(
+    tok("["),
+    map(many0_delimited(expr, tok(",")), |es| {
+      ArrayLiter(Type::default(), es)
+    }),
+    tok("]"),
+  ))(input)
 }
 
 //〈int-liter〉::= (‘+’ | ‘-’) ? (‘0’-‘9’)
@@ -200,6 +257,36 @@ mod tests {
   use super::*;
 
   #[test]
+  fn test_pair_elem6() {
+    assert_eq!(
+      expr("fst 5").unwrap().1,
+      Expr::PairElem(Box::new(PairElem::Fst(TypedExpr::new(Expr::IntLiter(
+        5
+      )))))
+    );
+  }
+
+  #[test]
+  fn test_pair_elem7() {
+    assert_eq!(
+      expr("snd null").unwrap().1,
+      Expr::PairElem(Box::new(PairElem::Snd(TypedExpr::new(
+        Expr::NullPairLiter
+      ))))
+    );
+  }
+
+  #[test]
+  fn test_pair_elem8() {
+    assert_eq!(
+      expr("fst 1 ; snd 2").unwrap().1,
+      Expr::PairElem(Box::new(PairElem::Fst(TypedExpr::new(Expr::IntLiter(
+        1
+      )))))
+    );
+  }
+
+  #[test]
   fn test_struct_liter() {
     assert_eq!(
       expr("x.foo").unwrap().1,
@@ -226,6 +313,15 @@ mod tests {
   }
 
   #[test]
+  fn test_struct_liter_constructor() {
+    let sl = struct_liter("Foo { x: 5 }").unwrap().1;
+
+    assert_eq!(sl.id, "Foo");
+    assert_eq!(sl.fields.len(), 1);
+    assert_eq!(sl.fields.get("x").unwrap(), &Expr::IntLiter(5));
+  }
+
+  #[test]
   fn test_expr() {
     assert!(matches!(expr("true   "), Ok(("", Expr::BoolLiter(true)))));
     assert!(matches!(
@@ -249,8 +345,10 @@ mod tests {
     assert!(
       matches!(expr("\"\""), Ok(("", ast)) if ast == Expr::StrLiter(String::from("")))
     );
-    assert!(matches!(expr("null"), Ok(("", ast)) if ast == Expr::PairLiter));
-    assert!(matches!(expr("null  5"), Ok(("5", Expr::PairLiter))));
+    assert!(
+      matches!(expr("null"), Ok(("", ast)) if ast == Expr::NullPairLiter)
+    );
+    assert!(matches!(expr("null  5"), Ok(("5", Expr::NullPairLiter))));
     assert!(
       matches!(expr("hello "), Ok(("", ast)) if ast == Expr::Ident(String::from("hello")))
     );

@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use super::{
   predef::{
     ReadFmt, PREDEF_CHECK_NULL_POINTER, PREDEF_FREE_ARRAY, PREDEF_FREE_PAIR,
@@ -98,7 +100,7 @@ fn generate_assign_lhs_struct_elem(
 }
 
 /* Mallocs {bytes} bytes and leaves the address in {reg}. */
-fn generate_malloc(bytes: i32, code: &mut GeneratedCode, reg: Reg) {
+pub fn generate_malloc(bytes: i32, code: &mut GeneratedCode, reg: Reg) {
   /* LDR r0, ={bytes} */
   code.text.push(Asm::ldr(Reg::Arg(ArgReg::R0), bytes));
 
@@ -122,192 +124,6 @@ fn generate_assign_rhs_expr(
   expr.generate(scope, code, regs, ())
 }
 
-fn generate_assign_rhs_array_liter(
-  scope: &ScopeReader,
-  code: &mut GeneratedCode,
-  regs: &[GenReg],
-  t: Type,
-  exprs: &[Expr],
-) {
-  /* Calculate size of elements. */
-  let elem_size = match t {
-    Type::Array(elem_type) => elem_type.size(),
-    /* Semantic analyser should ensure this is an array. */
-    _ => unreachable!(),
-  };
-
-  /* Malloc space for array. */
-  generate_malloc(
-    ARM_DSIZE_WORD + elem_size * exprs.len() as i32,
-    code,
-    Reg::General(regs[0]),
-  );
-
-  /* Write each expression to the array. */
-  for (i, expr) in exprs.iter().enumerate() {
-    /* Evaluate expr to r5. */
-    expr.generate(scope, code, &regs[1..], ());
-
-    /* Write r5 array. */
-    code.text.push(
-      Asm::str(
-        Reg::General(regs[1]),
-        (
-          Reg::General(regs[0]),
-          ARM_DSIZE_WORD + (i as i32) * elem_size,
-        ),
-      )
-      .size(elem_size.into()),
-    );
-  }
-
-  /* Write length to first byte.
-  LDR r5, =3
-  STR r5, [r4] */
-  code
-    .text
-    .push(Asm::ldr(Reg::General(regs[1]), exprs.len() as i32));
-  code
-    .text
-    .push(Asm::str(Reg::General(regs[1]), (Reg::General(regs[0]), 0)));
-}
-
-fn generate_assign_rhs_pair(
-  scope: &ScopeReader,
-  code: &mut GeneratedCode,
-  regs: &[GenReg],
-  t: Type,
-  e1: &Expr,
-  e2: &Expr,
-) {
-  let (e1_size, e2_size) = match t {
-    Type::Pair(t1, t2) => (t1.size(), t2.size()),
-    /* Semantic analyser should ensure this is a pair. */
-    _ => unreachable!(),
-  };
-
-  /* Malloc for the pair.
-  regs[0] = malloc(8) */
-  generate_malloc(8, code, Reg::General(regs[0]));
-
-  /* Evaluate e1.
-  regs[1] = eval(e1) */
-  e1.generate(scope, code, &regs[1..], ());
-
-  /* Malloc for e1.
-  r0 = malloc(e1_size) */
-  generate_malloc(e1_size, code, Reg::Arg(ArgReg::R0));
-
-  /* Write e1 to malloced space. */
-  code.text.push(
-    Asm::str(Reg::General(regs[1]), (Reg::Arg(ArgReg::R0), 0))
-      .size(e1_size.into()),
-  );
-
-  /* Write pointer to e1 to pair. */
-  code
-    .text
-    .push(Asm::str(Reg::Arg(ArgReg::R0), (Reg::General(regs[0]), 0)));
-
-  /* Evaluate e2.
-  regs[1] = eval(e2) */
-  e2.generate(scope, code, &regs[1..], ());
-
-  /* Malloc for e2.
-  r0 = malloc(e2_size) */
-  generate_malloc(e2_size, code, Reg::Arg(ArgReg::R0));
-
-  /* Write e2 to malloced space. */
-  code.text.push(
-    Asm::str(Reg::General(regs[1]), (Reg::Arg(ArgReg::R0), 0))
-      .size(e2_size.into()),
-  );
-
-  /* Write pointer to e2 to pair. */
-  code.text.push(Asm::str(
-    Reg::Arg(ArgReg::R0),
-    (Reg::General(regs[0]), ARM_DSIZE_WORD),
-  ))
-}
-
-fn generate_assign_rhs_pair_elem(
-  scope: &ScopeReader,
-  code: &mut GeneratedCode,
-  regs: &[GenReg],
-  _t: Type,
-  elem: &PairElem,
-) {
-  /* Puts element address in regs[0]. */
-  let elem_size = elem.generate(scope, code, regs, ());
-
-  /* Dereference. */
-  code.text.push(
-    Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), 0)).size(elem_size),
-  );
-}
-
-fn generate_assign_rhs_call(
-  scope: &ScopeReader,
-  code: &mut GeneratedCode,
-  regs: &[GenReg],
-  func_type: Type,
-  func: &Expr,
-  exprs: &[Expr],
-) {
-  /* Get arg types. */
-
-  let arg_types = match func_type {
-    Type::Func(sig) => sig.param_types,
-    _ => unreachable!("Analyser guarentees this is a function."),
-  };
-
-  let mut args_offset = 0;
-
-  for (expr, arg_type) in exprs.iter().zip(arg_types).rev() {
-    let symbol_table = SymbolTable {
-      size: args_offset,
-      ..Default::default()
-    };
-
-    let arg_offset_scope = scope.new_scope(&symbol_table);
-
-    expr.generate(&arg_offset_scope, code, regs, ());
-
-    code.text.push(
-      Asm::str(Reg::General(regs[0]), (Reg::StackPointer, -arg_type.size()))
-        .size(arg_type.size().into())
-        .pre_indexed(),
-    );
-
-    /* Make symbol table bigger. */
-    args_offset += arg_type.size();
-  }
-
-  /* Generate function pointer. */
-  func.generate(
-    /* Offset all stack accesses by the size the args take up. */
-    &scope.new_scope(&SymbolTable::empty(args_offset)),
-    code,
-    regs,
-    (),
-  );
-
-  /* Jump to function pointer. */
-  code.text.push(Asm::bx(Reg::General(regs[0])).link());
-
-  /* Stack space was given to parameter to call function.
-  We've finished calling so we can deallocate this space now. */
-  code.text.append(&mut Op2::imm_unroll(
-    |offset| Asm::add(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset)),
-    args_offset,
-  ));
-
-  code.text.push(Asm::mov(
-    Reg::General(regs[0]),
-    Op2::Reg(Reg::Arg(ArgReg::R0), 0),
-  ));
-}
-
 impl Generatable for AssignRhs {
   type Input = Type;
   type Output = ();
@@ -323,24 +139,6 @@ impl Generatable for AssignRhs {
       AssignRhs::Expr(expr) => {
         generate_assign_rhs_expr(scope, code, regs, expr)
       }
-      AssignRhs::ArrayLiter(ArrayLiter(exprs)) => {
-        generate_assign_rhs_array_liter(scope, code, regs, t, exprs)
-      }
-      AssignRhs::Pair(e1, e2) => {
-        generate_assign_rhs_pair(scope, code, regs, t, e1, e2)
-      }
-      AssignRhs::PairElem(elem) => {
-        generate_assign_rhs_pair_elem(scope, code, regs, t, elem)
-      }
-      AssignRhs::Call(func_type, ident, exprs) => generate_assign_rhs_call(
-        scope,
-        code,
-        regs,
-        func_type.clone(),
-        ident,
-        exprs,
-      ),
-      AssignRhs::StructLiter(liter) => liter.generate(scope, code, regs, ()),
     }
   }
 }
@@ -400,8 +198,8 @@ impl Generatable for PairElem {
   ) -> DataSize {
     /*  */
     let (t, pair, offset) = match self {
-      PairElem::Fst(t, pair) => (t, pair, 0),
-      PairElem::Snd(t, pair) => (t, pair, ARM_DSIZE_WORD),
+      PairElem::Fst(TypedExpr(t, pair)) => (t, pair, 0),
+      PairElem::Snd(TypedExpr(t, pair)) => (t, pair, ARM_DSIZE_WORD),
     };
 
     /* Store address of pair in regs[0]. */
@@ -777,11 +575,15 @@ impl Generatable for Stat {
       Stat::Read(type_, lhs) => {
         generate_stat_read(scope, code, regs, type_, lhs)
       }
-      Stat::Free(t, expr) => generate_stat_free(scope, code, regs, t, expr),
+      Stat::Free(TypedExpr(t, expr)) => {
+        generate_stat_free(scope, code, regs, t, expr)
+      }
       Stat::Return(expr) => generate_stat_return(scope, code, regs, expr),
       Stat::Exit(expr) => generate_stat_exit(scope, code, regs, expr),
-      Stat::Print(t, expr) => generate_stat_print(scope, code, regs, t, expr),
-      Stat::Println(t, expr) => {
+      Stat::Print(TypedExpr(t, expr)) => {
+        generate_stat_print(scope, code, regs, t, expr)
+      }
+      Stat::Println(TypedExpr(t, expr)) => {
         generate_stat_println(scope, code, regs, t, expr)
       }
       Stat::If(cond, body_t, body_f) => {

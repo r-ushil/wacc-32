@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use self::CondCode::*;
 use super::predef::{
   RequiredPredefs, PREDEF_AEABI_IDIV, PREDEF_AEABI_IDIVMOD,
@@ -7,6 +9,7 @@ use super::predef::{
 use super::*;
 use crate::analyser::context::*;
 use crate::generator::asm::*;
+use stat::generate_malloc;
 
 impl Generatable for Expr {
   type Input = ();
@@ -23,18 +26,239 @@ impl Generatable for Expr {
       Expr::BoolLiter(val) => generate_bool_liter(code, regs, val),
       Expr::CharLiter(val) => generate_char_liter(code, regs, val),
       Expr::StrLiter(val) => generate_string_liter(code, regs, val),
+      Expr::ArrayLiter(ArrayLiter(t, exprs)) => {
+        generate_array_liter(scope, code, regs, t, exprs)
+      }
+      Expr::StructLiter(liter) => liter.generate(scope, code, regs, ()),
       Expr::UnaryApp(op, expr) => {
         generate_unary_app(code, regs, scope, op, expr)
       }
       Expr::BinaryApp(expr1, op, expr2) => {
         generate_binary_app(code, regs, scope, expr1, op, expr2)
       }
-      Expr::PairLiter => generate_pair_liter(code, regs),
+      Expr::NullPairLiter => generate_null_pair_liter(code, regs),
+      Expr::PairLiter(e1, e2) => generate_pair_liter(scope, code, regs, e1, e2),
       Expr::Ident(id) => generate_ident(scope, code, regs, id),
       Expr::ArrayElem(elem) => generate_array_elem(scope, code, regs, elem),
       Expr::StructElem(elem) => generate_struct_elem(scope, code, regs, elem),
+      Expr::PairElem(elem) => generate_pair_elem(scope, code, regs, elem),
+      Expr::Call(func_type, ident, exprs) => {
+        generate_call(scope, code, regs, func_type.clone(), ident, exprs)
+      }
     }
   }
+}
+
+fn generate_call(
+  scope: &ScopeReader,
+  code: &mut GeneratedCode,
+  regs: &[GenReg],
+  func_type: Type,
+  func: &Expr,
+  exprs: &[Expr],
+) {
+  /* Get arg types. */
+
+  let arg_types = match func_type {
+    Type::Func(sig) => sig.param_types,
+    _ => unreachable!("Analyser guarentees this is a function."),
+  };
+
+  /* Save all registers we haven't been allowed to mangle. */
+  /* Figure out which registers aren't safe to overwrite and therefore need
+  saving. */
+  let mut unsafe_regs_set = GENERAL_REGS.iter().collect::<HashSet<_>>();
+  for reg in regs.iter() {
+    unsafe_regs_set.remove(reg);
+  }
+
+  /* Must put in some deterministic order so registers are popped in the
+  same order as they are pushed. */
+  let unsafe_regs_vec = unsafe_regs_set.into_iter().collect::<Vec<_>>();
+
+  /* Push all to stack. */
+  /* TODO: Change Push instruction to do this with one instruction. */
+  for reg in unsafe_regs_vec.iter() {
+    code.text.push(Asm::push(Reg::General(*reg.clone())));
+  }
+
+  /* Now all registers are saved, we can use all registers! */
+  let safe_regs = &GENERAL_REGS;
+
+  let mut args_offset = 0;
+
+  for (expr, arg_type) in exprs.iter().zip(arg_types).rev() {
+    let symbol_table = SymbolTable {
+      size: args_offset,
+      ..Default::default()
+    };
+
+    let arg_offset_scope = scope.new_scope(&symbol_table);
+
+    expr.generate(&arg_offset_scope, code, safe_regs, ());
+
+    code.text.push(
+      Asm::str(
+        Reg::General(safe_regs[0]),
+        (Reg::StackPointer, -arg_type.size()),
+      )
+      .size(arg_type.size().into())
+      .pre_indexed(),
+    );
+
+    /* Make symbol table bigger. */
+    args_offset += arg_type.size();
+  }
+
+  /* Generate function pointer. */
+  func.generate(
+    /* Offset all stack accesses by the size the args take up. */
+    &scope.new_scope(&SymbolTable::empty(args_offset)),
+    code,
+    regs,
+    (),
+  );
+
+  /* Jump to function pointer. */
+  code.text.push(Asm::bx(Reg::General(regs[0])).link());
+
+  /* Pop preserved register back from the stack. */
+  /* TODO: Change Pop instruction to do this with one instruction. */
+  for reg in unsafe_regs_vec.iter().rev() {
+    code.text.push(Asm::pop(Reg::General(*reg.clone())));
+  }
+
+  /* Stack space was given to parameter to call function.
+  We've finished calling so we can deallocate this space now. */
+  code.text.append(&mut Op2::imm_unroll(
+    |offset| Asm::add(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset)),
+    args_offset,
+  ));
+
+  code.text.push(Asm::mov(
+    Reg::General(regs[0]),
+    Op2::Reg(Reg::Arg(ArgReg::R0), 0),
+  ));
+}
+
+fn generate_pair_liter(
+  scope: &ScopeReader,
+  code: &mut GeneratedCode,
+  regs: &[GenReg],
+  TypedExpr(e1_type, e1): &TypedExpr,
+  TypedExpr(e2_type, e2): &TypedExpr,
+) {
+  let e1_size = e1_type.size();
+  let e2_size = e2_type.size();
+
+  /* Malloc for the pair.
+  regs[0] = malloc(8) */
+  generate_malloc(8, code, Reg::General(regs[0]));
+
+  /* Evaluate e1.
+  regs[1] = eval(e1) */
+  e1.generate(scope, code, &regs[1..], ());
+
+  /* Malloc for e1.
+  r0 = malloc(e1_size) */
+  generate_malloc(e1_size, code, Reg::Arg(ArgReg::R0));
+
+  /* Write e1 to malloced space. */
+  code.text.push(
+    Asm::str(Reg::General(regs[1]), (Reg::Arg(ArgReg::R0), 0))
+      .size(e1_size.into()),
+  );
+
+  /* Write pointer to e1 to pair. */
+  code
+    .text
+    .push(Asm::str(Reg::Arg(ArgReg::R0), (Reg::General(regs[0]), 0)));
+
+  /* Evaluate e2.
+  regs[1] = eval(e2) */
+  e2.generate(scope, code, &regs[1..], ());
+
+  /* Malloc for e2.
+  r0 = malloc(e2_size) */
+  generate_malloc(e2_size, code, Reg::Arg(ArgReg::R0));
+
+  /* Write e2 to malloced space. */
+  code.text.push(
+    Asm::str(Reg::General(regs[1]), (Reg::Arg(ArgReg::R0), 0))
+      .size(e2_size.into()),
+  );
+
+  /* Write pointer to e2 to pair. */
+  code.text.push(Asm::str(
+    Reg::Arg(ArgReg::R0),
+    (Reg::General(regs[0]), ARM_DSIZE_WORD),
+  ))
+}
+
+fn generate_array_liter(
+  scope: &ScopeReader,
+  code: &mut GeneratedCode,
+  regs: &[GenReg],
+  elem_type: &Type,
+  exprs: &[Expr],
+) {
+  if exprs.len() > 0 {
+    /* Calculate size of elements. */
+    let elem_size = elem_type.size();
+
+    /* Malloc space for array. */
+    generate_malloc(
+      ARM_DSIZE_WORD + elem_size * exprs.len() as i32,
+      code,
+      Reg::General(regs[0]),
+    );
+
+    /* Write each expression to the array. */
+    for (i, expr) in exprs.iter().enumerate() {
+      /* Evaluate expr to r5. */
+      expr.generate(scope, code, &regs[1..], ());
+
+      /* Write r5 array. */
+      code.text.push(
+        Asm::str(
+          Reg::General(regs[1]),
+          (
+            Reg::General(regs[0]),
+            ARM_DSIZE_WORD + (i as i32) * elem_size,
+          ),
+        )
+        .size(elem_size.into()),
+      );
+    }
+  } else {
+    /* Malloc space for array. */
+    generate_malloc(ARM_DSIZE_WORD, code, Reg::General(regs[0]));
+  }
+
+  /* Write length to first byte.
+  LDR r5, =3
+  STR r5, [r4] */
+  code
+    .text
+    .push(Asm::ldr(Reg::General(regs[1]), exprs.len() as i32));
+  code
+    .text
+    .push(Asm::str(Reg::General(regs[1]), (Reg::General(regs[0]), 0)));
+}
+
+fn generate_pair_elem(
+  scope: &ScopeReader,
+  code: &mut GeneratedCode,
+  regs: &[GenReg],
+  elem: &PairElem,
+) {
+  /* Puts element address in regs[0]. */
+  let elem_size = elem.generate(scope, code, regs, ());
+
+  /* Dereference. */
+  code.text.push(
+    Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), 0)).size(elem_size),
+  );
 }
 
 fn generate_struct_elem(
@@ -61,7 +285,7 @@ fn generate_struct_elem(
   );
 }
 
-fn generate_pair_liter(code: &mut GeneratedCode, regs: &[GenReg]) {
+fn generate_null_pair_liter(code: &mut GeneratedCode, regs: &[GenReg]) {
   /* LDR reg[0] =0 */
   code
     .text

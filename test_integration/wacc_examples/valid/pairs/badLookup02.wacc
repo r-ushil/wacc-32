@@ -12,3 +12,5 @@ begin
 	pair(int, char) p = newpair(10, 'a') ;
   println snd p
 end
+
+# ORIGIONALLY THIS WAS A FAIL, BUT PAIR ELEMS ARE EXPRESSIONS NOW

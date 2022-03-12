@@ -36,11 +36,11 @@ pub enum Stat {
   Declaration(Type, Ident, AssignRhs),
   Assignment(AssignLhs, Type, AssignRhs),
   Read(Type, AssignLhs),
-  Free(Type, Expr),
+  Free(TypedExpr),
   Return(Expr),
   Exit(Expr),
-  Print(Type, Expr),
-  Println(Type, Expr),
+  Print(TypedExpr),
+  Println(TypedExpr),
   Sequence(Box<Stat>, Box<Stat>),
 
   /* SCOPING STATEMENTS */
@@ -71,11 +71,6 @@ pub enum AssignLhs {
 #[derive(PartialEq, Debug, Clone)]
 pub enum AssignRhs {
   Expr(Expr),
-  ArrayLiter(ArrayLiter),
-  StructLiter(StructLiter),
-  Pair(Expr, Expr),
-  PairElem(PairElem),
-  Call(Type, Expr, Vec<Expr>),
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -101,8 +96,8 @@ where
 pub enum PairElem {
   /* Type of fst and snd elem respectively.
   (fst and snd are concidered generic functions) */
-  Fst(Type, Expr),
-  Snd(Type, Expr),
+  Fst(TypedExpr),
+  Snd(TypedExpr),
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -166,17 +161,36 @@ impl Type {
 }
 
 #[derive(PartialEq, Debug, Clone)]
+pub struct TypedExpr(pub Type, pub Expr);
+
+impl TypedExpr {
+  pub fn new(expr: Expr) -> Self {
+    TypedExpr(Type::default(), expr)
+  }
+}
+
+#[derive(PartialEq, Debug, Clone)]
 pub enum Expr {
+  /* Literal values. */
   IntLiter(i32),
   BoolLiter(bool),
   CharLiter(char),
   StrLiter(String),
-  PairLiter,
+  NullPairLiter,
+  PairLiter(Box<TypedExpr>, Box<TypedExpr>),
+  ArrayLiter(ArrayLiter), /* Type is type of elements. */
+  StructLiter(StructLiter),
+  /* Identifiers. */
   Ident(Ident),
+  /* Element access. */
   ArrayElem(ArrayElem),
   StructElem(StructElem),
+  PairElem(Box<PairElem>),
+  /* Operator application. */
   UnaryApp(UnaryOper, Box<Expr>),
   BinaryApp(Box<Expr>, BinaryOper, Box<Expr>),
+  /* Function calls. */
+  Call(Type, Box<Expr>, Vec<Expr>),
 }
 
 impl From<i32> for Expr {
@@ -219,4 +233,4 @@ pub type Ident = String;
 pub struct ArrayElem(pub Ident, pub Vec<Expr>);
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct ArrayLiter(pub Vec<Expr>);
+pub struct ArrayLiter(pub Type, pub Vec<Expr>);
