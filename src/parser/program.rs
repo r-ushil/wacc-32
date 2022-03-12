@@ -1,5 +1,8 @@
 extern crate nom;
+use std::fs;
+
 use nom::{
+  character::complete::alphanumeric1,
   combinator::map,
   multi::many0,
   sequence::{delimited, pair, preceded, tuple},
@@ -10,11 +13,20 @@ use nom_supreme::{error::ErrorTree, final_parser};
 use super::shared::*;
 use super::stat::*;
 use super::type_::*;
-use crate::analyser::context::{IdentInfo, SymbolTable};
 use crate::ast::*;
+use crate::{
+  analyser::context::{IdentInfo, SymbolTable},
+  parse, read_file,
+};
 
 fn import_file(input: &str) -> IResult<&str, Vec<Func>, ErrorTree<&str>> {
-  todo!();
+  map(tuple((alphanumeric1, tok(".wacc"))), |(filename, ext)| {
+    let program_string =
+      read_file(fs::File::open(format!("{}{}", filename, ext)).unwrap());
+    let program_str = program_string.as_str();
+
+    parse(program_str).funcs
+  })(input)
 }
 
 fn import_stat(input: &str) -> IResult<&str, Vec<Func>, ErrorTree<&str>> {
