@@ -1,5 +1,6 @@
 extern crate nom;
 use nom::{
+  combinator::map,
   multi::many0,
   sequence::{delimited, pair, preceded, tuple},
   IResult,
@@ -11,6 +12,14 @@ use super::stat::*;
 use super::type_::*;
 use crate::analyser::context::{IdentInfo, SymbolTable};
 use crate::ast::*;
+
+fn import_file(input: &str) -> IResult<&str, Vec<Func>, ErrorTree<&str>> {
+  todo!();
+}
+
+fn import_stat(input: &str) -> IResult<&str, Vec<Func>, ErrorTree<&str>> {
+  map(tuple((tok("import"), import_file)), |(_, ast)| ast)(input)
+}
 
 pub fn final_program_parser(input: &str) -> Result<Program, ErrorTree<&str>> {
   final_parser::final_parser(program)(input)
