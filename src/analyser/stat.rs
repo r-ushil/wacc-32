@@ -311,7 +311,7 @@ impl Analysable for Stat {
           rhs
         })
       }
-      Stat::For(_, _) => todo!(),
+      Stat::For(_, _, _, _) => todo!(),
     }
   }
 }
