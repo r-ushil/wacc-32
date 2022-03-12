@@ -138,12 +138,12 @@ fn assign_rhs(input: &str) -> IResult<&str, AssignRhs, ErrorTree<&str>> {
     map(
       tuple((
         tok("call"),
-        ident,
+        expr,
         tok("("),
         many0_delimited(expr, tok(",")),
         tok(")"),
       )),
-      |(_, id, _, exprs, _)| AssignRhs::Call(id, exprs),
+      |(_, func, _, args, _)| AssignRhs::Call(Type::default(), func, args),
     ),
     map(expr, AssignRhs::Expr),
   ))(input)
@@ -731,10 +731,14 @@ mod tests {
 
   #[test]
   fn test_assign_rhs9() {
-    assert!(matches!(
-      assign_rhs("call callee ()"),
-      Ok(("", ast)) if ast == AssignRhs::Call("callee".to_string(), vec!())
-    ));
+    assert_eq!(
+      assign_rhs("call callee ()").unwrap().1,
+      AssignRhs::Call(
+        Type::default(),
+        Expr::Ident("callee".to_string()),
+        vec!()
+      )
+    );
   }
   #[test]
   fn test_assign_rhs10() {

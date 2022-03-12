@@ -31,30 +31,27 @@ impl HasType for AssignRhs {
   fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
     match self {
       AssignRhs::Expr(exp) => exp.get_type(scope),
-      AssignRhs::Call(id, args) => {
-        /* TODO: make it never replace id in the first place,
-        so we don't have to set it back again after. */
-        let old_id = id.clone();
-
-        match id.get_type(scope)? {
+      AssignRhs::Call(t, func_expr, args) => {
+        match func_expr.get_type(scope)? {
           Type::Func(bx) => {
-            /* Function idents shouldn't be renamed. */
-            *id = old_id;
+            /* Populate the type in call. */
+            *t = Type::Func(bx.clone());
 
             let FuncSig {
-              params,
+              param_types,
               return_type,
             } = *bx;
 
             /* Types must be pairwise the same. */
-            SemanticError::join_iter(args.iter_mut().zip(params.iter()).map(
-              |(arg, (param_type, param_id))| {
-                expected_type(scope, param_type, arg)
-              },
-            ))?;
+            SemanticError::join_iter(
+              args
+                .iter_mut()
+                .zip(param_types.iter())
+                .map(|(arg, param_type)| expected_type(scope, param_type, arg)),
+            )?;
 
             /* Must be same amount of args as parameters */
-            if params.len() != args.len() {
+            if param_types.len() != args.len() {
               Err(SemanticError::Normal(
                 "Function called with wrong amount of arguments.".to_string(),
               ))
@@ -216,11 +213,8 @@ pub fn stat(
   match statement {
     Stat::Skip => Ok(Never), /* Skips never return. */
     Stat::Declaration(expected, id, val) => {
-      let (_, new_id) = expected_type(scope, expected, val)
-        .join(scope.insert(id, expected.clone()))?;
-
-      /* Rename ident. (global ident) */
-      *id = new_id;
+      expected_type(scope, expected, val)
+        .join(scope.insert_var(id, expected.clone()))?;
 
       /* Declarations never return. */
       Ok(Never)
@@ -340,14 +334,14 @@ mod tests {
   #[test]
   fn struct_liter() {
     let mut symbol_table = SymbolTable::default();
-    let type_defs = HashMap::from([(
+    symbol_table.table.insert(
       format!("IntBox"),
-      Struct {
+      IdentInfo::TypeDef(Struct {
         fields: HashMap::from([(format!("x"), (Type::Int, 0))]),
         size: 4,
-      },
-    )]);
-    let scope = &mut ScopeBuilder::new(&mut symbol_table, &type_defs);
+      }),
+    );
+    let scope = &mut ScopeBuilder::new(&mut symbol_table);
 
     /* Correct usage. */
     assert!((StructLiter {
@@ -380,13 +374,12 @@ mod tests {
   #[test]
   fn assign_lhs() {
     let mut symbol_table = SymbolTable::default();
-    let type_defs = TypeDefs::default();
-    let scope = &mut ScopeBuilder::new(&mut symbol_table, &type_defs);
+    let scope = &mut ScopeBuilder::new(&mut symbol_table);
 
     /* Identifiers cause */
     let x_id = String::from("x");
     let x_type = Type::Array(Box::new(Type::Int));
-    scope.insert(&x_id, x_type.clone()).unwrap();
+    scope.insert_var(&mut x_id.clone(), x_type.clone()).unwrap();
     assert_eq!(AssignLhs::Ident(x_id.clone()).get_type(scope), Ok(x_type));
 
     assert_eq!(
@@ -406,17 +399,19 @@ mod tests {
       Stat::Declaration(Type::Int, x(), AssignRhs::Expr(Expr::IntLiter(5)));
 
     let mut outer_symbol_table = SymbolTable::default();
-    let type_defs = TypeDefs::default();
-    let mut outer_scope =
-      ScopeBuilder::new(&mut outer_symbol_table, &type_defs);
+    let mut outer_scope = ScopeBuilder::new(&mut outer_symbol_table);
 
-    stat(&mut outer_scope, &mut intx5);
+    stat(&mut outer_scope, &mut intx5).unwrap();
 
-    assert!(matches!(outer_scope.get_type(&x()), Some((&Type::Int, _))));
+    assert!(matches!(
+      outer_scope.get(&mut x()),
+      Some(IdentInfo::LocalVar(Type::Int, _))
+    ));
   }
 
   #[test]
   fn scoping() {
+    use IdentInfo::*;
     /*
     int y should be able to access the symbol table about to type check x,
     but must also allow z to be defined in that symbol table afterwards.
@@ -447,11 +442,9 @@ mod tests {
     )));
 
     let mut outer_symbol_table = SymbolTable::default();
-    let type_defs = TypeDefs::default();
-    let mut global_scope =
-      ScopeBuilder::new(&mut outer_symbol_table, &type_defs);
+    let mut global_scope = ScopeBuilder::new(&mut outer_symbol_table);
 
-    stat(&mut global_scope, &mut statement);
+    stat(&mut global_scope, &mut statement).unwrap();
     /* x and z should now be in outer scope */
 
     /* Retrieve inner and outer st from statement ast. */
@@ -475,26 +468,40 @@ mod tests {
       };
 
     /* When in outer scope, x and z should be ints. */
-    let type_defs = TypeDefs::default();
-    let outer_scope = ScopeBuilder::new(&mut st, &type_defs);
-    assert!(matches!(outer_scope.get_type(&x()), Some((&Type::Int, _))));
-    assert!(matches!(outer_scope.get_type(&z()), Some((&Type::Int, _))));
+    let outer_scope = ScopeBuilder::new(&mut st);
+    assert!(matches!(
+      outer_scope.get(&mut x()),
+      Some(LocalVar(Type::Int, _))
+    ));
+    assert!(matches!(
+      outer_scope.get(&mut z()),
+      Some(LocalVar(Type::Int, _))
+    ));
 
     /* Check offsets are correct from outer scope. */
-    assert_eq!(outer_scope.get_offset(&x()), Some(4));
-    assert_eq!(outer_scope.get_offset(&z()), Some(0));
+    assert!(matches!(outer_scope.get(&mut x()), Some(LocalVar(_, 4))));
+    assert!(matches!(outer_scope.get(&mut z()), Some(LocalVar(_, 0))));
 
     /* When in inner scope, x, y, and z should be ints. */
     let inner_scope = outer_scope.new_scope(&mut inner_st);
-    assert!(matches!(inner_scope.get_type(&x()), Some((&Type::Int, _))));
-    assert!(matches!(inner_scope.get_type(&y()), Some((&Type::Int, _))));
-    assert!(matches!(inner_scope.get_type(&z()), Some((&Type::Int, _))));
+    assert!(matches!(
+      inner_scope.get(&mut x()),
+      Some(LocalVar(Type::Int, _))
+    ));
+    assert!(matches!(
+      inner_scope.get(&mut y()),
+      Some(LocalVar(Type::Int, _))
+    ));
+    assert!(matches!(
+      inner_scope.get(&mut z()),
+      Some(LocalVar(Type::Int, _))
+    ));
 
     /* x and z's offsets should be offset by 4 more now because y is using 4 bytes. */
-    assert_eq!(inner_scope.get_offset(&x()), Some(8));
-    assert_eq!(inner_scope.get_offset(&z()), Some(4));
+    assert!(matches!(inner_scope.get(&mut x()), Some(LocalVar(_, 8))));
+    assert!(matches!(inner_scope.get(&mut z()), Some(LocalVar(_, 4))));
 
     /* y should now have +0 offset */
-    assert_eq!(inner_scope.get_offset(&y()), Some(0));
+    assert!(matches!(inner_scope.get(&mut y()), Some(LocalVar(_, 0))));
   }
 }

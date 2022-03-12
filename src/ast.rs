@@ -5,8 +5,6 @@ pub type TypeDefs = HashMap<Ident, Struct>;
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Program {
-  /* User defined types. */
-  pub type_defs: TypeDefs,
   /* User defined functions. */
   pub funcs: Vec<Func>,
   /* Program body. */
@@ -19,6 +17,7 @@ pub struct Program {
 #[derive(PartialEq, Debug, Clone)]
 pub struct Func {
   pub ident: Ident,
+  pub param_ids: Vec<Ident>,
   pub signature: FuncSig,
   pub body: Stat,
   pub params_st: SymbolTable,
@@ -27,7 +26,7 @@ pub struct Func {
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct FuncSig {
-  pub params: Vec<(Type, Ident)>,
+  pub param_types: Vec<Type>,
   pub return_type: Type,
 }
 
@@ -72,7 +71,7 @@ pub enum AssignLhs {
 #[derive(PartialEq, Debug, Clone)]
 pub enum AssignRhs {
   Expr(Expr),
-  Call(Ident, Vec<Expr>),
+  Call(Type, Expr, Vec<Expr>),
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -157,7 +156,6 @@ impl Type {
     match self {
       Bool | Char => 1,
       Any => panic!("Size of Type::Any can not be known."),
-      Func(_) => 0,
       _ => 4,
     }
   }

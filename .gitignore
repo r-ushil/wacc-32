@@ -8,3 +8,4 @@
 /test_integration/wacc_examples_assembled/wacc_examples_assembled_ours/
 /test_integration/wacc_examples_exit_codes/wacc_examples_exit_codes_ours/
 /test_integration/wacc_examples_executed/wacc_examples_executed_ours/
+/test_integration/wacc_examples/**

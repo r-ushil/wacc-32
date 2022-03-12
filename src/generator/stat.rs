@@ -7,6 +7,7 @@ use super::{
   predef::{RequiredPredefs, PREDEF_SYS_MALLOC},
   *,
 };
+use crate::analyser::context::*;
 use Directive::*;
 use Instr::*;
 
@@ -15,7 +16,12 @@ fn generate_assign_lhs_ident(
   t: Type,
   id: &Ident,
 ) -> <AssignLhs as Generatable>::Output {
-  let offset = scope.get_offset(id).unwrap();
+  use IdentInfo::*;
+
+  let offset = match scope.get(id) {
+    Some(LocalVar(_, offset)) => offset,
+    v => unreachable!("ident must be a local variable, it's {:?}", v),
+  };
 
   (Reg::StackPointer, offset, t.size().into())
 }
@@ -122,16 +128,15 @@ fn generate_assign_rhs_call(
   scope: &ScopeReader,
   code: &mut GeneratedCode,
   regs: &[GenReg],
-  _t: Type,
-  ident: &Ident,
+  func_type: Type,
+  func: &Expr,
   exprs: &[Expr],
 ) {
-  let args = if let Type::Func(function_sig) =
-    scope.get_bottom(ident).expect("Unreachable!")
-  {
-    &function_sig.params
-  } else {
-    unreachable!();
+  /* Get arg types. */
+
+  let arg_types = match func_type {
+    Type::Func(sig) => sig.param_types,
+    _ => unreachable!("Analyser guarentees this is a function."),
   };
 
   /* Save all registers we haven't been allowed to mangle. */
@@ -157,8 +162,11 @@ fn generate_assign_rhs_call(
 
   let mut args_offset = 0;
 
-  for (expr, (arg_type, _arg_ident)) in exprs.iter().zip(args).rev() {
-    let symbol_table = SymbolTable::empty(args_offset);
+  for (expr, arg_type) in exprs.iter().zip(arg_types).rev() {
+    let symbol_table = SymbolTable {
+      size: args_offset,
+      ..Default::default()
+    };
 
     let arg_offset_scope = scope.new_scope(&symbol_table);
 
@@ -177,9 +185,17 @@ fn generate_assign_rhs_call(
     args_offset += arg_type.size();
   }
 
-  code
-    .text
-    .push(Asm::b(generate_function_name(ident.to_string())).link());
+  /* Generate function pointer. */
+  func.generate(
+    /* Offset all stack accesses by the size the args take up. */
+    &scope.new_scope(&SymbolTable::empty(args_offset)),
+    code,
+    regs,
+    (),
+  );
+
+  /* Jump to function pointer. */
+  code.text.push(Asm::bx(Reg::General(regs[0])).link());
 
   /* Pop preserved register back from the stack. */
   /* TODO: Change Pop instruction to do this with one instruction. */
@@ -215,9 +231,14 @@ impl Generatable for AssignRhs {
       AssignRhs::Expr(expr) => {
         generate_assign_rhs_expr(scope, code, regs, expr)
       }
-      AssignRhs::Call(ident, exprs) => {
-        generate_assign_rhs_call(scope, code, regs, t, ident, exprs)
-      }
+      AssignRhs::Call(func_type, ident, exprs) => generate_assign_rhs_call(
+        scope,
+        code,
+        regs,
+        func_type.clone(),
+        ident,
+        exprs,
+      ),
     }
   }
 }
@@ -645,7 +666,8 @@ impl Generatable for Stat {
     match self {
       Stat::Skip => (),
       Stat::Declaration(t, id, rhs) => {
-        generate_stat_declaration(scope, code, regs, t, id, rhs)
+        // println!("scope = {:#?}", scope);
+        generate_stat_declaration(scope, code, regs, t, id, rhs);
       }
       Stat::Assignment(lhs, t, rhs) => {
         generate_stat_assignment(scope, code, regs, lhs, t, rhs)
@@ -686,7 +708,7 @@ mod tests {
   fn exit_statement() {
     let symbol_table = SymbolTable::default();
     let type_defs = TypeDefs::default();
-    let scope = &ScopeReader::new(&symbol_table, &type_defs);
+    let scope = &ScopeReader::new(&symbol_table);
     let expr = Expr::IntLiter(0);
     let stat = Stat::Exit(expr.clone());
     let regs = &GENERAL_REGS;

@@ -28,6 +28,9 @@ docker_test_integration:
 	docker build -t test_integration --target test_integration .
 	docker run test_integration
 
+remove_windows_newline:
+	(cd ./test_integration && find . -type f -exec dos2unix {} \;)
+
 # clean up all of the compiled files
 clean:
 	cargo clean

@@ -16,7 +16,7 @@ impl Generatable for Program {
     assert!(regs == GENERAL_REGS);
 
     /* Move into program's scope. */
-    let scope = &ScopeReader::new(&self.symbol_table, &self.type_defs);
+    let scope = &ScopeReader::new(&self.symbol_table);
 
     /* Generate code for every function, side affecting the code struct.
      * Each function is allowed to use the registers from min_regs variable
@@ -26,15 +26,17 @@ impl Generatable for Program {
     }
     /* The statement of the program should be compiled as if it is in a
      * function called main, which takes nothing and returns an int exit code */
+
     Func {
       ident: WACC_PROGRAM_MAIN_LABEL.to_string(),
       signature: FuncSig {
-        params: Vec::new(),
+        param_types: Vec::new(),
         return_type: Type::Int,
       },
       body: *self.statement.1.clone(),
       params_st: SymbolTable::default(),
       body_st: self.statement.0.clone(),
+      param_ids: Vec::new(),
     }
     .generate(scope, code, regs, ());
 
