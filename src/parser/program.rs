@@ -271,4 +271,17 @@ mod tests {
       )
     ));
   }
+
+  #[test]
+  fn test_import_statements() {
+    let (_, ast) = program(
+      "import test_integration/extension_executed/import-files/peano.wacc
+      begin
+      exit 0
+      end",
+    )
+    .unwrap();
+
+    assert!(ast.funcs.len() > 0);
+  }
 }
