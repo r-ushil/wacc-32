@@ -12,4 +12,4 @@
 ./tests/func-ptrs/func-table.wacc,./tests/func-ptrs/func-table.output.observed,./tests/func-ptrs/func-table.output.expected,pass
 ./tests/imports/import.wacc,./tests/imports/import.output.observed,./tests/imports/import.output.expected,pass
 ./tests/imports/importWithFuncPtrs.wacc,./tests/imports/importWithFuncPtrs.output.observed,./tests/imports/importWithFuncPtrs.output.expected,pass
-
+./tests/for-loops/for.wacc,./tests/for-loops/for.output.observed,./tests/for-loops/for.output.expected,fail
