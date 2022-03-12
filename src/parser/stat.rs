@@ -2,6 +2,7 @@ extern crate nom;
 use nom::{
   branch::alt,
   combinator::{map, value},
+  multi::{many0, many_m_n},
   sequence::{preceded, tuple},
   IResult,
 };
@@ -75,6 +76,35 @@ fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
     |(_, e, _, s, _)| Stat::While(e, ScopedStat::new(s)),
   );
 
+  let for_ = map(
+    tuple((
+      tok("for"),
+      tok("("),
+      many_m_n(0, 1, stat),
+      tok(";"),
+      expr,
+      tok(";"),
+      stat,
+      tok(";"),
+      tok(")"),
+      stat,
+    )),
+    |(_, _, decl, _, cond, _, assign, _, _, body)| {
+      let new_decl = if decl.is_empty() {
+        Stat::Skip
+      } else {
+        decl[0].clone()
+      };
+
+      Stat::For(
+        Box::new(new_decl),
+        cond,
+        ScopedStat::new(body),
+        Box::new(assign),
+      )
+    },
+  );
+
   let begin = map(tuple((tok("begin"), stat, tok("end"))), |(_, s, _)| {
     Stat::Scope(ScopedStat::new(s))
   });
@@ -91,6 +121,7 @@ fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
     print,
     if_,
     while_,
+    for_,
     begin,
   ))(input)
 }
