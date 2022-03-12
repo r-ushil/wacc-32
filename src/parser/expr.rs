@@ -32,14 +32,6 @@ pub fn expr(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
 }
 
 fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
-  /* EXCEPTION: Expressions may be preceded by 'call' if they
-  are a function call. */
-  if let Ok((input, e @ Expr::Call(_, _, _))) =
-    preceded(tok("call"), expr_atom)(input)
-  {
-    return Ok((input, e));
-  }
-
   let bool_liter = alt((
     value(Expr::BoolLiter(true), tok("true")),
     value(Expr::BoolLiter(false), tok("false")),

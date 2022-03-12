@@ -31,12 +31,12 @@ pub fn stat(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
 
 fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
   let skip = value(Stat::Skip, tok("skip"));
-  let declaration =
-    map(tuple((type_, ident, tok("="), expr)), |(t, id, _, ass)| {
-      Stat::Declaration(t, id, ass)
-    });
+  let declaration = map(
+    tuple((type_, ident, tok("="), assign_rhs)),
+    |(t, id, _, ass)| Stat::Declaration(t, id, ass),
+  );
   let assignment = map(
-    tuple((assign_lhs, tok("="), expr)),
+    tuple((assign_lhs, tok("="), assign_rhs)),
     |(ass_lhs, _, ass_rhs)| Stat::Assignment(ass_lhs, Type::default(), ass_rhs),
   );
   let read = map(preceded(tok("read"), assign_lhs), |e| {
@@ -113,6 +113,18 @@ fn assign_lhs(input: &str) -> IResult<&str, AssignLhs, ErrorTree<&str>> {
     map(array_elem, AssignLhs::ArrayElem),
     map(ident, AssignLhs::Ident),
   ))(input)
+}
+
+fn assign_rhs(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
+  /* EXCEPTION: Expressions may be preceded by 'call' if they
+  are a function call. */
+  if let Ok((input, e @ Expr::Call(_, _, _))) =
+    preceded(tok("call"), expr)(input)
+  {
+    Ok((input, e))
+  } else {
+    expr(input)
+  }
 }
 
 /* pair-elem ::= 'fst' <expr> | 'snd' <expr> */
@@ -663,13 +675,13 @@ mod tests {
 
   #[test]
   fn test_assign_rhs1() {
-    assert!(matches!(expr("5"), Ok(("", Expr::IntLiter(5)))));
+    assert!(matches!(assign_rhs("5"), Ok(("", Expr::IntLiter(5)))));
   }
 
   #[test]
   fn test_assign_rhs2() {
     assert!(matches!(
-      expr("[1, 2 ,3 ,4,5]"),
+      assign_rhs("[1, 2 ,3 ,4,5]"),
       Ok((
         "",
         ast)) if ast == (Expr::ArrayLiter(ArrayLiter(Type::default(), (1..=5).map(Expr::IntLiter).collect())))
@@ -679,7 +691,7 @@ mod tests {
   #[test]
   fn test_assign_rhs3() {
     assert!(matches!(
-      expr("[1, 'c']"),
+      assign_rhs("[1, 'c']"),
       Ok((
         "",
         ast)) if ast == (Expr::ArrayLiter(ArrayLiter(Type::default(), vec!(Expr::IntLiter(1), Expr::CharLiter('c')))))
@@ -689,14 +701,14 @@ mod tests {
   #[test]
   fn test_assign_rhs4() {
     assert!(matches!(
-      expr("[]"),
+      assign_rhs("[]"),
       Ok(("", ast)) if ast == (Expr::ArrayLiter(ArrayLiter(Type::default(), vec!())))
     ));
   }
   #[test]
   fn test_assign_rhs5() {
     assert_eq!(
-      expr("newpair (1, 2)").unwrap().1,
+      assign_rhs("newpair (1, 2)").unwrap().1,
       (Expr::PairLiter(
         Box::new(TypedExpr::new(Expr::IntLiter(1))),
         Box::new(TypedExpr::new(Expr::IntLiter(2)))
@@ -707,7 +719,7 @@ mod tests {
   #[test]
   fn test_assign_rhs9() {
     assert_eq!(
-      expr("call callee ()").unwrap().1,
+      assign_rhs("call callee ()").unwrap().1,
       (Expr::Call(
         Type::default(),
         Box::new(Expr::Ident("callee".to_string())),
@@ -718,7 +730,7 @@ mod tests {
   #[test]
   fn test_assign_rhs10() {
     assert!(matches!(
-      expr("[ false, true ]"),
+      assign_rhs("[ false, true ]"),
       Ok((
         "",
         ast)) if ast == (Expr::ArrayLiter(ArrayLiter(Type::default(), vec!(
