@@ -39,11 +39,16 @@ pub fn final_program_parser(input: &str) -> Result<Program, ErrorTree<&str>> {
 
 /* program ::= 'begin' <func>* <stat> 'end' */
 pub fn program(input: &str) -> IResult<&str, Program, ErrorTree<&str>> {
-  let (input, (type_defs_vec, funcs, statement)) = delimited(
+  let (input, funcs) = many0(import_stat)(input)?;
+  let mut funcs = funcs.into_iter().flatten().collect::<Vec<Func>>();
+
+  let (input, (type_defs_vec, mut prog_funcs, statement)) = delimited(
     preceded(comment_or_ws, tok("begin")),
     tuple((many0(type_def), many0(func), stat)),
     tok("end"),
   )(input)?;
+
+  funcs.append(&mut prog_funcs);
 
   /* Convert from vector of type defs to hashmap of typedefs. */
   let mut symbol_table = SymbolTable::default();
