@@ -312,24 +312,32 @@ impl Analysable for Stat {
         })
       }
       Stat::For(decl, cond, body, assign) => {
-        //match decl is a declaration and assign is an assignment
+        //match decl is a declaration and assign is an assignment, ** for the boxes
+        //need to add decl variable to scope
 
-        match **decl {
-          Stat::Declaration(_, _, _) | Stat::Skip => match **assign {
-            Stat::Assignment(_, _, _) => {
-              let (_, stat_res) = expected_type(scope, &Type::Bool, cond)
-                .join(decl.analyse(scope, ()))
-                .join(body.analyse(scope, ()))
-                .join(assign.analyse(scope, ()))?;
-
-              Ok(match stat_res {
-                AtEnd(t) => MidWay(t),
-                b => b,
-              })
-            }
-            _ => panic!("Last part of for loop not an assignment"),
-          },
+        match (**decl).clone() {
+          Stat::Skip => (),
+          Stat::Declaration(t, id, _rhs) => {
+            decl.analyse(scope, ())?;
+            scope.insert_var(&mut id.clone(), t.clone());
+          }
           _ => panic!("First part of for loop not a declaration or a skip"),
+        };
+
+        match **assign {
+          Stat::Assignment(_, _, _) => {
+            //check everything type checks (recursively using analyse)
+            let (_, stat_res) = expected_type(scope, &Type::Bool, cond)
+              .join(body.analyse(scope, ()))
+              .join(assign.analyse(scope, ()))?;
+
+            //similar reasoning to while loop
+            Ok(match stat_res {
+              AtEnd(t) => MidWay(t),
+              b => b,
+            })
+          }
+          _ => panic!("Last part of for loop not an assignment"),
         }
       }
     }

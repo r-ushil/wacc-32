@@ -551,6 +551,20 @@ fn generate_stat_sequence(
   tail.generate(scope, code, regs, ());
 }
 
+fn generate_stat_for(
+  scope: &ScopeReader,
+  code: &mut GeneratedCode,
+  regs: &[GenReg],
+  decl: &Box<Stat>,
+  cond: &Expr,
+  body: &ScopedStat,
+  assign: &Box<Stat>,
+) {
+  // generate decl
+  // gen while - but before jump back, assign
+  todo!();
+}
+
 impl Generatable for Stat {
   type Input = ();
   type Output = ();
@@ -594,7 +608,9 @@ impl Generatable for Stat {
       Stat::Sequence(head, tail) => {
         generate_stat_sequence(scope, code, regs, head, tail)
       }
-      Stat::For(declaration, cond, body, assignment) => todo!(),
+      Stat::For(decl, cond, body, assign) => {
+        generate_stat_for(scope, code, regs, decl, cond, body, assign)
+      }
     }
   }
 }
