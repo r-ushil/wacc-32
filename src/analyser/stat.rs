@@ -317,9 +317,9 @@ impl Analysable for Stat {
 
         match (**decl).clone() {
           Stat::Skip => (),
-          Stat::Declaration(t, id, _rhs) => {
+          Stat::Declaration(_, _, _) => {
             decl.analyse(scope, ())?;
-            scope.insert_var(&mut id.clone(), t.clone());
+
           }
           _ => panic!("First part of for loop not a declaration or a skip"),
         };

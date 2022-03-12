@@ -17,8 +17,14 @@ fn generate_assign_lhs_ident(
   use IdentInfo::*;
 
   let offset = match scope.get(id) {
+    
+
     Some(LocalVar(_, offset)) => offset,
-    v => unreachable!("ident must be a local variable, it's {:?}", v),
+    v => {
+      println!("{:#?}", id);
+      println!("{:#?}", scope);
+      unreachable!("ident must be a local variable, it's {:?}", v)
+    },
   };
 
   (Reg::StackPointer, offset, t.size().into())
@@ -560,9 +566,41 @@ fn generate_stat_for(
   body: &ScopedStat,
   assign: &Box<Stat>,
 ) {
+
+  //println!("{:#?}", scope);
   // generate decl
   // gen while - but before jump back, assign
-  todo!();
+  let cond_label = code.get_label();
+  let body_label = code.get_label();
+
+  decl.generate(scope, code, regs, ());
+
+  /* Jump to condition evaluation. */
+  code.text.push(Asm::b(cond_label.clone()));
+
+  /* Loop body label */
+  code.text.push(Asm::Directive(Label(body_label.clone())));
+
+  /* Loop body. */
+  body.generate(scope, code, regs, ());
+
+  /* Generate assign */
+  assign.generate(scope, code, regs, ());
+
+  /* Cond label */
+  code.text.push(Asm::Directive(Label(cond_label)));
+
+  /* regs[0] = eval(cond) */
+  cond.generate(scope, code, regs, ());
+
+  /* cmp(regs[0], 1) */
+  code.text.push(Asm::cmp(Reg::General(regs[0]), Op2::Imm(1)));
+
+
+  /* If regs[0] == 1, jump back to loop body. */
+  code
+    .text
+    .push(Asm::Instr(CondCode::EQ, Branch(false, body_label)));
 }
 
 impl Generatable for Stat {
