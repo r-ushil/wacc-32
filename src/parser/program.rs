@@ -126,7 +126,7 @@ mod tests {
           },
           param_ids: vec!("x".to_string()),
           ident: "foo".to_string(),
-          body: Stat::Return(Expr::LocalVar("x".to_string())),
+          body: Stat::Return(Expr::Ident("x".to_string())),
           params_st: SymbolTable::default(),
           body_st: SymbolTable::default(),
         }),
@@ -135,7 +135,7 @@ mod tests {
           "y".to_string(),
           AssignRhs::Call(
             Type::default(),
-            Expr::LocalVar("foo".to_string()),
+            Expr::Ident("foo".to_string()),
             vec!(Expr::BinaryApp(
               Box::new(Expr::IntLiter(5)),
               BinaryOper::Add,
@@ -188,7 +188,7 @@ mod tests {
     func("int firstFunc (int x, int y) is return x + y end"),
     Ok((
       "",
-      ast)) if ast == Func {ident:"firstFunc".to_string(),signature:FuncSig{param_types:vec!(Type::Int,Type::Int),return_type:Type::Int,},body:Stat::Return(Expr::BinaryApp(Box::new(Expr::LocalVar("x".to_string())),BinaryOper::Add,Box::new(Expr::LocalVar("y".to_string())))),params_st:SymbolTable::default(),body_st:SymbolTable::default(),
+      ast)) if ast == Func {ident:"firstFunc".to_string(),signature:FuncSig{param_types:vec!(Type::Int,Type::Int),return_type:Type::Int,},body:Stat::Return(Expr::BinaryApp(Box::new(Expr::Ident("x".to_string())),BinaryOper::Add,Box::new(Expr::Ident("y".to_string())))),params_st:SymbolTable::default(),body_st:SymbolTable::default(),
                                                                             param_ids
                                                                           : vec!("x".to_string(),"y".to_string()) }
     ));
@@ -214,8 +214,8 @@ mod tests {
             return_type:Type::Int,
           },
           body:Stat::Sequence(
-            Box::new(Stat::Declaration(Type::Int, "y".to_string(), AssignRhs::Call(Type::default(), Expr::LocalVar("foo".to_string()), vec!(Expr::LocalVar("x".to_string()))))),
-            Box::new(Stat::Return(Expr::LocalVar("y".to_string()))),
+            Box::new(Stat::Declaration(Type::Int, "y".to_string(), AssignRhs::Call(Type::default(), Expr::Ident("foo".to_string()), vec!(Expr::Ident("x".to_string()))))),
+            Box::new(Stat::Return(Expr::Ident("y".to_string()))),
           ),
           params_st:SymbolTable::default(),
           body_st:SymbolTable::default(),

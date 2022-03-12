@@ -9,7 +9,7 @@ impl HasType for Expr {
       Expr::CharLiter(_) => Type::Char,
       Expr::StrLiter(_) => Type::String,
       Expr::PairLiter => Type::Pair(Box::new(Type::Any), Box::new(Type::Any)),
-      Expr::LocalVar(id) => id.get_type(scope)?,
+      Expr::Ident(id) => id.get_type(scope)?,
       Expr::ArrayElem(elem) => elem.get_type(scope)?,
       Expr::StructElem(elem) => elem.get_type(scope)?,
       Expr::UnaryApp(op, exp) => match op {
@@ -118,7 +118,7 @@ mod tests {
     populate_scope(&mut scope, "var");
 
     assert_eq!(
-      Expr::LocalVar(String::from("var1")).get_type(&scope),
+      Expr::Ident(String::from("var1")).get_type(&scope),
       Ok(Type::Int),
     );
   }
@@ -180,8 +180,7 @@ mod tests {
     let x_type = Type::Array(Box::new(Type::Int));
     scope.insert_var(&mut x.clone(), x_type);
     assert_eq!(
-      Expr::UnaryApp(UnaryOper::Len, Box::new(Expr::LocalVar(x)))
-        .get_type(scope),
+      Expr::UnaryApp(UnaryOper::Len, Box::new(Expr::Ident(x))).get_type(scope),
       Ok(Type::Int)
     );
 

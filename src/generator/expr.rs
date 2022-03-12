@@ -30,7 +30,7 @@ impl Generatable for Expr {
         generate_binary_app(code, regs, scope, expr1, op, expr2)
       }
       Expr::PairLiter => generate_pair_liter(code, regs),
-      Expr::LocalVar(id) => generate_ident(scope, code, regs, id),
+      Expr::Ident(id) => generate_ident(scope, code, regs, id),
       Expr::ArrayElem(elem) => generate_array_elem(scope, code, regs, elem),
       Expr::StructElem(elem) => generate_struct_elem(scope, code, regs, elem),
     }

@@ -454,7 +454,7 @@ mod tests {
     let intx5 =
       Stat::Declaration(Type::Int, x(), AssignRhs::Expr(Expr::IntLiter(5)));
     let intyx =
-      Stat::Declaration(Type::Int, y(), AssignRhs::Expr(Expr::LocalVar(x())));
+      Stat::Declaration(Type::Int, y(), AssignRhs::Expr(Expr::Ident(x())));
     let intz7 =
       Stat::Declaration(Type::Int, z(), AssignRhs::Expr(Expr::IntLiter(7)));
     let mut statement = Stat::Scope(ScopedStat::new(Stat::Sequence(

@@ -84,7 +84,7 @@ mod tests {
         return_type: Type::Int,
       },
       body: Stat::Return(Expr::BinaryApp(
-        Box::new(Expr::LocalVar(String::from("x"))),
+        Box::new(Expr::Ident(String::from("x"))),
         BinaryOper::Mul,
         Box::new(Expr::IntLiter(2)),
       )),
@@ -106,7 +106,7 @@ mod tests {
     /* bool double(int x) is return x end */
     let mut f2 = f;
     f2.signature.return_type = Type::Bool;
-    f2.body = Stat::Return(Expr::LocalVar(String::from("x")));
+    f2.body = Stat::Return(Expr::Ident(String::from("x")));
     assert!(func(scope, &mut f2).is_err());
   }
 
@@ -121,7 +121,7 @@ mod tests {
         return_type: Type::Int,
       },
       body: Stat::Return(Expr::BinaryApp(
-        Box::new(Expr::LocalVar(String::from("x"))),
+        Box::new(Expr::Ident(String::from("x"))),
         BinaryOper::Mul,
         Box::new(Expr::IntLiter(2)),
       )),

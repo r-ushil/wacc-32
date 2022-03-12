@@ -298,7 +298,7 @@ mod tests {
 
     let mut elem = StructElem(
       format!("IntBox"),
-      Box::new(Expr::LocalVar(box_id)),
+      Box::new(Expr::Ident(box_id)),
       format!("y"),
     );
 
