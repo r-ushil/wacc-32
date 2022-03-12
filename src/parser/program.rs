@@ -2,6 +2,7 @@ extern crate nom;
 use std::fs;
 
 use nom::{
+  branch::alt,
   character::complete::alphanumeric1,
   combinator::map,
   multi::many0,
@@ -20,13 +21,16 @@ use crate::{
 };
 
 fn import_file(input: &str) -> IResult<&str, Vec<Func>, ErrorTree<&str>> {
-  map(tuple((alphanumeric1, tok(".wacc"))), |(filename, ext)| {
-    let program_string =
-      read_file(fs::File::open(format!("{}{}", filename, ext)).unwrap());
-    let program_str = program_string.as_str();
+  map(
+    tuple((alt((alphanumeric1, tok("/"))), tok(".wacc"))),
+    |(filename, ext)| {
+      let program_string =
+        read_file(fs::File::open(format!("{}{}", filename, ext)).unwrap());
+      let program_str = program_string.as_str();
 
-    parse(program_str).funcs
-  })(input)
+      parse(program_str).funcs
+    },
+  )(input)
 }
 
 fn import_stat(input: &str) -> IResult<&str, Vec<Func>, ErrorTree<&str>> {
