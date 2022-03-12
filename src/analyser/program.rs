@@ -22,7 +22,7 @@ impl Analysable for Func {
     let scope = &mut scope.new_scope(&mut self.body_st);
 
     /* Type check function body and make sure it returns value of correct type. */
-    match stat(scope, &mut self.body)? {
+    match self.body.analyse(scope, ())? {
       AtEnd(t)
         if t.clone().unify(self.signature.return_type.clone()) == None =>
       {

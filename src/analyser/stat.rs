@@ -161,130 +161,135 @@ pub fn scoped_stat(
   let mut new_scope = scope.new_scope(new_symbol_table);
 
   /* Analyse statement. */
-  stat(&mut new_scope, statement)
+  statement.analyse(&mut new_scope, ())
 }
 
-/* Type checks a statement.
-Declarations will add to the symbol table.
-Scopes will make a new scope within the symbol table.
-If the statment ALWAYS returns with the same type, returns that type. */
-#[allow(dead_code)]
-pub fn stat(
-  scope: &mut ScopeBuilder,
-  statement: &mut Stat,
-) -> AResult<ReturnBehaviour> {
-  use ReturnBehaviour::*;
+impl Analysable for Stat {
+  type Input = ();
+  type Output = ReturnBehaviour;
 
-  /* Returns error if there is any. */
-  match statement {
-    Stat::Skip => Ok(Never), /* Skips never return. */
-    Stat::Declaration(expected, id, val) => {
-      expected_type(scope, expected, val)
-        .join(scope.insert_var(id, expected.clone()))?;
+  /* Type checks a statement.
+  Declarations will add to the symbol table.
+  Scopes will make a new scope within the symbol table.
+  If the statment ALWAYS returns with the same type, returns that type. */
+  fn analyse(
+    &mut self,
+    scope: &mut ScopeBuilder,
+    _: (),
+  ) -> AResult<ReturnBehaviour> {
+    use ReturnBehaviour::*;
 
-      /* Declarations never return. */
-      Ok(Never)
-    }
-    Stat::Assignment(lhs, t, rhs) => {
-      /* LHS and RHS must have same type. */
-      *t = equal_types(scope, lhs, rhs)?;
+    /* Returns error if there is any. */
+    match self {
+      Stat::Skip => Ok(Never), /* Skips never return. */
+      Stat::Declaration(expected, id, val) => {
+        expected_type(scope, expected, val)
+          .join(scope.insert_var(id, expected.clone()))?;
 
-      /* Assignments never return. */
-      Ok(Never)
-    }
-    Stat::Read(t, dest) => {
-      /* Any type can be read. */
-      match dest.get_type(scope)? {
-        /* Reads never return. */
-        new_t @ (Type::Int | Type::Char) => {
-          *t = new_t;
-          Ok(Never)
+        /* Declarations never return. */
+        Ok(Never)
+      }
+      Stat::Assignment(lhs, t, rhs) => {
+        /* LHS and RHS must have same type. */
+        *t = equal_types(scope, lhs, rhs)?;
+
+        /* Assignments never return. */
+        Ok(Never)
+      }
+      Stat::Read(t, dest) => {
+        /* Any type can be read. */
+        match dest.get_type(scope)? {
+          /* Reads never return. */
+          new_t @ (Type::Int | Type::Char) => {
+            *t = new_t;
+            Ok(Never)
+          }
+          _ => Err(SemanticError::Normal(
+            "Read statements must read char or int.".to_string(),
+          )), /*  */
         }
-        _ => Err(SemanticError::Normal(
-          "Read statements must read char or int.".to_string(),
-        )), /*  */
       }
-    }
-    Stat::Free(expr) => match expr.get_type(scope)? {
-      Type::Pair(_, _) | Type::Array(_) => Ok(Never), /* Frees never return. */
-      actual_type => Err(SemanticError::Normal(format!(
-        "TYPE ERROR: Expected Type\n\tExpected: Pair or Array\n\tActual:{:?}",
-        actual_type
-      ))),
-    },
-    Stat::Return(expr) => Ok(AtEnd(expr.get_type(scope)?)), /* Returns always return. */
-    Stat::Exit(expr) => {
-      /* Exit codes must be integers. */
-      expected_type(scope, &Type::Int, expr)?;
-      /* Exits can be concidered to return because they will never return the
-      wrong type, by using any it won't collide with another type. */
-      Ok(AtEnd(Type::Any))
-    }
-    Stat::Print(expr) | Stat::Println(expr) => {
-      /* Any type can be printed. */
-      expr.get_type(scope)?;
-
-      /* Prints never return. */
-      Ok(Never)
-    }
-    Stat::If(cond, if_stat, else_stat) => {
-      let ((_, true_behaviour), false_behaviour) =
-        expected_type(scope, &Type::Bool, cond)
-          .join(scoped_stat(scope, if_stat))
-          .join(scoped_stat(scope, else_stat))?;
-
-      /* If both branches return the same type, the if statement can
-      be relied on to return that type. */
-
-      /* If branches return with different types, if statement is error. */
-      if !true_behaviour.same_return(&false_behaviour) {
-        return Err(SemanticError::Normal(
-          "Branches of if statement return values of different types."
-            .to_string(),
-        ));
+      Stat::Free(expr) => match expr.get_type(scope)? {
+        Type::Pair(_, _) | Type::Array(_) => Ok(Never), /* Frees never return. */
+        actual_type => Err(SemanticError::Normal(format!(
+          "TYPE ERROR: Expected Type\n\tExpected: Pair or Array\n\tActual:{:?}",
+          actual_type
+        ))),
+      },
+      Stat::Return(expr) => Ok(AtEnd(expr.get_type(scope)?)), /* Returns always return. */
+      Stat::Exit(expr) => {
+        /* Exit codes must be integers. */
+        expected_type(scope, &Type::Int, expr)?;
+        /* Exits can be concidered to return because they will never return the
+        wrong type, by using any it won't collide with another type. */
+        Ok(AtEnd(Type::Any))
       }
+      Stat::Print(expr) | Stat::Println(expr) => {
+        /* Any type can be printed. */
+        expr.get_type(scope)?;
 
-      /* Get return type. */
-      let return_type = match (&true_behaviour, &false_behaviour) {
-        /* If both branches never return, if statement never returns. */
-        (Never, Never) => return Ok(Never),
-        /* Otherwise, if statement returns the same type as one of its branches. */
-        (MidWay(t) | AtEnd(t), _) | (_, MidWay(t) | AtEnd(t)) => t,
-      };
-
-      /* Determine how often that return type is returned. */
-      if let (AtEnd(_), AtEnd(_)) = (&true_behaviour, &false_behaviour) {
-        /* If both branches end in returns, the if statement ends in a return. */
-        Ok(AtEnd(return_type.clone()))
-      } else {
-        /* Otherwise, the if statement doesn't end with a return. */
-        Ok(MidWay(return_type.clone()))
+        /* Prints never return. */
+        Ok(Never)
       }
-    }
-    Stat::While(cond, body) => {
-      let (_, statement_result) = expected_type(scope, &Type::Bool, cond)
-        .join(scoped_stat(scope, body))?;
+      Stat::If(cond, if_stat, else_stat) => {
+        let ((_, true_behaviour), false_behaviour) =
+          expected_type(scope, &Type::Bool, cond)
+            .join(scoped_stat(scope, if_stat))
+            .join(scoped_stat(scope, else_stat))?;
 
-      Ok(match statement_result {
-        /* If the body always returns, while loop might still not return
-        because the cond might always be false and the body never run. */
-        AtEnd(t) => MidWay(t),
-        /* Otherwise white loop returns the same way it's body does. */
-        b => b,
-      })
-    }
-    Stat::Scope(body) => scoped_stat(scope, body),
-    Stat::Sequence(fst, snd) => {
-      /* CHECK: no definite returns before last line. */
-      let (lhs, rhs) = stat(scope, fst).join(stat(scope, snd))?;
+        /* If both branches return the same type, the if statement can
+        be relied on to return that type. */
 
-      /* Even if RHS never returns, the statement overall might still return
-      if the LHS returns some or all of the time. */
-      Ok(if let (Never, MidWay(t) | AtEnd(t)) = (&rhs, lhs) {
-        MidWay(t)
-      } else {
-        rhs
-      })
+        /* If branches return with different types, if statement is error. */
+        if !true_behaviour.same_return(&false_behaviour) {
+          return Err(SemanticError::Normal(
+            "Branches of if statement return values of different types."
+              .to_string(),
+          ));
+        }
+
+        /* Get return type. */
+        let return_type = match (&true_behaviour, &false_behaviour) {
+          /* If both branches never return, if statement never returns. */
+          (Never, Never) => return Ok(Never),
+          /* Otherwise, if statement returns the same type as one of its branches. */
+          (MidWay(t) | AtEnd(t), _) | (_, MidWay(t) | AtEnd(t)) => t,
+        };
+
+        /* Determine how often that return type is returned. */
+        if let (AtEnd(_), AtEnd(_)) = (&true_behaviour, &false_behaviour) {
+          /* If both branches end in returns, the if statement ends in a return. */
+          Ok(AtEnd(return_type.clone()))
+        } else {
+          /* Otherwise, the if statement doesn't end with a return. */
+          Ok(MidWay(return_type.clone()))
+        }
+      }
+      Stat::While(cond, body) => {
+        let (_, statement_result) = expected_type(scope, &Type::Bool, cond)
+          .join(scoped_stat(scope, body))?;
+
+        Ok(match statement_result {
+          /* If the body always returns, while loop might still not return
+          because the cond might always be false and the body never run. */
+          AtEnd(t) => MidWay(t),
+          /* Otherwise white loop returns the same way it's body does. */
+          b => b,
+        })
+      }
+      Stat::Scope(body) => scoped_stat(scope, body),
+      Stat::Sequence(fst, snd) => {
+        /* CHECK: no definite returns before last line. */
+        let (lhs, rhs) = fst.analyse(scope, ()).join(snd.analyse(scope, ()))?;
+
+        /* Even if RHS never returns, the statement overall might still return
+        if the LHS returns some or all of the time. */
+        Ok(if let (Never, MidWay(t) | AtEnd(t)) = (&rhs, lhs) {
+          MidWay(t)
+        } else {
+          rhs
+        })
+      }
     }
   }
 }
@@ -367,7 +372,7 @@ mod tests {
     let mut outer_symbol_table = SymbolTable::default();
     let mut outer_scope = ScopeBuilder::new(&mut outer_symbol_table);
 
-    stat(&mut outer_scope, &mut intx5).unwrap();
+    intx5.analyse(&mut outer_scope, ()).unwrap();
 
     assert!(matches!(
       outer_scope.get(&mut x()),
@@ -410,7 +415,7 @@ mod tests {
     let mut outer_symbol_table = SymbolTable::default();
     let mut global_scope = ScopeBuilder::new(&mut outer_symbol_table);
 
-    stat(&mut global_scope, &mut statement).unwrap();
+    statement.analyse(&mut global_scope, ()).unwrap();
     /* x and z should now be in outer scope */
 
     /* Retrieve inner and outer st from statement ast. */
