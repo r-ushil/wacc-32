@@ -71,7 +71,6 @@ pub enum AssignLhs {
 #[derive(PartialEq, Debug, Clone)]
 pub enum AssignRhs {
   Expr(Expr),
-  Call(Type, Expr, Vec<Expr>),
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -190,6 +189,8 @@ pub enum Expr {
   /* Operator application. */
   UnaryApp(UnaryOper, Box<Expr>),
   BinaryApp(Box<Expr>, BinaryOper, Box<Expr>),
+  /* Function calls. */
+  Call(Type, Box<Expr>, Vec<Expr>),
 }
 
 impl From<i32> for Expr {

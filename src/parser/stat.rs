@@ -134,19 +134,7 @@ pub fn pair_elem(input: &str) -> IResult<&str, PairElem, ErrorTree<&str>> {
 | 'call' <ident> '(' <arg-list>? ')' */
 /* arg-list ::= <expr> ( ',' <expr> )* */
 fn assign_rhs(input: &str) -> IResult<&str, AssignRhs, ErrorTree<&str>> {
-  alt((
-    map(
-      tuple((
-        tok("call"),
-        expr,
-        tok("("),
-        many0_delimited(expr, tok(",")),
-        tok(")"),
-      )),
-      |(_, func, _, args, _)| AssignRhs::Call(Type::default(), func, args),
-    ),
-    map(expr, AssignRhs::Expr),
-  ))(input)
+  alt((map(expr, AssignRhs::Expr),))(input)
 }
 
 #[cfg(test)]
@@ -733,11 +721,11 @@ mod tests {
   fn test_assign_rhs9() {
     assert_eq!(
       assign_rhs("call callee ()").unwrap().1,
-      AssignRhs::Call(
+      AssignRhs::Expr(Expr::Call(
         Type::default(),
-        Expr::Ident("callee".to_string()),
+        Box::new(Expr::Ident("callee".to_string())),
         vec!()
-      )
+      ))
     );
   }
   #[test]

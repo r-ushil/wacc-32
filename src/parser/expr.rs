@@ -79,6 +79,16 @@ fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
     unary_app,
     map(ident, Expr::Ident),
     delimited(tok("("), expr, tok(")")),
+    map(
+      tuple((
+        tok("call"),
+        expr,
+        tok("("),
+        many0_delimited(expr, tok(",")),
+        tok(")"),
+      )),
+      |(_, func, _, args, _)| Expr::Call(Type::default(), Box::new(func), args),
+    ),
   ))(input)?;
 
   /* Check if the expression is followed by a .field_name (StructElem) */

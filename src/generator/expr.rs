@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use self::CondCode::*;
 use super::predef::{
   RequiredPredefs, PREDEF_AEABI_IDIV, PREDEF_AEABI_IDIVMOD,
@@ -40,8 +42,103 @@ impl Generatable for Expr {
       Expr::ArrayElem(elem) => generate_array_elem(scope, code, regs, elem),
       Expr::StructElem(elem) => generate_struct_elem(scope, code, regs, elem),
       Expr::PairElem(elem) => generate_pair_elem(scope, code, regs, elem),
+      Expr::Call(func_type, ident, exprs) => {
+        generate_call(scope, code, regs, func_type.clone(), ident, exprs)
+      }
     }
   }
+}
+
+fn generate_call(
+  scope: &ScopeReader,
+  code: &mut GeneratedCode,
+  regs: &[GenReg],
+  func_type: Type,
+  func: &Expr,
+  exprs: &[Expr],
+) {
+  /* Get arg types. */
+
+  let arg_types = match func_type {
+    Type::Func(sig) => sig.param_types,
+    _ => unreachable!("Analyser guarentees this is a function."),
+  };
+
+  /* Save all registers we haven't been allowed to mangle. */
+  /* Figure out which registers aren't safe to overwrite and therefore need
+  saving. */
+  let mut unsafe_regs_set = GENERAL_REGS.iter().collect::<HashSet<_>>();
+  for reg in regs.iter() {
+    unsafe_regs_set.remove(reg);
+  }
+
+  /* Must put in some deterministic order so registers are popped in the
+  same order as they are pushed. */
+  let unsafe_regs_vec = unsafe_regs_set.into_iter().collect::<Vec<_>>();
+
+  /* Push all to stack. */
+  /* TODO: Change Push instruction to do this with one instruction. */
+  for reg in unsafe_regs_vec.iter() {
+    code.text.push(Asm::push(Reg::General(*reg.clone())));
+  }
+
+  /* Now all registers are saved, we can use all registers! */
+  let safe_regs = &GENERAL_REGS;
+
+  let mut args_offset = 0;
+
+  for (expr, arg_type) in exprs.iter().zip(arg_types).rev() {
+    let symbol_table = SymbolTable {
+      size: args_offset,
+      ..Default::default()
+    };
+
+    let arg_offset_scope = scope.new_scope(&symbol_table);
+
+    expr.generate(&arg_offset_scope, code, safe_regs, ());
+
+    code.text.push(
+      Asm::str(
+        Reg::General(safe_regs[0]),
+        (Reg::StackPointer, -arg_type.size()),
+      )
+      .size(arg_type.size().into())
+      .pre_indexed(),
+    );
+
+    /* Make symbol table bigger. */
+    args_offset += arg_type.size();
+  }
+
+  /* Generate function pointer. */
+  func.generate(
+    /* Offset all stack accesses by the size the args take up. */
+    &scope.new_scope(&SymbolTable::empty(args_offset)),
+    code,
+    regs,
+    (),
+  );
+
+  /* Jump to function pointer. */
+  code.text.push(Asm::bx(Reg::General(regs[0])).link());
+
+  /* Pop preserved register back from the stack. */
+  /* TODO: Change Pop instruction to do this with one instruction. */
+  for reg in unsafe_regs_vec.iter().rev() {
+    code.text.push(Asm::pop(Reg::General(*reg.clone())));
+  }
+
+  /* Stack space was given to parameter to call function.
+  We've finished calling so we can deallocate this space now. */
+  code.text.append(&mut Op2::imm_unroll(
+    |offset| Asm::add(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset)),
+    args_offset,
+  ));
+
+  code.text.push(Asm::mov(
+    Reg::General(regs[0]),
+    Op2::Reg(Reg::Arg(ArgReg::R0), 0),
+  ));
 }
 
 fn generate_pair_liter(
