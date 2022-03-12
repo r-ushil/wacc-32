@@ -319,7 +319,6 @@ impl Analysable for Stat {
           Stat::Skip => (),
           Stat::Declaration(_, _, _) => {
             decl.analyse(scope, ())?;
-
           }
           _ => panic!("First part of for loop not a declaration or a skip"),
         };

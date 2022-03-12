@@ -17,14 +17,10 @@ fn generate_assign_lhs_ident(
   use IdentInfo::*;
 
   let offset = match scope.get(id) {
-    
-
     Some(LocalVar(_, offset)) => offset,
     v => {
-      println!("{:#?}", id);
-      println!("{:#?}", scope);
       unreachable!("ident must be a local variable, it's {:?}", v)
-    },
+    }
   };
 
   (Reg::StackPointer, offset, t.size().into())
@@ -566,13 +562,10 @@ fn generate_stat_for(
   body: &ScopedStat,
   assign: &Box<Stat>,
 ) {
-
-  //println!("{:#?}", scope);
-  // generate decl
-  // gen while - but before jump back, assign
   let cond_label = code.get_label();
   let body_label = code.get_label();
 
+  //generate declaration
   decl.generate(scope, code, regs, ());
 
   /* Jump to condition evaluation. */
@@ -596,7 +589,6 @@ fn generate_stat_for(
   /* cmp(regs[0], 1) */
   code.text.push(Asm::cmp(Reg::General(regs[0]), Op2::Imm(1)));
 
-
   /* If regs[0] == 1, jump back to loop body. */
   code
     .text
@@ -616,7 +608,6 @@ impl Generatable for Stat {
     match self {
       Stat::Skip => (),
       Stat::Declaration(t, id, rhs) => {
-        // println!("scope = {:#?}", scope);
         generate_stat_declaration(scope, code, regs, t, id, rhs);
       }
       Stat::Assignment(lhs, t, rhs) => {
