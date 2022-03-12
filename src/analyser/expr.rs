@@ -1,5 +1,6 @@
 use super::*;
 use crate::ast::*;
+use Expr::*;
 
 impl HasType for TypedExpr {
   fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
@@ -12,30 +13,26 @@ impl HasType for TypedExpr {
 impl HasType for Expr {
   fn get_type(&mut self, scope: &ScopeBuilder) -> AResult<Type> {
     Ok(match self {
-      Expr::IntLiter(_) => Type::Int,
-      Expr::BoolLiter(_) => Type::Bool,
-      Expr::CharLiter(_) => Type::Char,
-      Expr::StrLiter(_) => Type::String,
-      Expr::NullPairLiter => {
-        Type::Pair(Box::new(Type::Any), Box::new(Type::Any))
-      }
-      Expr::PairLiter(e1, e2) => {
+      IntLiter(_) => Type::Int,
+      BoolLiter(_) => Type::Bool,
+      CharLiter(_) => Type::Char,
+      StrLiter(_) => Type::String,
+      NullPairLiter => Type::Pair(Box::new(Type::Any), Box::new(Type::Any)),
+      PairLiter(e1, e2) => {
         let (lhs_type, rhs_type) =
           e1.get_type(scope).join(e2.get_type(scope))?;
 
         Type::Pair(Box::new(lhs_type), Box::new(rhs_type))
       }
       Expr::ArrayLiter(lit) => lit.get_type(scope)?,
-      Expr::StructLiter(s) => s.get_type(scope)?,
-      Expr::PairElem(elem) => elem.get_type(scope)?,
-      Expr::Ident(id) => id.get_type(scope)?,
+      StructLiter(s) => s.get_type(scope)?,
+      PairElem(elem) => elem.get_type(scope)?,
+      Ident(id) => id.get_type(scope)?,
       Expr::ArrayElem(elem) => elem.get_type(scope)?,
       Expr::StructElem(elem) => elem.get_type(scope)?,
-      Expr::Call(t, func_expr, args) => {
-        analyse_call(scope, t, func_expr, args)?
-      }
-      Expr::UnaryApp(op, exp) => analyse_unary(scope, op, exp)?,
-      Expr::BinaryApp(exp1, op, exp2) => analyse_binary(scope, exp1, op, exp2)?,
+      Call(t, func_expr, args) => analyse_call(scope, t, func_expr, args)?,
+      UnaryApp(op, exp) => analyse_unary(scope, op, exp)?,
+      BinaryApp(exp1, op, exp2) => analyse_binary(scope, exp1, op, exp2)?,
     })
   }
 }
@@ -196,11 +193,11 @@ mod tests {
     let mut symbol_table = SymbolTable::default();
     let scope = &ScopeBuilder::new(&mut symbol_table);
 
-    assert_eq!(Expr::IntLiter(5).get_type(scope), Ok(Type::Int));
-    assert_eq!(Expr::BoolLiter(false).get_type(scope), Ok(Type::Bool));
-    assert_eq!(Expr::CharLiter('a').get_type(scope), Ok(Type::Char));
+    assert_eq!(IntLiter(5).get_type(scope), Ok(Type::Int));
+    assert_eq!(BoolLiter(false).get_type(scope), Ok(Type::Bool));
+    assert_eq!(CharLiter('a').get_type(scope), Ok(Type::Char));
     assert_eq!(
-      Expr::NullPairLiter.get_type(scope),
+      NullPairLiter.get_type(scope),
       Ok(Type::Pair(Box::new(Type::Any), Box::new(Type::Any))),
     );
   }
@@ -211,10 +208,7 @@ mod tests {
     let mut scope = ScopeBuilder::new(&mut symbol_table);
     populate_scope(&mut scope, "var");
 
-    assert_eq!(
-      Expr::Ident(String::from("var1")).get_type(&scope),
-      Ok(Type::Int),
-    );
+    assert_eq!(Ident(String::from("var1")).get_type(&scope), Ok(Type::Int),);
   }
 
   #[test]
@@ -241,32 +235,26 @@ mod tests {
     /* BANG */
     /* !false: Bool */
     assert_eq!(
-      Expr::UnaryApp(UnaryOper::Bang, Box::new(Expr::BoolLiter(false)))
-        .get_type(scope),
+      UnaryApp(UnaryOper::Bang, Box::new(BoolLiter(false))).get_type(scope),
       Ok(Type::Bool)
     );
 
     /* !'a': ERROR */
-    assert!(
-      Expr::UnaryApp(UnaryOper::Bang, Box::new(Expr::CharLiter('a')))
-        .get_type(scope)
-        .is_err()
-    );
+    assert!(UnaryApp(UnaryOper::Bang, Box::new(CharLiter('a')))
+      .get_type(scope)
+      .is_err());
 
     /* NEG */
     /* -5: Int */
     assert_eq!(
-      Expr::UnaryApp(UnaryOper::Neg, Box::new(Expr::IntLiter(5)))
-        .get_type(scope),
+      UnaryApp(UnaryOper::Neg, Box::new(IntLiter(5))).get_type(scope),
       Ok(Type::Int)
     );
 
     /* -false: ERROR */
-    assert!(
-      Expr::UnaryApp(UnaryOper::Neg, Box::new(Expr::BoolLiter(false)))
-        .get_type(scope)
-        .is_err()
-    );
+    assert!(UnaryApp(UnaryOper::Neg, Box::new(BoolLiter(false)))
+      .get_type(scope)
+      .is_err());
 
     /* LEN */
     /* len [1,2,3]: Int */
@@ -274,42 +262,38 @@ mod tests {
     let x_type = Type::Array(Box::new(Type::Int));
     scope.insert_var(&mut x.clone(), x_type);
     assert_eq!(
-      Expr::UnaryApp(UnaryOper::Len, Box::new(Expr::Ident(x))).get_type(scope),
+      UnaryApp(UnaryOper::Len, Box::new(Ident(x))).get_type(scope),
       Ok(Type::Int)
     );
 
     /* len 5: ERROR */
-    assert!(Expr::UnaryApp(UnaryOper::Len, Box::new(Expr::IntLiter(5)))
+    assert!(UnaryApp(UnaryOper::Len, Box::new(IntLiter(5)))
       .get_type(scope)
       .is_err());
 
     /* ORD */
     /* ord 'a': Int */
     assert_eq!(
-      Expr::UnaryApp(UnaryOper::Ord, Box::new(Expr::CharLiter('a')))
-        .get_type(scope),
+      UnaryApp(UnaryOper::Ord, Box::new(CharLiter('a'))).get_type(scope),
       Ok(Type::Int)
     );
 
     /* ord 5: ERROR */
-    assert!(Expr::UnaryApp(UnaryOper::Ord, Box::new(Expr::IntLiter(5)))
+    assert!(UnaryApp(UnaryOper::Ord, Box::new(IntLiter(5)))
       .get_type(scope)
       .is_err());
 
     /* CHR */
     /* chr 5: Char */
     assert_eq!(
-      Expr::UnaryApp(UnaryOper::Chr, Box::new(Expr::IntLiter(5)))
-        .get_type(scope),
+      UnaryApp(UnaryOper::Chr, Box::new(IntLiter(5))).get_type(scope),
       Ok(Type::Char)
     );
 
     /* chr 'a': ERROR */
-    assert!(
-      Expr::UnaryApp(UnaryOper::Chr, Box::new(Expr::CharLiter('a')))
-        .get_type(scope)
-        .is_err()
-    );
+    assert!(UnaryApp(UnaryOper::Chr, Box::new(CharLiter('a')))
+      .get_type(scope)
+      .is_err());
   }
 
   #[test]
@@ -318,37 +302,37 @@ mod tests {
     let scope = &mut ScopeBuilder::new(&mut symbol_table);
 
     /* 5 + false: ERROR */
-    assert!(Expr::BinaryApp(
-      Box::new(Expr::IntLiter(5)),
+    assert!(BinaryApp(
+      Box::new(IntLiter(5)),
       BinaryOper::Add,
-      Box::new(Expr::BoolLiter(false))
+      Box::new(BoolLiter(false))
     )
     .get_type(scope)
     .is_err());
 
     /* 5 * 'a': ERROR */
-    assert!(Expr::BinaryApp(
-      Box::new(Expr::IntLiter(5)),
+    assert!(BinaryApp(
+      Box::new(IntLiter(5)),
       BinaryOper::Mul,
-      Box::new(Expr::CharLiter('a'))
+      Box::new(CharLiter('a'))
     )
     .get_type(scope)
     .is_err());
 
     /* false / "hello": ERROR */
-    assert!(Expr::BinaryApp(
-      Box::new(Expr::BoolLiter(false)),
+    assert!(BinaryApp(
+      Box::new(BoolLiter(false)),
       BinaryOper::Div,
-      Box::new(Expr::StrLiter(String::from("hello")))
+      Box::new(StrLiter(String::from("hello")))
     )
     .get_type(scope)
     .is_err());
 
     /* false && 6: ERROR */
-    assert!(Expr::BinaryApp(
-      Box::new(Expr::BoolLiter(false)),
+    assert!(BinaryApp(
+      Box::new(BoolLiter(false)),
       BinaryOper::And,
-      Box::new(Expr::IntLiter(6))
+      Box::new(IntLiter(6))
     )
     .get_type(scope)
     .is_err());
@@ -356,10 +340,10 @@ mod tests {
     /* MATH CAN BE DONE ON INTS. */
     /* 5 * 5: Int */
     assert_eq!(
-      Expr::BinaryApp(
-        Box::new(Expr::IntLiter(5)),
+      BinaryApp(
+        Box::new(IntLiter(5)),
         BinaryOper::Mul,
-        Box::new(Expr::IntLiter(5)),
+        Box::new(IntLiter(5)),
       )
       .get_type(scope),
       Ok(Type::Int),
@@ -367,10 +351,10 @@ mod tests {
 
     /* 5 + 5: Int */
     assert_eq!(
-      Expr::BinaryApp(
-        Box::new(Expr::IntLiter(5)),
+      BinaryApp(
+        Box::new(IntLiter(5)),
         BinaryOper::Add,
-        Box::new(Expr::IntLiter(5)),
+        Box::new(IntLiter(5)),
       )
       .get_type(scope),
       Ok(Type::Int),
@@ -378,46 +362,46 @@ mod tests {
 
     /* MATH CANT BE DONE ON ANYTHING ELSE */
     /* 'a' + 'b': ERROR */
-    assert!(Expr::BinaryApp(
-      Box::new(Expr::CharLiter('a')),
+    assert!(BinaryApp(
+      Box::new(CharLiter('a')),
       BinaryOper::Add,
-      Box::new(Expr::CharLiter('b'))
+      Box::new(CharLiter('b'))
     )
     .get_type(scope)
     .is_err());
 
     /* false + false: ERROR */
-    assert!(Expr::BinaryApp(
-      Box::new(Expr::BoolLiter(false)),
+    assert!(BinaryApp(
+      Box::new(BoolLiter(false)),
       BinaryOper::Add,
-      Box::new(Expr::BoolLiter(false))
+      Box::new(BoolLiter(false))
     )
     .get_type(scope)
     .is_err());
 
     /* Any type can be comapred to itself. */
     for expr in vec![
-      Expr::IntLiter(5),
-      Expr::BoolLiter(false),
-      Expr::StrLiter(String::from("hello")),
-      Expr::NullPairLiter,
-      Expr::UnaryApp(UnaryOper::Neg, Box::new(Expr::IntLiter(5))),
-      Expr::BinaryApp(
-        Box::new(Expr::StrLiter(String::from("hello world"))),
+      IntLiter(5),
+      BoolLiter(false),
+      StrLiter(String::from("hello")),
+      NullPairLiter,
+      UnaryApp(UnaryOper::Neg, Box::new(IntLiter(5))),
+      BinaryApp(
+        Box::new(StrLiter(String::from("hello world"))),
         BinaryOper::Eq,
-        Box::new(Expr::StrLiter(String::from("hello steve"))),
+        Box::new(StrLiter(String::from("hello steve"))),
       ),
     ] {
       for oper in vec![BinaryOper::Eq, BinaryOper::Neq] {
         assert_eq!(
-          Expr::BinaryApp(Box::new(expr.clone()), oper, Box::new(expr.clone()))
+          BinaryApp(Box::new(expr.clone()), oper, Box::new(expr.clone()))
             .get_type(scope),
           Ok(Type::Bool)
         );
       }
     }
 
-    for expr in vec![Expr::IntLiter(5), Expr::CharLiter('a')] {
+    for expr in vec![IntLiter(5), CharLiter('a')] {
       for oper in vec![
         BinaryOper::Gt,
         BinaryOper::Gte,
@@ -425,7 +409,7 @@ mod tests {
         BinaryOper::Lte,
       ] {
         assert_eq!(
-          Expr::BinaryApp(Box::new(expr.clone()), oper, Box::new(expr.clone()))
+          BinaryApp(Box::new(expr.clone()), oper, Box::new(expr.clone()))
             .get_type(scope),
           Ok(Type::Bool)
         );
@@ -434,29 +418,29 @@ mod tests {
 
     /* Boolean logic can only be applied to booleans */
     /* 5 && 5: ERROR */
-    assert!(Expr::BinaryApp(
-      Box::new(Expr::IntLiter(5)),
+    assert!(BinaryApp(
+      Box::new(IntLiter(5)),
       BinaryOper::And,
-      Box::new(Expr::IntLiter(5)),
+      Box::new(IntLiter(5)),
     )
     .get_type(scope)
     .is_err());
 
     /* 'a' || 'a': ERROR */
-    assert!(Expr::BinaryApp(
-      Box::new(Expr::CharLiter('a')),
+    assert!(BinaryApp(
+      Box::new(CharLiter('a')),
       BinaryOper::Or,
-      Box::new(Expr::CharLiter('a')),
+      Box::new(CharLiter('a')),
     )
     .get_type(scope)
     .is_err());
 
     /* true && true: bool */
     assert_eq!(
-      Expr::BinaryApp(
-        Box::new(Expr::BoolLiter(true)),
+      BinaryApp(
+        Box::new(BoolLiter(true)),
         BinaryOper::And,
-        Box::new(Expr::BoolLiter(true)),
+        Box::new(BoolLiter(true)),
       )
       .get_type(scope),
       Ok(Type::Bool)
