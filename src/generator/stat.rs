@@ -594,7 +594,7 @@ impl Generatable for Stat {
       Stat::Sequence(head, tail) => {
         generate_stat_sequence(scope, code, regs, head, tail)
       }
-      Stat::For(_, _, cond, body) => todo!(),
+      Stat::For(declaration, cond, body, assignment) => todo!(),
     }
   }
 }

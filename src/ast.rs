@@ -46,7 +46,7 @@ pub enum Stat {
   declared within, and a reference to the parent symbol table. */
   If(Expr, ScopedStat, ScopedStat),
   While(Expr, ScopedStat),
-  For(Option<Box<Stat>>, Expr, ScopedStat, Box<Stat>), //expr to check condition,
+  For(Box<Stat>, Expr, ScopedStat, Box<Stat>), //expr to check condition,
   //scopedstat has optional declaration at the beginning,
   //check expr, if true, execute body,
   //then assign something to some other variable at end of loop

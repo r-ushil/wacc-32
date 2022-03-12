@@ -311,7 +311,27 @@ impl Analysable for Stat {
           rhs
         })
       }
-      Stat::For(_, _, _, _) => todo!(),
+      Stat::For(decl, cond, body, assign) => {
+        //match decl is a declaration and assign is an assignment
+
+        match **decl {
+          Stat::Declaration(_, _, _) | Stat::Skip => match **assign {
+            Stat::Assignment(_, _, _) => {
+              let (_, stat_res) = expected_type(scope, &Type::Bool, cond)
+                .join(decl.analyse(scope, ()))
+                .join(body.analyse(scope, ()))
+                .join(assign.analyse(scope, ()))?;
+
+              Ok(match stat_res {
+                AtEnd(t) => MidWay(t),
+                b => b,
+              })
+            }
+            _ => panic!("Last part of for loop not an assignment"),
+          },
+          _ => panic!("First part of for loop not a declaration or a skip"),
+        }
+      }
     }
   }
 }
