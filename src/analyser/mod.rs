@@ -11,7 +11,7 @@ use unify::Unifiable;
 
 use crate::ast::*;
 
-use self::context::IdentInfo;
+use self::context::*;
 
 /* Represents the result of a semantic analyse. */
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -98,6 +98,18 @@ impl Display for SemanticError {
       SemanticError::Join(e1, e2) => write!(f, "{}\n{}", e1, e2),
     }
   }
+}
+
+/* ======== MAIN ANALYSABLE TRAIT ======= */
+trait Analysable {
+  type Input;
+  type Output;
+
+  fn analyse(
+    &mut self,
+    scope: &mut ScopeBuilder,
+    aux: Self::Input,
+  ) -> AResult<Self::Output>;
 }
 
 /* The semantic analyser has ONE jobs:
