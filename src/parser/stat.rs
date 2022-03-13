@@ -75,7 +75,7 @@ fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
     |(_, e, _, s, _)| Stat::While(e, ScopedStat::new(s)),
   );
 
-  let for_ = map(
+  let for_decl = map(
     tuple((
       tok("for"),
       opt(ws(stat_unit)),
@@ -101,6 +101,65 @@ fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
     },
   );
 
+  let for_array = map(
+    tuple((
+      tok("for"),
+      ident,
+      tok(":"),
+      ident,
+      tok("do"),
+      ws(stat),
+      tok("done"),
+    )),
+    |(_, elem, _, array, _, body, _)| {
+      let index_decl = Stat::Declaration(
+        Type::Int,
+        "__reserved_for_array__".to_string(),
+        Expr::IntLiter(0),
+      );
+
+      let cond = Expr::BinaryApp(
+        Box::new(Expr::Ident("__reserved_for_array__".to_string())),
+        BinaryOper::Lt,
+        Box::new(Expr::UnaryApp(
+          UnaryOper::Len,
+          Box::new(Expr::Ident(array.clone())),
+        )),
+      );
+
+      let assign = Stat::Assignment(
+        AssignLhs::Ident("__reserved_for_array__".to_string()),
+        Type::Int,
+        Expr::BinaryApp(
+          Box::new(Expr::Ident("__reserved_for_array__".to_string())),
+          BinaryOper::Add,
+          Box::new(Expr::IntLiter(1)),
+        ),
+      );
+
+      let body_with_assign = Stat::Sequence(Box::new(body), Box::new(assign));
+
+      let elem_decl = Stat::Declaration(
+        Type::default(),
+        elem,
+        Expr::ArrayElem(ArrayElem(
+          array,
+          vec![Expr::Ident("__reserved_for_array__".to_string())],
+        )),
+      );
+
+      let body_with_decl =
+        Stat::Sequence(Box::new(elem_decl), Box::new(body_with_assign));
+
+      let while_stat = Stat::While(cond, ScopedStat::new(body_with_decl));
+
+      let decl_with_while =
+        Stat::Sequence(Box::new(index_decl), Box::new(while_stat));
+
+      Stat::Scope(ScopedStat::new(decl_with_while))
+    },
+  );
+
   let begin = map(tuple((tok("begin"), stat, tok("end"))), |(_, s, _)| {
     Stat::Scope(ScopedStat::new(s))
   });
@@ -117,7 +176,8 @@ fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
     print,
     if_,
     while_,
-    for_,
+    for_decl,
+    for_array,
     begin,
   ))(input)
 }
