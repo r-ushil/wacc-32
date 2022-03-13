@@ -553,68 +553,6 @@ fn generate_stat_sequence(
   tail.generate(scope, code, regs, ());
 }
 
-fn generate_stat_for(
-  scope: &ScopeReader,
-  code: &mut GeneratedCode,
-  regs: &[GenReg],
-  cond: &Expr,
-  for_scope: &ScopedStat,
-) {
-  let cond_label = code.get_label();
-  let body_label = code.get_label();
-
-  /* Jump to condition evaluation. */
-  code.text.push(Asm::b(cond_label.clone()));
-
-
-  match for_scope.clone() {
-
-    ScopedStat(_, seq) => {
-      match *seq {
-        Stat::Sequence(decl, rest) => {
-          decl.generate(scope, code, regs, ());
-
-          match *rest {
-            Stat::Sequence(assign, body) => {
-
-              /* Loop body label */
-              code.text.push(Asm::Directive(Label(body_label.clone())));
-
-              /* Loop body. */
-              body.generate(scope, code, regs, ());
-
-              /* Generate assign */
-              assign.generate(scope, code, regs, ());
-
-              /* Cond label */
-              code.text.push(Asm::Directive(Label(cond_label)));
-
-              /* regs[0] = eval(cond) */
-              cond.generate(scope, code, regs, ());
-
-              /* cmp(regs[0], 1) */
-              code.text.push(Asm::cmp(Reg::General(regs[0]), Op2::Imm(1)));
-
-              /* If regs[0] == 1, jump back to loop body. */
-              code
-                .text
-                .push(Asm::Instr(CondCode::EQ, Branch(false, body_label)));
-
-            },
-            _ => unreachable!("Needs to be decl, assign and body")
-          }
-
-          
-        }
-        _ => unreachable!("Atleast two terms in the sequence")
-      } 
-
-    }
-
-  }
-  
-}
-
 impl Generatable for Stat {
   type Input = ();
   type Output = ();

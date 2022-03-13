@@ -310,7 +310,7 @@ impl Analysable for Stat {
         } else {
           rhs
         })
-      },     
+      }
     }
   }
 }

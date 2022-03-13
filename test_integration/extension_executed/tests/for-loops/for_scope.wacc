@@ -1,6 +1,6 @@
 #expect this to error
 begin
-    for (int i = 0; i < 5; i = i + 1) do
+    for int i = 0; i < 5; i = i + 1 do
         #some scope
         print "hello"
     done ;

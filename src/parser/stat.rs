@@ -1,8 +1,7 @@
 extern crate nom;
 use nom::{
   branch::alt,
-  combinator::{map, value},
-  multi::many_m_n,
+  combinator::{map, opt, value},
   sequence::{preceded, tuple},
   IResult,
 };
@@ -79,40 +78,26 @@ fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
   let for_ = map(
     tuple((
       tok("for"),
-      tok("("),
-      many_m_n(0, 1, ws(stat_unit)),
+      opt(ws(stat_unit)),
       tok(";"),
       ws(expr),
       tok(";"),
       ws(stat_unit),
-      tok(")"),
       tok("do"),
       ws(stat),
       tok("done"),
     )),
-    |(_, _, decl, _, cond, _, assign, _, _, body, _)| {
-      let new_decl = if decl.is_empty() {
-        Stat::Skip
-      } else {
-        decl[0].clone()
-      };
+    |(_, decl, _, cond, _, assign, _, body, _)| {
+      let new_decl = decl.unwrap_or(Stat::Skip);
 
       let body_with_assign = Stat::Sequence(Box::new(body), Box::new(assign));
 
-      let while_stat = Stat::While(
-        cond,
-        ScopedStat::new(body_with_assign),
-      );
+      let while_stat = Stat::While(cond, ScopedStat::new(body_with_assign));
 
-      let decl_with_while = Stat::Sequence(
-        Box::new(new_decl),
-        Box::new(while_stat),
-      );
-
-
+      let decl_with_while =
+        Stat::Sequence(Box::new(new_decl), Box::new(while_stat));
 
       Stat::Scope(ScopedStat::new(decl_with_while))
-          
     },
   );
 
