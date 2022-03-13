@@ -18,6 +18,7 @@ pub enum ExprPerms {
 impl ExprPerms {
   /* perms.break_both creates an error if this analysis is required to
   be compatible with either declarations or assignments. */
+  #[must_use]
   pub fn break_both(&self) -> AResult<()> {
     match self {
       ExprPerms::Declare(_) => Err(SemanticError::Normal(format!(
@@ -30,6 +31,7 @@ impl ExprPerms {
     }
   }
 
+  #[must_use]
   pub fn break_declare(&self) -> AResult<()> {
     match self {
       ExprPerms::Declare(_) => Err(SemanticError::Normal(format!(
