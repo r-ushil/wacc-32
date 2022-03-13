@@ -1,7 +1,7 @@
 extern crate nom;
 use nom::{
   branch::alt,
-  combinator::{map, value},
+  combinator::{map, opt, value},
   sequence::{preceded, tuple},
   IResult,
 };
@@ -75,6 +75,32 @@ fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
     |(_, e, _, s, _)| Stat::While(e, ScopedStat::new(s)),
   );
 
+  let for_ = map(
+    tuple((
+      tok("for"),
+      opt(ws(stat_unit)),
+      tok(";"),
+      ws(expr),
+      tok(";"),
+      ws(stat_unit),
+      tok("do"),
+      ws(stat),
+      tok("done"),
+    )),
+    |(_, decl, _, cond, _, assign, _, body, _)| {
+      let new_decl = decl.unwrap_or(Stat::Skip);
+
+      let body_with_assign = Stat::Sequence(Box::new(body), Box::new(assign));
+
+      let while_stat = Stat::While(cond, ScopedStat::new(body_with_assign));
+
+      let decl_with_while =
+        Stat::Sequence(Box::new(new_decl), Box::new(while_stat));
+
+      Stat::Scope(ScopedStat::new(decl_with_while))
+    },
+  );
+
   let begin = map(tuple((tok("begin"), stat, tok("end"))), |(_, s, _)| {
     Stat::Scope(ScopedStat::new(s))
   });
@@ -91,6 +117,7 @@ fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
     print,
     if_,
     while_,
+    for_,
     begin,
   ))(input)
 }

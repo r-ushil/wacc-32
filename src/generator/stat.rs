@@ -18,7 +18,9 @@ fn generate_assign_lhs_ident(
 
   let offset = match scope.get(id) {
     Some(LocalVar(_, offset)) => offset,
-    v => unreachable!("ident must be a local variable, it's {:?}", v),
+    v => {
+      unreachable!("ident must be a local variable, it's {:?}", v)
+    }
   };
 
   (Reg::StackPointer, offset, t.size().into())
@@ -536,7 +538,6 @@ impl Generatable for Stat {
     match self {
       Stat::Skip => (),
       Stat::Declaration(t, id, rhs) => {
-        // println!("scope = {:#?}", scope);
         generate_stat_declaration(scope, code, regs, t, id, rhs);
       }
       Stat::Assignment(lhs, t, rhs) => {

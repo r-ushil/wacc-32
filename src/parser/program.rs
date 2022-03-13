@@ -47,7 +47,6 @@ pub fn final_program_parser(input: &str) -> Result<Program, ErrorTree<&str>> {
 pub fn program(input: &str) -> IResult<&str, Program, ErrorTree<&str>> {
   let (input, _) = comment_or_ws(input)?;
   let (input, funcs) = many0(import_stat)(input)?;
-  //println!("{:#?}", input);
   let mut funcs = funcs.into_iter().flatten().collect::<Vec<Func>>();
 
   let (input, (type_defs_vec, mut prog_funcs, statement)) = delimited(

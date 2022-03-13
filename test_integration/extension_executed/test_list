@@ -15,4 +15,6 @@
 ./tests/assign_rhs/functionMissingCall.wacc,./tests/assign_rhs/functionMissingCall.output.observed,./tests/assign_rhs/functionMissingCall.output.expected,pass
 ./tests/imports/import.wacc,./tests/imports/import.output.observed,./tests/imports/import.output.expected,pass
 ./tests/imports/importWithFuncPtrs.wacc,./tests/imports/importWithFuncPtrs.output.observed,./tests/imports/importWithFuncPtrs.output.expected,pass
-
+./tests/for-loops/for.wacc,./tests/for-loops/for.output.observed,./tests/for-loops/for.output.expected,pass
+./tests/for-loops/for_scope.wacc,./tests/for-loops/for_scope.output.observed,./tests/for-loops/for_scope.output.expected,pass
+./tests/for-loops/for_no_decl.wacc,./tests/for-loops/for_no_decl.output.observed,./tests/for-loops/for_no_decl.output.expected,pass
