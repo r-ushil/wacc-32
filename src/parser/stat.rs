@@ -2,7 +2,7 @@ extern crate nom;
 use nom::{
   branch::alt,
   combinator::{map, value},
-  multi::{many0, many_m_n},
+  multi::many_m_n,
   sequence::{preceded, tuple},
   IResult,
 };
@@ -97,12 +97,22 @@ fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
         decl[0].clone()
       };
 
-      Stat::For(
-        Box::new(new_decl),
+      let body_with_assign = Stat::Sequence(Box::new(body), Box::new(assign));
+
+      let while_stat = Stat::While(
         cond,
-        ScopedStat::new(body),
-        Box::new(assign),
-      )
+        ScopedStat::new(body_with_assign),
+      );
+
+      let decl_with_while = Stat::Sequence(
+        Box::new(new_decl),
+        Box::new(while_stat),
+      );
+
+
+
+      Stat::Scope(ScopedStat::new(decl_with_while))
+          
     },
   );
 
