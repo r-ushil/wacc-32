@@ -127,7 +127,6 @@ fn assign_lhs(input: &str) -> IResult<&str, AssignLhs, ErrorTree<&str>> {
   let (input, lhs_expr) = expr(input)?;
 
   let lhs = match lhs_expr {
-    Expr::ArrayElem(elem) => AssignLhs::ArrayElem(elem),
     Expr::StructElem(elem) => AssignLhs::StructElem(elem),
     _ => AssignLhs::Expr(lhs_expr),
   };
@@ -473,10 +472,10 @@ mod tests {
       (
         "restOfString",
         Stat::Assignment(
-          AssignLhs::ArrayElem(ArrayElem(
+          AssignLhs::Expr(Expr::ArrayElem(ArrayElem(
             "array".to_string(),
             vec!(Expr::IntLiter(2))
-          )),
+          ))),
           Type::default(),
           Expr::PairLiter(
             Box::new(TypedExpr::new(Expr::IntLiter(1))),
@@ -681,10 +680,10 @@ mod tests {
     );
     assert_eq!(
       assign_lhs("foo [ 5]").unwrap().1,
-      AssignLhs::ArrayElem(ArrayElem(
+      AssignLhs::Expr(Expr::ArrayElem(ArrayElem(
         "foo".to_string(),
         vec!(Expr::IntLiter(5))
-      )),
+      ))),
     );
     assert_eq!(
       assign_lhs("fst 5").unwrap().1,

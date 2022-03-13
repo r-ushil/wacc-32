@@ -223,10 +223,16 @@ impl Analysable for Ident {
 }
 
 impl Analysable for ArrayElem {
-  type Input = ();
+  type Input = ExprPerms;
   type Output = Type;
-  fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
+  fn analyse(
+    &mut self,
+    scope: &mut ScopeBuilder,
+    perms: ExprPerms,
+  ) -> AResult<Type> {
     let ArrayElem(id, indexes) = self;
+
+    perms.break_declare()?;
 
     /* If any indexes aren't Int, return errors. */
     SemanticError::join_iter(
@@ -236,6 +242,8 @@ impl Analysable for ArrayElem {
     )?;
 
     /* Gets type of the array being looked up. */
+    /* The array itself doesn't have to be assignable, even if the
+    element acces does, e.g: foo()[5] = 42 */
     let mut curr_type = id.analyse(scope, ExprPerms::Nothing)?;
 
     /* For each index, unwrap the type by one array. */
@@ -369,7 +377,7 @@ mod tests {
       id.clone(),
       vec![Expr::IntLiter(5), Expr::CharLiter('a')]
     )
-    .analyse(&mut scope, ())
+    .analyse(&mut scope, ExprPerms::Nothing)
     .is_err());
   }
 
@@ -410,7 +418,7 @@ mod tests {
     /* x[5][2]: Int */
     assert_eq!(
       ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::IntLiter(2)])
-        .analyse(&mut scope, ()),
+        .analyse(&mut scope, ExprPerms::Nothing),
       Ok(Type::Int),
     );
 
@@ -419,12 +427,13 @@ mod tests {
       id.clone(),
       vec![Expr::IntLiter(5), Expr::CharLiter('a')]
     )
-    .analyse(&mut scope, ())
+    .analyse(&mut scope, ExprPerms::Nothing)
     .is_err());
 
     /* x[5]: Array(Int) */
     assert_eq!(
-      ArrayElem(id.clone(), vec![Expr::IntLiter(5)]).analyse(&mut scope, ()),
+      ArrayElem(id.clone(), vec![Expr::IntLiter(5)])
+        .analyse(&mut scope, ExprPerms::Nothing),
       Ok(Type::Array(Box::new(Type::Int))),
     );
 
@@ -433,7 +442,7 @@ mod tests {
       id.clone(),
       vec![Expr::IntLiter(5), Expr::IntLiter(2), Expr::IntLiter(1)]
     )
-    .analyse(&mut scope, ())
+    .analyse(&mut scope, ExprPerms::Nothing)
     .is_err());
   }
 }

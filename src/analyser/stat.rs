@@ -22,7 +22,6 @@ impl Analysable for AssignLhs {
   fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
     match self {
       AssignLhs::Expr(expr) => expr.analyse(scope, ExprPerms::Assign),
-      AssignLhs::ArrayElem(elem) => elem.analyse(scope, ()),
       AssignLhs::StructElem(elem) => elem.analyse(scope, ()),
     }
   }
@@ -375,8 +374,11 @@ mod tests {
     );
 
     assert_eq!(
-      AssignLhs::ArrayElem(ArrayElem(x_id.clone(), vec!(Expr::IntLiter(5))))
-        .analyse(scope, ()),
+      AssignLhs::Expr(Expr::ArrayElem(ArrayElem(
+        x_id.clone(),
+        vec!(Expr::IntLiter(5))
+      )))
+      .analyse(scope, ()),
       Ok(Type::Int)
     );
   }

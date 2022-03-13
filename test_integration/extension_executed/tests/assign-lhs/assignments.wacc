@@ -1,8 +1,21 @@
 begin
+
+  int[] y = [1,2,3,4];
+
+  y[1] = 42;
+
+  println "y:";
+  println y[0];
+  println y[1];
+  println y[2];
+  println y[3];
+
   pair(int, int) x = newpair(1, 2);
 
   fst x = 42;
 
+  println "x:";
   println fst x;
   println snd x
+
 end

@@ -9,18 +9,6 @@ use crate::analyser::context::*;
 use Directive::*;
 use Instr::*;
 
-fn generate_assign_lhs_array_elem(
-  scope: &ScopeReader,
-  code: &mut GeneratedCode,
-  regs: &[GenReg],
-  elem: &ArrayElem,
-) -> <AssignLhs as Generatable>::Output {
-  /* Store address of array element into regs[1]. */
-  let elem_size = elem.generate(scope, code, regs, ());
-
-  // (Reg::General(regs[0]), 0, elem_size)
-}
-
 impl Generatable for AssignLhs {
   /* Writes value in specified register to this assignlhs. */
   type Input = Reg;
@@ -36,9 +24,6 @@ impl Generatable for AssignLhs {
   ) {
     match self {
       AssignLhs::Expr(expr) => expr.generate(scope, code, regs, Some(src)),
-      AssignLhs::ArrayElem(elem) => {
-        generate_assign_lhs_array_elem(scope, code, regs, elem)
-      }
       AssignLhs::StructElem(elem) => {
         generate_assign_lhs_struct_elem(scope, code, regs, elem)
       }

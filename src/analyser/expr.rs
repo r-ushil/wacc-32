@@ -97,7 +97,7 @@ impl Analysable for Expr {
   ) -> AResult<Type> {
     /* Break assignment and declaration for everything but idents. */
     match self {
-      Ident(_) | PairElem(_) => (),
+      Ident(_) | PairElem(_) | Expr::ArrayElem(_) => (),
       _ => perms.break_both()?,
     }
 
@@ -118,7 +118,7 @@ impl Analysable for Expr {
       StructLiter(s) => s.analyse(scope, ()),
       PairElem(elem) => elem.analyse(scope, perms),
       Ident(id) => id.analyse(scope, perms),
-      Expr::ArrayElem(elem) => elem.analyse(scope, ()),
+      Expr::ArrayElem(elem) => elem.analyse(scope, perms),
       Expr::StructElem(elem) => elem.analyse(scope, ()),
       Call(t, func_expr, args) => analyse_call(scope, t, func_expr, args),
       UnaryApp(op, exp) => analyse_unary(scope, op, exp),

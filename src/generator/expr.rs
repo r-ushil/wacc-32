@@ -43,7 +43,9 @@ impl Generatable for Expr {
       Expr::NullPairLiter => generate_null_pair_liter(code, regs),
       Expr::PairLiter(e1, e2) => generate_pair_liter(scope, code, regs, e1, e2),
       Expr::Ident(id) => generate_ident(scope, code, regs, id, src),
-      Expr::ArrayElem(elem) => generate_array_elem(scope, code, regs, elem),
+      Expr::ArrayElem(elem) => {
+        generate_array_elem(scope, code, regs, elem, src)
+      }
       Expr::StructElem(elem) => generate_struct_elem(scope, code, regs, elem),
       Expr::PairElem(elem) => generate_pair_elem(scope, code, regs, elem, src),
       Expr::Call(func_type, ident, exprs) => {
@@ -305,15 +307,18 @@ fn generate_array_elem(
   code: &mut GeneratedCode,
   regs: &[GenReg],
   elem: &ArrayElem,
+  src: Option<Reg>,
 ) {
   /* Get address of array elem and store in regs[0]. */
   let array_elem_size = elem.generate(scope, code, regs, ());
 
   /* Read from that address into regs[0]. */
-  code.text.push(
-    Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), 0))
-      .size(array_elem_size),
-  );
+  let instr = match src {
+    Some(reg) => Asm::str(reg, (Reg::General(regs[0]), 0)),
+    None => Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), 0)),
+  };
+
+  code.text.push(instr.size(array_elem_size));
 }
 
 /* match src {
