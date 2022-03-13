@@ -24,9 +24,6 @@ impl Generatable for AssignLhs {
   ) {
     match self {
       AssignLhs::Expr(expr) => expr.generate(scope, code, regs, Some(src)),
-      AssignLhs::StructElem(elem) => {
-        generate_assign_lhs_struct_elem(scope, code, regs, elem)
-      }
     }
   }
 }

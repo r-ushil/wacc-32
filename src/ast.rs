@@ -61,7 +61,6 @@ impl ScopedStat {
 #[derive(PartialEq, Debug, Clone)]
 pub enum AssignLhs {
   Expr(Expr),
-  StructElem(StructElem),
 }
 
 #[derive(PartialEq, Debug, Clone)]

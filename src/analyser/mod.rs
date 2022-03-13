@@ -264,10 +264,17 @@ impl Analysable for ArrayElem {
 }
 
 impl Analysable for StructElem {
-  type Input = ();
+  type Input = ExprPerms;
   type Output = Type;
-  fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
+  fn analyse(
+    &mut self,
+    scope: &mut ScopeBuilder,
+    perms: ExprPerms,
+  ) -> AResult<Type> {
     let StructElem(struct_elem_id, expr, field_name) = self;
+
+    /* Struct elements cannot be declared, only assigned. */
+    perms.break_declare()?;
 
     /* Expression should have this type. */
     let expr_type = expr.analyse(scope, ExprPerms::Nothing)?;
@@ -354,7 +361,7 @@ mod tests {
       format!("y"),
     );
 
-    assert_eq!(elem.analyse(&mut scope, ()), Ok(Type::Bool));
+    assert_eq!(elem.analyse(&mut scope, ExprPerms::Nothing), Ok(Type::Bool));
   }
 
   #[test]

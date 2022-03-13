@@ -22,7 +22,6 @@ impl Analysable for AssignLhs {
   fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
     match self {
       AssignLhs::Expr(expr) => expr.analyse(scope, ExprPerms::Assign),
-      AssignLhs::StructElem(elem) => elem.analyse(scope, ()),
     }
   }
 }

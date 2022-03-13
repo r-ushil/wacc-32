@@ -1,4 +1,14 @@
 begin
+  struct CharBox {
+    char c
+  }
+
+  CharBox z = CharBox { c: 'a' };
+
+  z.c = 'b';
+
+  println "z:";
+  println z.c;
 
   int[] y = [1,2,3,4];
 

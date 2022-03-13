@@ -127,7 +127,6 @@ fn assign_lhs(input: &str) -> IResult<&str, AssignLhs, ErrorTree<&str>> {
   let (input, lhs_expr) = expr(input)?;
 
   let lhs = match lhs_expr {
-    Expr::StructElem(elem) => AssignLhs::StructElem(elem),
     _ => AssignLhs::Expr(lhs_expr),
   };
 

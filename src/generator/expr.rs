@@ -46,7 +46,9 @@ impl Generatable for Expr {
       Expr::ArrayElem(elem) => {
         generate_array_elem(scope, code, regs, elem, src)
       }
-      Expr::StructElem(elem) => generate_struct_elem(scope, code, regs, elem),
+      Expr::StructElem(elem) => {
+        generate_struct_elem(scope, code, regs, elem, src)
+      }
       Expr::PairElem(elem) => generate_pair_elem(scope, code, regs, elem, src),
       Expr::Call(func_type, ident, exprs) => {
         generate_call(scope, code, regs, func_type.clone(), ident, exprs)
@@ -276,6 +278,7 @@ fn generate_struct_elem(
   code: &mut GeneratedCode,
   regs: &[GenReg],
   elem: &StructElem,
+  src: Option<Reg>,
 ) {
   let StructElem(struct_name, expr, field_name) = elem;
 
@@ -289,10 +292,12 @@ fn generate_struct_elem(
   expr.generate(scope, code, regs, None);
 
   /* Dereference with offset. */
-  code.text.push(
-    Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), *offset))
-      .size(type_.size().into()),
-  );
+  let instr = match src {
+    Some(reg) => Asm::str(reg, (Reg::General(regs[0]), *offset)),
+    None => Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), *offset)),
+  };
+
+  code.text.push(instr.size(type_.size().into()));
 }
 
 fn generate_null_pair_liter(code: &mut GeneratedCode, regs: &[GenReg]) {
