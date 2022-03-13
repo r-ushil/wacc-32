@@ -1,0 +1,12 @@
+begin
+    int[] array = [1,2,3];
+
+    for x : array do
+        x = 2
+    done ;
+
+    int y = array[0] + array[1] + array[2];
+
+    # set all elems to 2, exit 6
+    exit y
+end
