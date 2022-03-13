@@ -10,7 +10,10 @@ use nom::{
   sequence::{delimited, pair, preceded, terminated, tuple},
   IResult,
 };
-use nom_supreme::{error::ErrorTree, final_parser};
+use nom_supreme::{
+  error::{ErrorTree, Expectation},
+  final_parser,
+};
 
 use super::shared::*;
 use super::stat::*;
@@ -78,20 +81,30 @@ pub fn program(input: &str) -> IResult<&str, Program, ErrorTree<&str>> {
 
 /* type-def ::= 'struct' <ident> '{' <param-list>? '}' */
 fn type_def(input: &str) -> IResult<&str, (Ident, Struct), ErrorTree<&str>> {
-  let (input, (id, fields)) = pair(
+  let (input, (struct_name, fields)) = pair(
     /* 'struct' <ident> */
     preceded(tok("struct"), ident),
     /* '{' <param-list> '}' */
     delimited(tok("{"), param_list, tok("}")),
   )(input)?;
 
-  /* Adds all fields to a struct definition. */
-  let mut s = Struct::new();
-  for (t, id) in fields {
-    s.add_field(t, id);
+  /* RULE: Custom types must start with an upper case letter. */
+  if !struct_name.chars().nth(0).unwrap().is_uppercase() {
+    return Err(nom::Err::Error(nom_supreme::error::ErrorTree::Base {
+      location: input,
+      kind: nom_supreme::error::BaseErrorKind::Expected(Expectation::Tag(
+        "Custom types must start with an upper case letter.",
+      )),
+    }));
   }
 
-  Ok((input, (id, s)))
+  /* Adds all fields to a struct definition. */
+  let mut s = Struct::new();
+  for (t, field_name) in fields {
+    s.add_field(t, field_name);
+  }
+
+  Ok((input, (struct_name, s)))
 }
 
 /* func ::= <type> <ident> '(' <param-list>? ')' 'is' <stat> 'end' */
@@ -129,7 +142,19 @@ fn func(input: &str) -> IResult<&str, Func, ErrorTree<&str>> {
 
 /* param ::= <type> <ident> */
 fn param(input: &str) -> IResult<&str, (Type, Ident), ErrorTree<&str>> {
-  pair(type_, ident)(input)
+  let (input, (t, id)) = pair(type_, ident)(input)?;
+
+  /* RULE: function parameters must not start with an upper case. */
+  if id.chars().nth(0).unwrap().is_uppercase() {
+    return Err(nom::Err::Error(nom_supreme::error::ErrorTree::Base {
+      location: input,
+      kind: nom_supreme::error::BaseErrorKind::Expected(Expectation::Tag(
+        "Function parameters cannot start with an upper case character.",
+      )),
+    }));
+  }
+
+  Ok((input, (t, id)))
 }
 
 fn param_list(

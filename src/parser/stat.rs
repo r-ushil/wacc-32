@@ -5,7 +5,7 @@ use nom::{
   sequence::{preceded, tuple},
   IResult,
 };
-use nom_supreme::error::ErrorTree;
+use nom_supreme::error::{ErrorTree, Expectation};
 
 use super::expr::*;
 use super::shared::*;
@@ -31,14 +31,31 @@ pub fn stat(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
 
 fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
   let skip = value(Stat::Skip, tok("skip"));
-  let declaration = map(
-    tuple((type_, expr, tok("="), assign_rhs)),
-    |(t, dst, _, ass)| Stat::Declaration(t, dst, ass),
-  );
+
+  let declaration = |input| {
+    let (input, (t, lhs_expr, _, ass)) =
+      tuple((type_, expr, tok("="), assign_rhs))(input)?;
+
+    /* RULE: local variables must not start with an upper case. */
+    if let Expr::Ident(id) = &lhs_expr {
+      if id.chars().nth(0).unwrap().is_uppercase() {
+        return Err(nom::Err::Error(nom_supreme::error::ErrorTree::Base {
+          location: input,
+          kind: nom_supreme::error::BaseErrorKind::Expected(Expectation::Tag(
+            "Variable names cannot start with an upper case character.",
+          )),
+        }));
+      }
+    }
+
+    Ok((input, Stat::Declaration(t, lhs_expr, ass)))
+  };
+
   let assignment = map(
     tuple((assign_lhs, tok("="), assign_rhs)),
     |(ass_lhs, _, ass_rhs)| Stat::Assignment(ass_lhs, Type::default(), ass_rhs),
   );
+
   let read = map(preceded(tok("read"), assign_lhs), |e| {
     Stat::Read(Type::default(), e)
   });
@@ -46,11 +63,15 @@ fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
   let free = map(preceded(tok("free"), expr), |e| {
     Stat::Free(TypedExpr::new(e))
   });
+
   let return_ = map(preceded(tok("return"), expr), Stat::Return);
+
   let exit = map(preceded(tok("exit"), expr), Stat::Exit);
+
   let print = map(preceded(tok("print"), expr), |e| {
     Stat::Print(TypedExpr::new(e))
   });
+
   let println = map(preceded(tok("println"), expr), |e| {
     Stat::Println(TypedExpr::new(e))
   });
