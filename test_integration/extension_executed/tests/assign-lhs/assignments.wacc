@@ -1,0 +1,8 @@
+begin
+  pair(int, int) x = newpair(1, 2);
+
+  fst x = 42;
+
+  println fst x;
+  println snd x
+end

@@ -21,18 +21,6 @@ fn generate_assign_lhs_array_elem(
   // (Reg::General(regs[0]), 0, elem_size)
 }
 
-fn generate_assign_lhs_pair_elem(
-  scope: &ScopeReader,
-  code: &mut GeneratedCode,
-  regs: &[GenReg],
-  elem: &PairElem,
-) -> <AssignLhs as Generatable>::Output {
-  /* Stores address of elem in regs[1]. */
-  let elem_size = elem.generate(scope, code, regs, ());
-
-  // (Reg::General(regs[0]), 0, elem_size)
-}
-
 impl Generatable for AssignLhs {
   /* Writes value in specified register to this assignlhs. */
   type Input = Reg;
@@ -50,9 +38,6 @@ impl Generatable for AssignLhs {
       AssignLhs::Expr(expr) => expr.generate(scope, code, regs, Some(src)),
       AssignLhs::ArrayElem(elem) => {
         generate_assign_lhs_array_elem(scope, code, regs, elem)
-      }
-      AssignLhs::PairElem(elem) => {
-        generate_assign_lhs_pair_elem(scope, code, regs, elem)
       }
       AssignLhs::StructElem(elem) => {
         generate_assign_lhs_struct_elem(scope, code, regs, elem)

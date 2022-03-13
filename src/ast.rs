@@ -62,7 +62,6 @@ impl ScopedStat {
 pub enum AssignLhs {
   Expr(Expr),
   ArrayElem(ArrayElem),
-  PairElem(PairElem),
   StructElem(StructElem),
 }
 

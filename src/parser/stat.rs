@@ -103,16 +103,15 @@ fn stat_multiple(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
 
 /* assign-lhs ::= <struct-elem> | <ident> | <array-elem> | <pair-elem> */
 fn assign_lhs(input: &str) -> IResult<&str, AssignLhs, ErrorTree<&str>> {
-  /* Attempt to parse as expression just to catch struct elem case. */
-  if let Ok((input, Expr::StructElem(elem))) = expr(input) {
-    return Ok((input, AssignLhs::StructElem(elem)));
-  }
+  let (input, lhs_expr) = expr(input)?;
 
-  alt((
-    map(pair_elem, AssignLhs::PairElem),
-    map(array_elem, AssignLhs::ArrayElem),
-    map(expr, AssignLhs::Expr),
-  ))(input)
+  let lhs = match lhs_expr {
+    Expr::ArrayElem(elem) => AssignLhs::ArrayElem(elem),
+    Expr::StructElem(elem) => AssignLhs::StructElem(elem),
+    _ => AssignLhs::Expr(lhs_expr),
+  };
+
+  Ok((input, lhs))
 }
 
 fn assign_rhs(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
@@ -668,11 +667,15 @@ mod tests {
     );
     assert_eq!(
       assign_lhs("fst 5").unwrap().1,
-      AssignLhs::PairElem(PairElem::Fst(TypedExpr::new(Expr::IntLiter(5))))
+      AssignLhs::Expr(Expr::PairElem(Box::new(PairElem::Fst(TypedExpr::new(
+        Expr::IntLiter(5)
+      )))))
     );
     assert_eq!(
       assign_lhs("snd null").unwrap().1,
-      AssignLhs::PairElem(PairElem::Snd(TypedExpr::new(Expr::NullPairLiter)))
+      AssignLhs::Expr(Expr::PairElem(Box::new(PairElem::Snd(TypedExpr::new(
+        Expr::NullPairLiter
+      )))))
     );
   }
 

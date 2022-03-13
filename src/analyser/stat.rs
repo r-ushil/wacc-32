@@ -21,9 +21,8 @@ impl Analysable for AssignLhs {
 
   fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
     match self {
-      AssignLhs::Expr(expr) => expr.analyse(scope, ExprPerms::Nothing),
+      AssignLhs::Expr(expr) => expr.analyse(scope, ExprPerms::Assign),
       AssignLhs::ArrayElem(elem) => elem.analyse(scope, ()),
-      AssignLhs::PairElem(elem) => elem.analyse(scope, ()),
       AssignLhs::StructElem(elem) => elem.analyse(scope, ()),
     }
   }
@@ -75,13 +74,22 @@ impl Analysable for StructLiter {
 }
 
 impl Analysable for PairElem {
-  type Input = ();
+  type Input = ExprPerms;
   type Output = Type;
-  fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
+  fn analyse(
+    &mut self,
+    scope: &mut ScopeBuilder,
+    perms: ExprPerms,
+  ) -> AResult<Type> {
     use PairElem::*;
+
+    /* Pair elements can be assigned but not declared. */
+    perms.break_declare()?;
 
     /* Gets type of thing being accessed, and stored type. */
     let pair_type = match self {
+      /* The pair doesn't have to be assignable, only evaluatable.
+      E.g: foo().fst = 5 */
       Fst(p) | Snd(p) => p.analyse(scope, ExprPerms::Nothing)?,
     };
 

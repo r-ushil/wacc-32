@@ -45,7 +45,7 @@ impl Generatable for Expr {
       Expr::Ident(id) => generate_ident(scope, code, regs, id, src),
       Expr::ArrayElem(elem) => generate_array_elem(scope, code, regs, elem),
       Expr::StructElem(elem) => generate_struct_elem(scope, code, regs, elem),
-      Expr::PairElem(elem) => generate_pair_elem(scope, code, regs, elem),
+      Expr::PairElem(elem) => generate_pair_elem(scope, code, regs, elem, src),
       Expr::Call(func_type, ident, exprs) => {
         generate_call(scope, code, regs, func_type.clone(), ident, exprs)
       }
@@ -255,14 +255,18 @@ fn generate_pair_elem(
   code: &mut GeneratedCode,
   regs: &[GenReg],
   elem: &PairElem,
+  src: Option<Reg>,
 ) {
   /* Puts element address in regs[0]. */
   let elem_size = elem.generate(scope, code, regs, ());
 
   /* Dereference. */
-  code.text.push(
-    Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), 0)).size(elem_size),
-  );
+  let instr = match src {
+    Some(reg) => Asm::str(reg, (Reg::General(regs[0]), 0)),
+    None => Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), 0)),
+  };
+
+  code.text.push(instr.size(elem_size));
 }
 
 fn generate_struct_elem(
