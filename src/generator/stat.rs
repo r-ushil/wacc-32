@@ -9,21 +9,6 @@ use crate::analyser::context::*;
 use Directive::*;
 use Instr::*;
 
-fn generate_assign_lhs_ident(
-  scope: &ScopeReader,
-  t: Type,
-  id: &Ident,
-) -> <AssignLhs as Generatable>::Output {
-  use IdentInfo::*;
-
-  let offset = match scope.get(id) {
-    Some(LocalVar(_, offset)) => offset,
-    v => unreachable!("ident must be a local variable, it's {:?}", v),
-  };
-
-  (Reg::StackPointer, offset, t.size().into())
-}
-
 fn generate_assign_lhs_array_elem(
   scope: &ScopeReader,
   code: &mut GeneratedCode,
@@ -33,7 +18,7 @@ fn generate_assign_lhs_array_elem(
   /* Store address of array element into regs[1]. */
   let elem_size = elem.generate(scope, code, regs, ());
 
-  (Reg::General(regs[0]), 0, elem_size)
+  // (Reg::General(regs[0]), 0, elem_size)
 }
 
 fn generate_assign_lhs_pair_elem(
@@ -45,24 +30,24 @@ fn generate_assign_lhs_pair_elem(
   /* Stores address of elem in regs[1]. */
   let elem_size = elem.generate(scope, code, regs, ());
 
-  (Reg::General(regs[0]), 0, elem_size)
+  // (Reg::General(regs[0]), 0, elem_size)
 }
 
 impl Generatable for AssignLhs {
-  type Input = Type;
-  type Output = (Reg, Offset, DataSize);
+  /* Writes value in specified register to this assignlhs. */
+  type Input = Reg;
 
-  /* Returns a (Reg, Offset) which specifies the memory address of
-  this Lhs. Also returns how much data is stored at said address. */
+  type Output = ();
+
   fn generate(
     &self,
     scope: &ScopeReader,
     code: &mut GeneratedCode,
     regs: &[GenReg],
-    t: Type,
-  ) -> Self::Output {
+    src: Reg,
+  ) {
     match self {
-      AssignLhs::Ident(id) => generate_assign_lhs_ident(scope, t, id),
+      AssignLhs::Expr(expr) => expr.generate(scope, code, regs, Some(src)),
       AssignLhs::ArrayElem(elem) => {
         generate_assign_lhs_array_elem(scope, code, regs, elem)
       }
@@ -91,10 +76,10 @@ fn generate_assign_lhs_struct_elem(
   let (type_, offset) = def.fields.get(field_name).unwrap();
 
   /* Evaluate expression. */
-  expr.generate(scope, code, regs, ());
+  expr.generate(scope, code, regs, None);
 
   /* Return location. */
-  (Reg::General(regs[0]), *offset, type_.size().into())
+  // (Reg::General(regs[0]), *offset, type_.size().into())
 }
 
 /* Mallocs {bytes} bytes and leaves the address in {reg}. */
@@ -122,7 +107,7 @@ impl Generatable for StructLiter {
     scope: &ScopeReader,
     code: &mut GeneratedCode,
     regs: &[GenReg],
-    aux: Self::Input,
+    _: (),
   ) -> Self::Output {
     let StructLiter { id, fields } = self;
 
@@ -140,7 +125,7 @@ impl Generatable for StructLiter {
     /* For each field: */
     for (field_name, expr) in fields.iter() {
       /* Evaluate expression. */
-      expr.generate(scope, code, expr_regs, aux);
+      expr.generate(scope, code, expr_regs, None);
 
       /* Calculate offset. */
       let offset = struct_def.fields.get(field_name).unwrap().1;
@@ -173,7 +158,7 @@ impl Generatable for PairElem {
     };
 
     /* Store address of pair in regs[0]. */
-    pair.generate(scope, code, regs, ());
+    pair.generate(scope, code, regs, None);
 
     /* CHECK: regs[0] != NULL */
     code.text.push(Asm::mov(
@@ -226,18 +211,6 @@ impl Generatable for ScopedStat {
   }
 }
 
-fn generate_stat_declaration(
-  scope: &ScopeReader,
-  code: &mut GeneratedCode,
-  regs: &[GenReg],
-  t: &Type,
-  id: &str,
-  rhs: &Expr,
-) {
-  Stat::Assignment(AssignLhs::Ident(id.to_string()), t.clone(), rhs.clone())
-    .generate(scope, code, regs, ());
-}
-
 fn generate_stat_assignment(
   scope: &ScopeReader,
   code: &mut GeneratedCode,
@@ -247,14 +220,10 @@ fn generate_stat_assignment(
   rhs: &Expr,
 ) {
   /* regs[0] = eval(rhs) */
-  rhs.generate(scope, code, regs, ());
+  rhs.generate(scope, code, regs, None);
 
   /* stores value of regs[0] into lhs */
-  let (ptr_reg, offset, data_size) =
-    lhs.generate(scope, code, &regs[1..], t.clone());
-  code
-    .text
-    .push(Asm::str(Reg::General(regs[0]), (ptr_reg, offset)).size(data_size));
+  lhs.generate(scope, code, &regs[1..], Reg::General(regs[0]));
 }
 
 fn generate_stat_read(
@@ -264,34 +233,34 @@ fn generate_stat_read(
   type_: &Type,
   lhs: &AssignLhs,
 ) {
-  let (ptr_reg, offset, _) = lhs.generate(scope, code, regs, type_.clone());
+  // let (ptr_reg, offset, _) = lhs.generate(scope, code, regs, type_.clone());
 
-  if offset != 0 || Reg::General(regs[0]) != ptr_reg {
-    code
-      .text
-      .push(Asm::add(Reg::General(regs[0]), ptr_reg, Op2::Imm(offset)));
-  }
+  // if offset != 0 || Reg::General(regs[0]) != ptr_reg {
+  //   code
+  //     .text
+  //     .push(Asm::add(Reg::General(regs[0]), ptr_reg, Op2::Imm(offset)));
+  // }
 
-  /* MOV r0, {regs[0]} */
-  code.text.push(Asm::mov(
-    Reg::Arg(ArgReg::R0),
-    Op2::Reg(Reg::General(regs[0]), 0),
-  ));
-  //expr.get_type //todo!() get type of ident
-  let read_type = if *type_ == Type::Char {
-    RequiredPredefs::ReadChar.mark(code);
-    ReadFmt::Char
-  } else if *type_ == Type::Int {
-    RequiredPredefs::ReadInt.mark(code);
-    ReadFmt::Int
-  } else {
-    unreachable!("CAN'T GET THIS TYPE!");
-  };
+  // /* MOV r0, {regs[0]} */
+  // code.text.push(Asm::mov(
+  //   Reg::Arg(ArgReg::R0),
+  //   Op2::Reg(Reg::General(regs[0]), 0),
+  // ));
+  // //expr.get_type //todo!() get type of ident
+  // let read_type = if *type_ == Type::Char {
+  //   RequiredPredefs::ReadChar.mark(code);
+  //   ReadFmt::Char
+  // } else if *type_ == Type::Int {
+  //   RequiredPredefs::ReadInt.mark(code);
+  //   ReadFmt::Int
+  // } else {
+  //   unreachable!("CAN'T GET THIS TYPE!");
+  // };
 
-  /* BL p_read_{read_type} */
-  code
-    .text
-    .push(Asm::b(format!("p_read_{}", read_type)).link())
+  // /* BL p_read_{read_type} */
+  // code
+  //   .text
+  //   .push(Asm::b(format!("p_read_{}", read_type)).link())
 }
 
 fn generate_stat_free(
@@ -301,7 +270,7 @@ fn generate_stat_free(
   t: &Type,
   expr: &Expr,
 ) {
-  expr.generate(scope, code, regs, ());
+  expr.generate(scope, code, regs, None);
 
   /* MOV r0, {min_reg}        //move heap address into r0 */
   code.text.push(Asm::mov(
@@ -332,7 +301,7 @@ fn generate_stat_return(
   expr: &Expr,
 ) {
   /* regs[0] = eval(expr) */
-  expr.generate(scope, code, regs, ());
+  expr.generate(scope, code, regs, None);
 
   /* r0 = regs[0] */
   code.text.push(Asm::mov(
@@ -359,7 +328,7 @@ fn generate_stat_exit(
   expr: &Expr,
 ) {
   /* regs[0] = eval(expr) */
-  expr.generate(scope, code, regs, ());
+  expr.generate(scope, code, regs, None);
 
   /* r0 = regs[0] */
   code.text.push(Asm::mov(
@@ -378,7 +347,7 @@ fn generate_stat_print(
   t: &Type,
   expr: &Expr,
 ) {
-  expr.generate(scope, code, regs, ());
+  expr.generate(scope, code, regs, None);
 
   code.text.push(Asm::mov(
     Reg::Arg(ArgReg::R0),
@@ -441,7 +410,7 @@ fn generate_stat_if(
   let exit_label = code.get_label();
 
   /* regs[0] = eval(cond) */
-  cond.generate(scope, code, regs, ());
+  cond.generate(scope, code, regs, None);
 
   /* cmp(regs[0], 0) */
   code.text.push(Asm::cmp(Reg::General(regs[0]), Op2::Imm(0)));
@@ -492,7 +461,7 @@ fn generate_stat_while(
   code.text.push(Asm::Directive(Label(cond_label)));
 
   /* regs[0] = eval(cond) */
-  cond.generate(scope, code, regs, ());
+  cond.generate(scope, code, regs, None);
 
   /* cmp(regs[0], 1) */
   code.text.push(Asm::cmp(Reg::General(regs[0]), Op2::Imm(1)));
@@ -535,9 +504,15 @@ impl Generatable for Stat {
   ) {
     match self {
       Stat::Skip => (),
-      Stat::Declaration(t, id, rhs) => {
-        // println!("scope = {:#?}", scope);
-        generate_stat_declaration(scope, code, regs, t, id, rhs);
+      Stat::Declaration(t, dst, rhs) => {
+        generate_stat_assignment(
+          scope,
+          code,
+          regs,
+          &AssignLhs::Expr(dst.clone()),
+          t,
+          rhs,
+        );
       }
       Stat::Assignment(lhs, t, rhs) => {
         generate_stat_assignment(scope, code, regs, lhs, t, rhs)
@@ -588,7 +563,7 @@ mod tests {
 
     /* Expected output. */
     let mut expected_code = GeneratedCode::default();
-    expr.generate(scope, &mut expected_code, regs, ());
+    expr.generate(scope, &mut expected_code, regs, None);
 
     /* MOV r0, r4 */
     expected_code.text.push(Asm::mov(

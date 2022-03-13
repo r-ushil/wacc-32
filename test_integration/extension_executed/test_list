@@ -15,4 +15,5 @@
 ./tests/assign_rhs/functionMissingCall.wacc,./tests/assign_rhs/functionMissingCall.output.observed,./tests/assign_rhs/functionMissingCall.output.expected,pass
 ./tests/imports/import.wacc,./tests/imports/import.output.observed,./tests/imports/import.output.expected,pass
 ./tests/imports/importWithFuncPtrs.wacc,./tests/imports/importWithFuncPtrs.output.observed,./tests/imports/importWithFuncPtrs.output.expected,pass
-
+./tests/assign-lhs/basicDeclaration.wacc,./tests/assign-lhs/basicDeclaration.output.observed,./tests/assign-lhs/basicDeclaration.output.expected,pass
+./tests/assign-lhs/basicAssignment.wacc,./tests/assign-lhs/basicAssignment.output.observed,./tests/assign-lhs/basicAssignment.output.expected,pass

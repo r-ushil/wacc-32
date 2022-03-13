@@ -31,7 +31,7 @@ pub struct FuncSig {
 #[derive(PartialEq, Debug, Clone)]
 pub enum Stat {
   Skip,
-  Declaration(Type, Ident, Expr),
+  Declaration(Type, Expr, Expr),
   Assignment(AssignLhs, Type, Expr),
   Read(Type, AssignLhs),
   Free(TypedExpr),
@@ -60,7 +60,7 @@ impl ScopedStat {
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum AssignLhs {
-  Ident(Ident),
+  Expr(Expr),
   ArrayElem(ArrayElem),
   PairElem(PairElem),
   StructElem(StructElem),
@@ -215,5 +215,6 @@ pub type Ident = String;
 #[derive(PartialEq, Debug, Clone)]
 pub struct ArrayElem(pub Ident, pub Vec<Expr>);
 
+/* Stores the type of the elements. */
 #[derive(PartialEq, Debug, Clone)]
 pub struct ArrayLiter(pub Type, pub Vec<Expr>);

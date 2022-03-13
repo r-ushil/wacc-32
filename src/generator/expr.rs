@@ -12,14 +12,18 @@ use crate::generator::asm::*;
 use stat::generate_malloc;
 
 impl Generatable for Expr {
-  type Input = ();
+  /* If specified, this specifies the source register
+  which should be written to this expression. */
+  type Input = Option<Reg>;
+
   type Output = ();
+
   fn generate(
     &self,
     scope: &ScopeReader,
     code: &mut GeneratedCode,
     regs: &[GenReg],
-    _aux: (),
+    src: Option<Reg>,
   ) {
     match self {
       Expr::IntLiter(val) => generate_int_liter(code, regs, val),
@@ -38,7 +42,7 @@ impl Generatable for Expr {
       }
       Expr::NullPairLiter => generate_null_pair_liter(code, regs),
       Expr::PairLiter(e1, e2) => generate_pair_liter(scope, code, regs, e1, e2),
-      Expr::Ident(id) => generate_ident(scope, code, regs, id),
+      Expr::Ident(id) => generate_ident(scope, code, regs, id, src),
       Expr::ArrayElem(elem) => generate_array_elem(scope, code, regs, elem),
       Expr::StructElem(elem) => generate_struct_elem(scope, code, regs, elem),
       Expr::PairElem(elem) => generate_pair_elem(scope, code, regs, elem),
@@ -95,7 +99,7 @@ fn generate_call(
 
     let arg_offset_scope = scope.new_scope(&symbol_table);
 
-    expr.generate(&arg_offset_scope, code, safe_regs, ());
+    expr.generate(&arg_offset_scope, code, safe_regs, None);
 
     code.text.push(
       Asm::str(
@@ -116,7 +120,7 @@ fn generate_call(
     &scope.new_scope(&SymbolTable::empty(args_offset)),
     code,
     regs,
-    (),
+    None,
   );
 
   /* Jump to function pointer. */
@@ -157,7 +161,7 @@ fn generate_pair_liter(
 
   /* Evaluate e1.
   regs[1] = eval(e1) */
-  e1.generate(scope, code, &regs[1..], ());
+  e1.generate(scope, code, &regs[1..], None);
 
   /* Malloc for e1.
   r0 = malloc(e1_size) */
@@ -176,7 +180,7 @@ fn generate_pair_liter(
 
   /* Evaluate e2.
   regs[1] = eval(e2) */
-  e2.generate(scope, code, &regs[1..], ());
+  e2.generate(scope, code, &regs[1..], None);
 
   /* Malloc for e2.
   r0 = malloc(e2_size) */
@@ -216,7 +220,7 @@ fn generate_array_liter(
     /* Write each expression to the array. */
     for (i, expr) in exprs.iter().enumerate() {
       /* Evaluate expr to r5. */
-      expr.generate(scope, code, &regs[1..], ());
+      expr.generate(scope, code, &regs[1..], None);
 
       /* Write r5 array. */
       code.text.push(
@@ -276,7 +280,7 @@ fn generate_struct_elem(
   let (type_, offset) = def.fields.get(field_name).unwrap();
 
   /* Evaluate expression. */
-  expr.generate(scope, code, regs, ());
+  expr.generate(scope, code, regs, None);
 
   /* Dereference with offset. */
   code.text.push(
@@ -308,24 +312,34 @@ fn generate_array_elem(
   );
 }
 
-/* Stores value of local variable specified by ident to regs[0]. */
+/* match src {
+  Some(reg) => writes value at reg to this identifier,
+  None => Evaluates this identifier into regs[0]
+} */
 fn generate_ident(
   scope: &ScopeReader,
   code: &mut GeneratedCode,
   regs: &[GenReg],
   id: &Ident,
+  src: Option<Reg>,
 ) {
   use IdentInfo::*;
 
   match scope.get(id) {
-    Some(LocalVar(_, offset)) => {
-      /* LDR {regs[0]}, [sp, #{offset}] */
-      code.text.push(
-        Asm::ldr(Reg::General(regs[0]), (Reg::StackPointer, offset))
-          .size(scope.get_type(id).unwrap().size().into()),
-      );
+    Some(LocalVar(type_, offset)) => {
+      let instr = match src {
+        /* STR {reg}, [sp, #{offset}] */
+        Some(reg) => Asm::str(reg, (Reg::StackPointer, offset)),
+        /* LDR {regs[0]}, [sp, #{offset}] */
+        None => Asm::ldr(Reg::General(regs[0]), (Reg::StackPointer, offset)),
+      };
+
+      code.text.push(instr.size(type_.size().into()))
     }
     Some(Label(_, label)) => {
+      /* Cannot write to labels. */
+      assert!(src.is_none());
+
       /* LDR {regs[0]}, ={label} */
       code.text.push(Asm::ldr(Reg::General(regs[0]), label));
     }
@@ -376,7 +390,7 @@ fn generate_unary_app(
   expr: &Expr,
 ) {
   /* Stores expression's value in regs[0]. */
-  expr.generate(scope, code, regs, ());
+  expr.generate(scope, code, regs, None);
 
   /* Applies unary operator to regs[0]. */
   generate_unary_op(code, Reg::General(regs[0]), op);
@@ -393,11 +407,11 @@ fn generate_binary_app(
   assert!(regs.len() >= 2);
 
   /* regs[0] = eval(expr1) */
-  expr1.generate(scope, code, regs, ());
+  expr1.generate(scope, code, regs, None);
 
   if regs.len() > MIN_STACK_MACHINE_REGS {
     /* Haven't run out of registers, evaluate normally. */
-    expr2.generate(scope, code, &regs[1..], ());
+    expr2.generate(scope, code, &regs[1..], None);
 
     /* regs[0] = regs[0] <op> regs[1] */
     generate_binary_op(code, regs[0], regs[0], regs[1], op);
@@ -410,7 +424,7 @@ fn generate_binary_app(
     let st = SymbolTable::empty(ARM_DSIZE_WORD);
 
     /* Evaluate LHS using all registers. */
-    expr2.generate(&scope.new_scope(&st), code, regs, ());
+    expr2.generate(&scope.new_scope(&st), code, regs, None);
 
     /* Restore RHS into next available register. */
     code.text.push(Asm::pop(Reg::General(regs[1])));
@@ -638,7 +652,7 @@ impl Generatable for ArrayElem {
 
       /* index_regs[0] = eval(index)
       LDR {index_regs[0]} {index}     //load index into first index reg */
-      index.generate(scope, code, index_regs, ());
+      index.generate(scope, code, index_regs, None);
 
       /* Dereference. */
       /* LDR {array_ptr_reg} [{array_ptr_reg}] */

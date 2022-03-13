@@ -166,7 +166,7 @@ mod tests {
         }),
         statement: ScopedStat::new(Stat::Declaration(
           Type::Int,
-          "y".to_string(),
+          Expr::Ident("y".to_string()),
           Expr::Call(
             Type::default(),
             Box::new(Expr::Ident("foo".to_string())),
@@ -246,7 +246,7 @@ mod tests {
           return_type:Type::Int,
         },
         body:Stat::Sequence(
-          Box::new(Stat::Declaration(Type::Int, "y".to_string(), Expr::Call(Type::default(), Box::new(Expr::Ident("foo".to_string())), vec!(Expr::Ident("x".to_string()))))),
+          Box::new(Stat::Declaration(Type::Int, Expr::Ident("y".to_string()), Expr::Call(Type::default(), Box::new(Expr::Ident("foo".to_string())), vec!(Expr::Ident("x".to_string()))))),
           Box::new(Stat::Return(Expr::Ident("y".to_string()))),
         ),
         params_st:SymbolTable::default(),

@@ -11,7 +11,7 @@ use unify::Unifiable;
 
 use crate::ast::*;
 
-use self::context::*;
+use self::{context::*, expr::ExprPerms};
 
 /* Represents the result of a semantic analyse. */
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -110,16 +110,14 @@ check things, and when an AST represents a value, returns their type. */
 
 /* If types are the same, return that type.
 Otherwise, error. */
-fn equal_types<
-  L: Analysable<Input = (), Output = Type>,
-  R: Analysable<Input = (), Output = Type>,
->(
+fn equal_types<L: Analysable<Output = Type>, R: Analysable<Output = Type>>(
   scope: &mut ScopeBuilder,
   lhs: &mut L,
   rhs: &mut R,
 ) -> AResult<Type> {
-  let (lhs_type, rhs_type) =
-    lhs.analyse(scope, ()).join(rhs.analyse(scope, ()))?;
+  let (lhs_type, rhs_type) = lhs
+    .analyse(scope, L::Input::default())
+    .join(rhs.analyse(scope, R::Input::default()))?;
 
   if let Some(t) = lhs_type.clone().unify(rhs_type.clone()) {
     Ok(t)
@@ -132,12 +130,12 @@ fn equal_types<
 }
 
 /* Errors if AST node does not have expected type. */
-fn expected_type<'a, A: Analysable<Input = (), Output = Type>>(
+fn expected_type<'a, A: Analysable<Output = Type>>(
   scope: &mut ScopeBuilder,
   expected_type: &'a Type,
   actual: &mut A,
 ) -> AResult<&'a Type> {
-  let actual_type = actual.analyse(scope, ())?;
+  let actual_type = actual.analyse(scope, A::Input::default())?;
 
   if expected_type.clone().unify(actual_type.clone()).is_some() {
     Ok(expected_type)
@@ -159,7 +157,7 @@ retrieve it without worrying what AST node it is. */
 
 /* ======== MAIN ANALYSABLE TRAIT ======= */
 trait Analysable {
-  type Input;
+  type Input: Default;
   type Output;
 
   fn analyse(
@@ -196,18 +194,30 @@ impl<T: Analysable<Output = Type>> Analysable for Box<T> {
 }
 
 impl Analysable for Ident {
-  type Input = ();
+  type Input = ExprPerms;
   type Output = Type;
 
-  fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
+  fn analyse(
+    &mut self,
+    scope: &mut ScopeBuilder,
+    perms: ExprPerms,
+  ) -> AResult<Type> {
     use IdentInfo::*;
 
-    match scope.get(self) {
-      Some(LocalVar(t, _) | Label(t, _)) => Ok(t.clone()),
-      _ => Err(SemanticError::Normal(format!(
-        "Use of undeclared variable: {:#?}",
-        self
-      ))),
+    match perms {
+      /* We have permission to delcare this identifier as a new variable. */
+      ExprPerms::Declare(type_) => {
+        scope.insert_var(self, type_.clone())?;
+        Ok(type_)
+      }
+      /* We can't modify scope, so we must just hope it's the right type. */
+      _ => match scope.get(self) {
+        Some(LocalVar(t, _) | Label(t, _)) => Ok(t.clone()),
+        _ => Err(SemanticError::Normal(format!(
+          "Use of undeclared variable: {:#?}",
+          self
+        ))),
+      },
     }
   }
 }
@@ -226,7 +236,7 @@ impl Analysable for ArrayElem {
     )?;
 
     /* Gets type of the array being looked up. */
-    let mut curr_type = id.analyse(scope, ())?;
+    let mut curr_type = id.analyse(scope, ExprPerms::Nothing)?;
 
     /* For each index, unwrap the type by one array. */
     for _ in indexes {
@@ -252,7 +262,7 @@ impl Analysable for StructElem {
     let StructElem(struct_elem_id, expr, field_name) = self;
 
     /* Expression should have this type. */
-    let expr_type = expr.analyse(scope, ())?;
+    let expr_type = expr.analyse(scope, ExprPerms::Nothing)?;
 
     /* Get the struct's identifier. */
     let mut struct_id = match expr_type {
@@ -373,8 +383,13 @@ mod tests {
     /* x: BaseType(Int) */
     scope.insert_var(&mut x.clone(), x_type.clone()).unwrap();
 
-    assert_eq!(x.clone().analyse(&mut scope, ()), Ok(x_type));
-    assert!(String::from("hello").analyse(&mut scope, ()).is_err());
+    assert_eq!(
+      x.clone().analyse(&mut scope, ExprPerms::Nothing),
+      Ok(x_type)
+    );
+    assert!(String::from("hello")
+      .analyse(&mut scope, ExprPerms::Nothing)
+      .is_err());
   }
 
   #[test]
