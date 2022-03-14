@@ -1,0 +1,4 @@
+begin
+    int(int) foo = int(int x) is return x + 1 end;
+    exit foo(1)
+end

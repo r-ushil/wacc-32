@@ -37,6 +37,10 @@ impl Analysable for Expr {
       Call(t, func_expr, args) => analyse_call(scope, t, func_expr, args),
       UnaryApp(op, exp) => analyse_unary(scope, op, exp),
       BinaryApp(exp1, op, exp2) => analyse_binary(scope, exp1, op, exp2),
+      Expr::AnonFunc(func) => {
+        (**func).analyse(scope, ())?;
+        Ok(Type::Func(Box::new(func.signature.clone())))
+      }
     }
   }
 }

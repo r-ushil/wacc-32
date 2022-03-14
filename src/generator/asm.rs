@@ -22,6 +22,7 @@ pub struct GeneratedCode {
   pub data: Vec<Asm>,
   pub text: Vec<Asm>,
   pub required_predefs: Vec<RequiredPredefs>,
+  next_anon: u32,
   next_label: u32,
   next_msg: u32,
 }
@@ -79,6 +80,7 @@ impl Default for GeneratedCode {
       required_predefs: Vec::new(),
       next_label: 0,
       next_msg: 0,
+      next_anon: 0,
     }
   }
 }
