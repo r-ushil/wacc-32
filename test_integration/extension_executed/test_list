@@ -32,3 +32,4 @@
 ./tests/higher-order-funcs/filter.wacc,./tests/higher-order-funcs/filter.output.observed,./tests/higher-order-funcs/filter.output.expected,pass
 ./tests/higher-order-funcs/concat.wacc,./tests/higher-order-funcs/concat.output.observed,./tests/higher-order-funcs/concat.output.expected,pass
 ./tests/higher-order-funcs/concatMap.wacc,./tests/higher-order-funcs/concatMap.output.observed,./tests/higher-order-funcs/concatMap.output.expected,pass
+./tests/assign-lhs/destructuring.wacc,./tests/assign-lhs/destructuring.output.observed,./tests/assign-lhs/destructuring.output.expected,fail
