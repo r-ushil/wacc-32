@@ -138,7 +138,7 @@ mod tests {
 
   #[test]
   fn test_custom() {
-    assert_eq!(type_("foobar").unwrap().1, Type::Custom(format!("foobar")));
+    assert_eq!(type_("Foobar").unwrap().1, Type::Custom(format!("Foobar")));
   }
 
   #[test]

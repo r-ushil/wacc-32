@@ -209,14 +209,14 @@ mod tests {
 
   #[test]
   fn test_structs() {
-    let p = program("begin struct foo { int x, char y } skip end")
+    let p = program("begin struct Foo { int x, char y } skip end")
       .unwrap()
       .1;
 
     assert_eq!(p.symbol_table.table.len(), 1);
 
     assert_eq!(
-      p.symbol_table.table.get("foo").unwrap(),
+      p.symbol_table.table.get("Foo").unwrap(),
       &IdentInfo::TypeDef(Struct {
         fields: HashMap::from([
           (format!("x"), (Type::Int, 0)),
