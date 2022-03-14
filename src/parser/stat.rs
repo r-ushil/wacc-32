@@ -56,8 +56,8 @@ fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
     |(ass_lhs, _, ass_rhs)| Stat::Assignment(ass_lhs, Type::default(), ass_rhs),
   );
 
-  let read = map(preceded(tok("read"), assign_lhs), |e| {
-    Stat::Read(Type::default(), e)
+  let read = map(preceded(tok("read"), expr), |e| {
+    Stat::Read(TypedExpr::new(e))
   });
 
   let free = map(preceded(tok("free"), expr), |e| {
@@ -489,10 +489,7 @@ mod tests {
   fn test_stat_read() {
     assert_eq!(
       stat("read test").unwrap().1,
-      Stat::Read(
-        Type::default(),
-        AssignLhs::Expr(Expr::Ident("test".to_string()))
-      )
+      Stat::Read(TypedExpr::new(Expr::Ident("test".to_string())))
     );
   }
 

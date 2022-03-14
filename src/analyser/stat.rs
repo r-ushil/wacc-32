@@ -212,14 +212,11 @@ impl Analysable for Stat {
         /* Assignments never return. */
         Ok(Never)
       }
-      Stat::Read(t, dest) => {
+      Stat::Read(dst) => {
         /* Any type can be read. */
-        match dest.analyse(scope, ())? {
+        match dst.analyse(scope, ExprPerms::Assign)? {
           /* Reads never return. */
-          new_t @ (Type::Int | Type::Char) => {
-            *t = new_t;
-            Ok(Never)
-          }
+          Type::Int | Type::Char => Ok(Never),
           _ => Err(SemanticError::Normal(
             "Read statements must read char or int.".to_string(),
           )), /*  */

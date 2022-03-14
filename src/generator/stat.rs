@@ -197,37 +197,50 @@ fn generate_stat_read(
   scope: &ScopeReader,
   code: &mut GeneratedCode,
   regs: &[GenReg],
-  type_: &Type,
-  lhs: &AssignLhs,
+  TypedExpr(dst_type, dst_expr): &TypedExpr,
 ) {
-  // let (ptr_reg, offset, _) = lhs.generate(scope, code, regs, type_.clone());
+  /* Allocate space on stack for p_read_{} to write into. */
+  code
+    .text
+    .push(Asm::sub(Reg::StackPointer, Reg::StackPointer, Op2::Imm(4)));
 
-  // if offset != 0 || Reg::General(regs[0]) != ptr_reg {
-  //   code
-  //     .text
-  //     .push(Asm::add(Reg::General(regs[0]), ptr_reg, Op2::Imm(offset)));
-  // }
+  /* Store stack pointer to r0 to pass to p_read_{} */
+  code.text.push(Asm::mov(
+    Reg::Arg(ArgReg::R0),
+    Op2::Reg(Reg::StackPointer, 0),
+  ));
 
-  // /* MOV r0, {regs[0]} */
-  // code.text.push(Asm::mov(
-  //   Reg::Arg(ArgReg::R0),
-  //   Op2::Reg(Reg::General(regs[0]), 0),
-  // ));
-  // //expr.get_type //todo!() get type of ident
-  // let read_type = if *type_ == Type::Char {
-  //   RequiredPredefs::ReadChar.mark(code);
-  //   ReadFmt::Char
-  // } else if *type_ == Type::Int {
-  //   RequiredPredefs::ReadInt.mark(code);
-  //   ReadFmt::Int
-  // } else {
-  //   unreachable!("CAN'T GET THIS TYPE!");
-  // };
+  /* Determine if we need p_read_char or p_read_int, and mark it. */
+  let read_type = match dst_type {
+    Type::Char => {
+      RequiredPredefs::ReadChar.mark(code);
+      ReadFmt::Char
+    }
+    Type::Int => {
+      RequiredPredefs::ReadInt.mark(code);
+      ReadFmt::Int
+    }
+    _ => unreachable!(
+      "Analyser has allowed reading from console to int to char variable."
+    ),
+  };
 
-  // /* BL p_read_{read_type} */
-  // code
-  //   .text
-  //   .push(Asm::b(format!("p_read_{}", read_type)).link())
+  /* Branch to the appropriate read branch. */
+  code
+    .text
+    .push(Asm::b(format!("p_read_{}", read_type)).link());
+
+  /* Save the read value into a register. */
+  let value_reg = Reg::General(regs[0]);
+  code.text.push(Asm::ldr(value_reg, Reg::StackPointer));
+
+  /* Deallocate space for this value. */
+  code
+    .text
+    .push(Asm::add(Reg::StackPointer, Reg::StackPointer, Op2::Imm(4)));
+
+  /* Write this value to the destination expression. */
+  dst_expr.generate(scope, code, regs, Some(value_reg));
 }
 
 fn generate_stat_free(
@@ -484,9 +497,7 @@ impl Generatable for Stat {
       Stat::Assignment(lhs, t, rhs) => {
         generate_stat_assignment(scope, code, regs, lhs, t, rhs)
       }
-      Stat::Read(type_, lhs) => {
-        generate_stat_read(scope, code, regs, type_, lhs)
-      }
+      Stat::Read(dst) => generate_stat_read(scope, code, regs, dst),
       Stat::Free(TypedExpr(t, expr)) => {
         generate_stat_free(scope, code, regs, t, expr)
       }

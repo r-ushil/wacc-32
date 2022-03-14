@@ -33,7 +33,7 @@ pub enum Stat {
   Skip,
   Declaration(Type, Expr, Expr),
   Assignment(AssignLhs, Type, Expr),
-  Read(Type, AssignLhs),
+  Read(TypedExpr),
   Free(TypedExpr),
   Return(Expr),
   Exit(Expr),
