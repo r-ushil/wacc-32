@@ -10,9 +10,9 @@ use nom::{
 };
 use nom_supreme::error::ErrorTree;
 
+use super::shared::*;
 use super::{program::func, stat::pair_elem, type_::type_};
-use super::{program::param_list, shared::*, stat::stat};
-use crate::{analyser::context::SymbolTable, ast::*};
+use crate::ast::*;
 
 const BINARY_OP_MAX_PREC: u8 = 6;
 

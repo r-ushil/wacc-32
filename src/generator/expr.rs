@@ -60,7 +60,6 @@ fn generate_anon_func(
   func: Func,
 ) {
   let uncond_label = code.get_label();
-  println!("{}", uncond_label);
   let anon_label = code.get_label();
 
   code.text.push(Asm::b(uncond_label.clone()));
