@@ -93,40 +93,36 @@ fn type_def(input: &str) -> IResult<&str, (Ident, Struct), ErrorTree<&str>> {
   Ok((input, (id, s)))
 }
 
-pub fn func(
-  input: &str,
-) -> IResult<&str, (Vec<(Type, String)>, Stat), ErrorTree<&str>> {
+pub fn func(input: &str) -> IResult<&str, Func, ErrorTree<&str>> {
   map(
     tuple((tok("("), param_list, tok(")"), tok("is"), stat, tok("end"))),
-    |(_, params, _, _, body, _)| (params, body),
+    |(_, params, _, _, body, _)| {
+      let (param_types, param_ids): (Vec<Type>, Vec<String>) =
+        params.into_iter().unzip();
+
+      Func {
+        signature: FuncSig {
+          param_types,
+          return_type: Type::default(),
+        },
+        body,
+        params_st: SymbolTable::default(),
+        body_st: SymbolTable::default(),
+        param_ids,
+      }
+    },
   )(input)
 }
 
 /* func ::= <type> <ident> '(' <param-list>? ')' 'is' <stat> 'end' */
 /* param-list ::= <param> ( ',' <param> )* */
 fn named_func(input: &str) -> IResult<&str, NamedFunc, ErrorTree<&str>> {
-  let (input, (return_type, ident, (params, body))) =
+  let (input, (return_type, ident, mut func)) =
     tuple((type_, ident, func))(input)?;
 
-  let (param_types, param_ids): (Vec<Type>, Vec<String>) =
-    params.into_iter().unzip();
+  func.signature.return_type = return_type;
 
-  Ok((
-    input,
-    (
-      ident,
-      Func {
-        signature: FuncSig {
-          param_types,
-          return_type,
-        },
-        body,
-        params_st: SymbolTable::default(),
-        body_st: SymbolTable::default(),
-        param_ids,
-      },
-    ),
-  ))
+  Ok((input, (ident, func)))
 }
 
 /* param ::= <type> <ident> */

@@ -65,20 +65,10 @@ fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
     Expr::UnaryApp(op, Box::new(expr))
   });
 
-  let anon_expr = map(tuple((type_, func)), |(return_type, (params, body))| {
-    let (param_types, param_ids): (Vec<Type>, Vec<String>) =
-      params.into_iter().unzip();
+  let anon_expr = map(tuple((type_, func)), |(return_type, mut func)| {
+    func.signature.return_type = return_type;
 
-    Expr::AnonFunc(Box::new(Func {
-      signature: FuncSig {
-        param_types,
-        return_type,
-      },
-      body,
-      params_st: SymbolTable::default(),
-      body_st: SymbolTable::default(),
-      param_ids,
-    }))
+    Expr::AnonFunc(Box::new(func))
   });
 
   let (mut input, mut e) = alt((
