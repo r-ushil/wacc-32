@@ -174,6 +174,8 @@ pub enum Expr {
   BinaryApp(Box<Expr>, BinaryOper, Box<Expr>),
   /* Function calls. */
   Call(Type, Box<Expr>, Vec<Expr>),
+  /* Anonymous functions. */
+  AnonFunc(Box<Func>),
 }
 
 impl From<i32> for Expr {

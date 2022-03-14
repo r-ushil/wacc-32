@@ -45,6 +45,7 @@ impl Generatable for Expr {
       Expr::Call(func_type, ident, exprs) => {
         generate_call(scope, code, regs, func_type.clone(), ident, exprs)
       }
+      Expr::AnonFunc(_) => todo!(),
     }
   }
 }
