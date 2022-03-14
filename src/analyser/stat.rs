@@ -15,17 +15,6 @@ impl ReturnBehaviour {
   }
 }
 
-impl Analysable for AssignLhs {
-  type Input = ();
-  type Output = Type;
-
-  fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
-    match self {
-      AssignLhs::Expr(expr) => expr.analyse(scope, ExprPerms::Assign),
-    }
-  }
-}
-
 impl Analysable for StructLiter {
   type Input = ();
   type Output = Type;
@@ -207,7 +196,13 @@ impl Analysable for Stat {
       }
       Stat::Assignment(lhs, t, rhs) => {
         /* LHS and RHS must have same type. */
-        *t = equal_types(scope, lhs, rhs)?;
+        *t = equal_types_with_inputs(
+          scope,
+          lhs,
+          ExprPerms::Assign,
+          rhs,
+          ExprPerms::Nothing,
+        )?;
 
         /* Assignments never return. */
         Ok(Never)
@@ -365,16 +360,13 @@ mod tests {
     let x_type = Type::Array(Box::new(Type::Int));
     scope.insert_var(&mut x_id.clone(), x_type.clone()).unwrap();
     assert_eq!(
-      AssignLhs::Expr(Expr::Ident(x_id.clone())).analyse(scope, ()),
+      (Expr::Ident(x_id.clone())).analyse(scope, ExprPerms::Nothing),
       Ok(x_type)
     );
 
     assert_eq!(
-      AssignLhs::Expr(Expr::ArrayElem(ArrayElem(
-        x_id.clone(),
-        vec!(Expr::IntLiter(5))
-      )))
-      .analyse(scope, ()),
+      (Expr::ArrayElem(ArrayElem(x_id.clone(), vec!(Expr::IntLiter(5)))))
+        .analyse(scope, ExprPerms::Nothing),
       Ok(Type::Int)
     );
   }

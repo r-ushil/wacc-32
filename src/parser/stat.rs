@@ -52,7 +52,7 @@ fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
   };
 
   let assignment = map(
-    tuple((assign_lhs, tok("="), assign_rhs)),
+    tuple((expr, tok("="), assign_rhs)),
     |(ass_lhs, _, ass_rhs)| Stat::Assignment(ass_lhs, Type::default(), ass_rhs),
   );
 
@@ -120,17 +120,6 @@ fn stat_multiple(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
   map(tuple((stat_unit, tok(";"), stat)), |(s1, _, s2)| {
     Stat::Sequence(Box::new(s1), Box::new(s2))
   })(input)
-}
-
-/* assign-lhs ::= <struct-elem> | <ident> | <array-elem> | <pair-elem> */
-fn assign_lhs(input: &str) -> IResult<&str, AssignLhs, ErrorTree<&str>> {
-  let (input, lhs_expr) = expr(input)?;
-
-  let lhs = match lhs_expr {
-    _ => AssignLhs::Expr(lhs_expr),
-  };
-
-  Ok((input, lhs))
 }
 
 fn assign_rhs(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
@@ -429,7 +418,7 @@ mod tests {
       Ok((
         "",
         ast)) if ast == Stat::Assignment(
-          AssignLhs::Expr(Expr::Ident("intx".to_string())),
+          Expr::Ident("intx".to_string()),
           Type::default(),
           Expr::IntLiter(5)
         )
@@ -457,7 +446,7 @@ mod tests {
       Ok((
         "",
         ast)) if ast == Stat::Assignment(
-          AssignLhs::Expr(Expr::Ident("aaa".to_string())),
+          Expr::Ident("aaa".to_string()),
           Type::default(),
           Expr::IntLiter(123)
         )
@@ -471,7 +460,7 @@ mod tests {
       (
         "restOfString",
         Stat::Assignment(
-          AssignLhs::Expr(Expr::ArrayElem(ArrayElem(
+          (Expr::ArrayElem(ArrayElem(
             "array".to_string(),
             vec!(Expr::IntLiter(2))
           ))),
@@ -554,12 +543,12 @@ mod tests {
             Box::new(Expr::IntLiter(2)),
           ),
           ScopedStat::new(Stat::Assignment(
-            AssignLhs::Expr(Expr::Ident("x".to_string())),
+            (Expr::Ident("x".to_string())),
             Type::default(),
             Expr::IntLiter(5),
           )),
           ScopedStat::new(Stat::Assignment(
-            AssignLhs::Expr(Expr::Ident("x".to_string())),
+            (Expr::Ident("x".to_string())),
             Type::default(),
             Expr::IntLiter(6),
           )),
@@ -581,7 +570,7 @@ mod tests {
           ),
           ScopedStat::new(Stat::Sequence(
             Box::new(Stat::Assignment(
-              AssignLhs::Expr(Expr::Ident("acc".to_string())),
+              (Expr::Ident("acc".to_string())),
               Type::default(),
               Expr::BinaryApp(
                 Box::new(Expr::Ident("acc".to_string())),
@@ -590,7 +579,7 @@ mod tests {
               ),
             )),
             Box::new(Stat::Assignment(
-              AssignLhs::Expr(Expr::Ident("n".to_string())),
+              (Expr::Ident("n".to_string())),
               Type::default(),
               Expr::BinaryApp(
                 Box::new(Expr::Ident("n".to_string())),
@@ -637,7 +626,7 @@ mod tests {
       Ok((
         "",
         ast)) if ast == Stat::Assignment(
-          AssignLhs::Expr(Expr::Ident("a".to_string())),
+          (Expr::Ident("a".to_string())),
           Type::default(),
           Expr::BinaryApp(
             Box::new(Expr::BinaryApp(
@@ -670,26 +659,20 @@ mod tests {
 
   #[test]
   fn test_assign_lhs() {
+    assert_eq!(expr("foo").unwrap().1, (Expr::Ident("foo".to_string())));
     assert_eq!(
-      assign_lhs("foo").unwrap().1,
-      AssignLhs::Expr(Expr::Ident("foo".to_string()))
+      expr("foo [ 5]").unwrap().1,
+      (Expr::ArrayElem(ArrayElem("foo".to_string(), vec!(Expr::IntLiter(5))))),
     );
     assert_eq!(
-      assign_lhs("foo [ 5]").unwrap().1,
-      AssignLhs::Expr(Expr::ArrayElem(ArrayElem(
-        "foo".to_string(),
-        vec!(Expr::IntLiter(5))
-      ))),
-    );
-    assert_eq!(
-      assign_lhs("fst 5").unwrap().1,
-      AssignLhs::Expr(Expr::PairElem(Box::new(PairElem::Fst(TypedExpr::new(
+      expr("fst 5").unwrap().1,
+      (Expr::PairElem(Box::new(PairElem::Fst(TypedExpr::new(
         Expr::IntLiter(5)
       )))))
     );
     assert_eq!(
-      assign_lhs("snd null").unwrap().1,
-      AssignLhs::Expr(Expr::PairElem(Box::new(PairElem::Snd(TypedExpr::new(
+      expr("snd null").unwrap().1,
+      (Expr::PairElem(Box::new(PairElem::Snd(TypedExpr::new(
         Expr::NullPairLiter
       )))))
     );

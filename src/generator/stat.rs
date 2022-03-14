@@ -5,35 +5,15 @@ use super::{
   predef::{RequiredPredefs, PREDEF_SYS_MALLOC},
   *,
 };
-use crate::analyser::context::*;
 use Directive::*;
 use Instr::*;
-
-impl Generatable for AssignLhs {
-  /* Writes value in specified register to this assignlhs. */
-  type Input = Reg;
-
-  type Output = ();
-
-  fn generate(
-    &self,
-    scope: &ScopeReader,
-    code: &mut GeneratedCode,
-    regs: &[GenReg],
-    src: Reg,
-  ) {
-    match self {
-      AssignLhs::Expr(expr) => expr.generate(scope, code, regs, Some(src)),
-    }
-  }
-}
 
 fn generate_assign_lhs_struct_elem(
   scope: &ScopeReader,
   code: &mut GeneratedCode,
   regs: &[GenReg],
   elem: &StructElem,
-) -> <AssignLhs as Generatable>::Output {
+) {
   let StructElem(struct_name, expr, field_name) = elem;
 
   /* Get struct definition. */
@@ -182,7 +162,7 @@ fn generate_stat_assignment(
   scope: &ScopeReader,
   code: &mut GeneratedCode,
   regs: &[GenReg],
-  lhs: &AssignLhs,
+  lhs: &Expr,
   t: &Type,
   rhs: &Expr,
 ) {
@@ -190,7 +170,7 @@ fn generate_stat_assignment(
   rhs.generate(scope, code, regs, None);
 
   /* stores value of regs[0] into lhs */
-  lhs.generate(scope, code, &regs[1..], Reg::General(regs[0]));
+  lhs.generate(scope, code, &regs[1..], Some(Reg::General(regs[0])));
 }
 
 fn generate_stat_read(
@@ -485,14 +465,7 @@ impl Generatable for Stat {
     match self {
       Stat::Skip => (),
       Stat::Declaration(t, dst, rhs) => {
-        generate_stat_assignment(
-          scope,
-          code,
-          regs,
-          &AssignLhs::Expr(dst.clone()),
-          t,
-          rhs,
-        );
+        generate_stat_assignment(scope, code, regs, &dst, t, rhs);
       }
       Stat::Assignment(lhs, t, rhs) => {
         generate_stat_assignment(scope, code, regs, lhs, t, rhs)

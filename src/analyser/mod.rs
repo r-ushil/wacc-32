@@ -110,14 +110,19 @@ check things, and when an AST represents a value, returns their type. */
 
 /* If types are the same, return that type.
 Otherwise, error. */
-fn equal_types<L: Analysable<Output = Type>, R: Analysable<Output = Type>>(
+fn equal_types_with_inputs<
+  L: Analysable<Output = Type>,
+  R: Analysable<Output = Type>,
+>(
   scope: &mut ScopeBuilder,
   lhs: &mut L,
+  lhs_input: L::Input,
   rhs: &mut R,
+  rhs_input: R::Input,
 ) -> AResult<Type> {
   let (lhs_type, rhs_type) = lhs
-    .analyse(scope, L::Input::default())
-    .join(rhs.analyse(scope, R::Input::default()))?;
+    .analyse(scope, lhs_input)
+    .join(rhs.analyse(scope, rhs_input))?;
 
   if let Some(t) = lhs_type.clone().unify(rhs_type.clone()) {
     Ok(t)
@@ -127,6 +132,20 @@ fn equal_types<L: Analysable<Output = Type>, R: Analysable<Output = Type>>(
       lhs_type, rhs_type
     )))
   }
+}
+
+fn equal_types<L: Analysable<Output = Type>, R: Analysable<Output = Type>>(
+  scope: &mut ScopeBuilder,
+  lhs: &mut L,
+  rhs: &mut R,
+) -> AResult<Type> {
+  equal_types_with_inputs(
+    scope,
+    lhs,
+    L::Input::default(),
+    rhs,
+    R::Input::default(),
+  )
 }
 
 /* Errors if AST node does not have expected type. */

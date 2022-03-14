@@ -32,7 +32,7 @@ pub struct FuncSig {
 pub enum Stat {
   Skip,
   Declaration(Type, Expr, Expr),
-  Assignment(AssignLhs, Type, Expr),
+  Assignment(Expr, Type, Expr),
   Read(TypedExpr),
   Free(TypedExpr),
   Return(Expr),
@@ -56,11 +56,6 @@ impl ScopedStat {
   pub fn new(statement: Stat) -> ScopedStat {
     ScopedStat(SymbolTable::default(), Box::new(statement))
   }
-}
-
-#[derive(PartialEq, Debug, Clone)]
-pub enum AssignLhs {
-  Expr(Expr),
 }
 
 #[derive(PartialEq, Debug, Clone)]
