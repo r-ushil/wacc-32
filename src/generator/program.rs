@@ -27,18 +27,20 @@ impl Generatable for Program {
     /* The statement of the program should be compiled as if it is in a
      * function called main, which takes nothing and returns an int exit code */
 
-    Func {
-      ident: WACC_PROGRAM_MAIN_LABEL.to_string(),
-      signature: FuncSig {
-        param_types: Vec::new(),
-        return_type: Type::Int,
+    (
+      WACC_PROGRAM_MAIN_LABEL.to_string(),
+      Func {
+        signature: FuncSig {
+          param_types: Vec::new(),
+          return_type: Type::Int,
+        },
+        body: *self.statement.1.clone(),
+        params_st: SymbolTable::default(),
+        body_st: self.statement.0.clone(),
+        param_ids: Vec::new(),
       },
-      body: *self.statement.1.clone(),
-      params_st: SymbolTable::default(),
-      body_st: self.statement.0.clone(),
-      param_ids: Vec::new(),
-    }
-    .generate(scope, code, regs, ());
+    )
+      .generate(scope, code, regs, ());
 
     /* Write all pre-defined functions that we require to the end of the
     GeneratedCode */
@@ -51,7 +53,7 @@ impl Generatable for Program {
   }
 }
 
-impl Generatable for Func {
+impl Generatable for NamedFunc {
   type Input = ();
   type Output = ();
 
@@ -62,11 +64,13 @@ impl Generatable for Func {
     regs: &[GenReg],
     _aux: (),
   ) {
+    let (ident, func) = self;
+
     /* No registers should be in use by this point. */
     assert!(regs == GENERAL_REGS);
 
     // TODO: make this a more robust check
-    let main = self.ident == WACC_PROGRAM_MAIN_LABEL;
+    let main = ident == WACC_PROGRAM_MAIN_LABEL;
 
     /* Comments reflect the following example:
     int foo(int x) is
@@ -77,16 +81,16 @@ impl Generatable for Func {
     /* Function label.
     foo: */
     code.text.push(Asm::Directive(Directive::Label(if main {
-      self.ident.to_string()
+      ident.to_string()
     } else {
-      generate_function_name(self.ident.to_string())
+      generate_function_name(ident.to_string())
     })));
 
     /* Save link register.
     PUSH {lr} */
     code.text.push(Asm::push(Reg::Link));
 
-    let body_st_size = self.body_st.size;
+    let body_st_size = func.body_st.size;
 
     /* Allocate space on stack for local vars. */
     code.text.append(&mut Op2::imm_unroll(
@@ -95,14 +99,14 @@ impl Generatable for Func {
     ));
 
     /* Move into parameter scope. */
-    let scope = &scope.new_scope(&self.params_st);
+    let scope = &scope.new_scope(&func.params_st);
 
     /* Make new 4 byte scope to reserve space for link register. */
     let lr_table = SymbolTable::empty(ARM_DSIZE_WORD);
     let scope = &scope.new_scope(&lr_table);
 
     /* Move into function body scope. */
-    let scope = &scope.new_scope(&self.body_st);
+    let scope = &scope.new_scope(&func.body_st);
 
     /* Generate body.
     SUB sp, sp, #4
@@ -111,7 +115,7 @@ impl Generatable for Func {
     LDR r4, [sp, #8]
     MOV r0, r4
     ADD sp, sp, #4 */
-    self.body.generate(scope, code, regs, ());
+    func.body.generate(scope, code, regs, ());
 
     /* Main function implicitly ends in return 0. */
     if main {
@@ -135,5 +139,93 @@ impl Generatable for Func {
     /* Mark block for compilations.
     .ltorg */
     code.text.push(Asm::Directive(Directive::Assemble));
+  }
+}
+
+impl Generatable for Func {
+  type Input = ();
+  type Output = ();
+
+  fn generate(
+    &self,
+    scope: &ScopeReader,
+    code: &mut GeneratedCode,
+    regs: &[GenReg],
+    _aux: (),
+  ) {
+    todo!()
+    // /* No registers should be in use by this point. */
+    // assert!(regs == GENERAL_REGS);
+
+    // // TODO: make this a more robust check
+    // let main = self.ident == WACC_PROGRAM_MAIN_LABEL;
+
+    // /* Comments reflect the following example:
+    // int foo(int x) is
+    //   int y = 5;
+    //   return x
+    // end */
+
+    // /* Function label.
+    // foo: */
+    // code.text.push(Asm::Directive(Directive::Label(if main {
+    //   self.ident.to_string()
+    // } else {
+    //   generate_function_name(self.ident.to_string())
+    // })));
+
+    // /* Save link register.
+    // PUSH {lr} */
+    // code.text.push(Asm::push(Reg::Link));
+
+    // let body_st_size = self.body_st.size;
+
+    // /* Allocate space on stack for local vars. */
+    // code.text.append(&mut Op2::imm_unroll(
+    //   |offset| Asm::sub(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset)),
+    //   body_st_size,
+    // ));
+
+    // /* Move into parameter scope. */
+    // let scope = &scope.new_scope(&self.params_st);
+
+    // /* Make new 4 byte scope to reserve space for link register. */
+    // let lr_table = SymbolTable::empty(ARM_DSIZE_WORD);
+    // let scope = &scope.new_scope(&lr_table);
+
+    // /* Move into function body scope. */
+    // let scope = &scope.new_scope(&self.body_st);
+
+    // /* Generate body.
+    // SUB sp, sp, #4
+    // LDR r4, =5
+    // STR r4, [sp]
+    // LDR r4, [sp, #8]
+    // MOV r0, r4
+    // ADD sp, sp, #4 */
+    // self.body.generate(scope, code, regs, ());
+
+    // /* Main function implicitly ends in return 0. */
+    // if main {
+    //   /* Deallocate stack for main function. */
+    //   let body_st_size = scope.get_total_offset();
+
+    //   code.text.append(&mut Op2::imm_unroll(
+    //     |offset: i32| {
+    //       Asm::add(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset))
+    //     },
+    //     body_st_size,
+    //   ));
+
+    //   code.text.push(Asm::ldr(Reg::Arg(ArgReg::R0), 0))
+    // }
+
+    // /* Jump back to caller.
+    // POP {pc} */
+    // code.text.push(Asm::pop(Reg::PC));
+
+    // /* Mark block for compilations.
+    // .ltorg */
+    // code.text.push(Asm::Directive(Directive::Assemble));
   }
 }

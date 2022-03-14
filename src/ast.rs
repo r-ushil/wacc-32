@@ -1,10 +1,12 @@
 use crate::analyser::context::{Offset, SymbolTable};
 use std::collections::HashMap;
 
+pub type NamedFunc = (Ident, Func);
+
 #[derive(PartialEq, Debug, Clone)]
 pub struct Program {
   /* User defined functions. */
-  pub funcs: Vec<Func>,
+  pub funcs: Vec<NamedFunc>,
   /* Program body. */
   pub statement: ScopedStat,
   /* Top level symbol table (root node in any
@@ -14,7 +16,7 @@ pub struct Program {
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Func {
-  pub ident: Ident,
+  //pub ident: Ident,
   pub param_ids: Vec<Ident>,
   pub signature: FuncSig,
   pub body: Stat,

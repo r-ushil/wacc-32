@@ -50,18 +50,19 @@ impl Analysable for Program {
     let mut scope = ScopeBuilder::new(&mut self.symbol_table);
 
     /* Add all function signatures to global before analysing. (hoisting) */
-    for func in self.funcs.iter() {
+    for func_tuple in self.funcs.iter() {
+      let (ident, func) = func_tuple;
       scope.insert(
-        &func.ident,
+        &ident,
         IdentInfo::Label(
           Type::Func(Box::new(func.signature.clone())),
-          format!("f_{}", func.ident),
+          format!("f_{}", ident),
         ),
       )?;
     }
 
     /* Analyse functions. */
-    for f in self.funcs.iter_mut() {
+    for (_, f) in self.funcs.iter_mut() {
       f.analyse(&mut scope, ())?;
     }
 
@@ -89,7 +90,6 @@ mod tests {
     /* Function */
     /* int double(int x) is return x * 2 end */
     let f = Func {
-      ident: String::from("double"),
       signature: FuncSig {
         param_types: vec![Type::Int],
         return_type: Type::Int,
@@ -126,7 +126,6 @@ mod tests {
     /* Function */
     /* int double(int x) is return x * 2 end */
     let f = Func {
-      ident: String::from("double"),
       signature: FuncSig {
         param_types: vec![Type::Int],
         return_type: Type::Int,

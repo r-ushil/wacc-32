@@ -10,9 +10,9 @@ use nom::{
 };
 use nom_supreme::error::ErrorTree;
 
-use super::stat::pair_elem;
+use super::{program::func, stat::pair_elem, type_::type_};
 use super::{program::param_list, shared::*, stat::stat};
-use crate::ast::*;
+use crate::{analyser::context::SymbolTable, ast::*};
 
 const BINARY_OP_MAX_PREC: u8 = 6;
 
@@ -65,10 +65,21 @@ fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
     Expr::UnaryApp(op, Box::new(expr))
   });
 
-  let anon_func = map(
-    tuple((param_list, tok("is"), stat, tok("end"))),
-    |(param_list, _, body, _)| todo!(),
-  );
+  let anon_expr = map(tuple((type_, func)), |(return_type, (params, body))| {
+    let (param_types, param_ids): (Vec<Type>, Vec<String>) =
+      params.into_iter().unzip();
+
+    Expr::AnonFunc(Box::new(Func {
+      signature: FuncSig {
+        param_types,
+        return_type,
+      },
+      body,
+      params_st: SymbolTable::default(),
+      body_st: SymbolTable::default(),
+      param_ids,
+    }))
+  });
 
   let (mut input, mut e) = alt((
     map(int_liter, Expr::IntLiter),
