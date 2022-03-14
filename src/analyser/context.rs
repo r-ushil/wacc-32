@@ -47,6 +47,7 @@ pub struct ScopeBuilder<'a> {
   and where abouts within that scope it is. */
   /* context: None means this is the global scope. */
   parents: Option<&'a ScopeBuilder<'a>>,
+  next_label: u32,
 }
 
 #[allow(dead_code)]
@@ -56,11 +57,17 @@ impl ScopeBuilder<'_> {
     /* This is base symbol table, depth = 0. */
     symbol_table.prefix = String::new();
 
-    /*  */
     ScopeBuilder {
       current: symbol_table,
       parents: None,
+      next_label: 0,
     }
+  }
+
+  fn get_ident(&mut self) -> Ident {
+    let ret = self.next_label;
+    self.next_label += 1;
+    format!("af_{}:", ret)
   }
 
   /* Get the information about this ident,
@@ -153,6 +160,7 @@ impl ScopeBuilder<'_> {
     ScopeBuilder {
       current: symbol_table,
       parents: Some(self),
+      next_label: 0,
     }
   }
 }
