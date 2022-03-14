@@ -59,16 +59,19 @@ fn generate_anon_func(
   func: Func,
 ) {
   let uncond_label = code.get_label();
+  println!("{}", uncond_label);
   let anon_label = code.get_label();
 
-  code.data.push(Asm::b(uncond_label.clone()));
+  code.text.push(Asm::b(uncond_label.clone()));
 
   (anon_label.clone(), func).generate(scope, code, regs, ());
 
   code
-    .data
+    .text
     .push(Asm::Directive(Directive::Label(uncond_label)));
-  code.data.push(Asm::ldr(Reg::General(regs[0]), anon_label));
+  code
+    .text
+    .push(Asm::ldr(Reg::General(regs[0]), format!("f_{}", anon_label)));
 }
 
 fn generate_call(
