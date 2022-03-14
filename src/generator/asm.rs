@@ -22,6 +22,7 @@ pub struct GeneratedCode {
   pub data: Vec<Asm>,
   pub text: Vec<Asm>,
   pub required_predefs: Vec<RequiredPredefs>,
+  next_anon: u32,
   next_label: u32,
   next_msg: u32,
 }
@@ -45,6 +46,12 @@ fn unescaped_string(str: &str) -> String {
 }
 
 impl GeneratedCode {
+  pub fn get_anon_label(&mut self) -> Label {
+    let s = format!("af_{}", self.next_anon);
+    self.next_anon += 1;
+    s
+  }
+
   pub fn get_label(&mut self) -> Label {
     let s = format!("L{}", self.next_label);
     self.next_label += 1;
@@ -79,6 +86,7 @@ impl Default for GeneratedCode {
       required_predefs: Vec::new(),
       next_label: 0,
       next_msg: 0,
+      next_anon: 0,
     }
   }
 }
