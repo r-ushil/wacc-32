@@ -131,7 +131,7 @@ fn param(input: &str) -> IResult<&str, (Type, Ident), ErrorTree<&str>> {
   pair(type_, ident)(input)
 }
 
-fn param_list(
+pub fn param_list(
   input: &str,
 ) -> IResult<&str, Vec<(Type, Ident)>, ErrorTree<&str>> {
   many0_delimited(param, tok(","))(input)
