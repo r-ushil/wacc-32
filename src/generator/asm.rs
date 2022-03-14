@@ -46,12 +46,6 @@ fn unescaped_string(str: &str) -> String {
 }
 
 impl GeneratedCode {
-  pub fn get_anon_label(&mut self) -> Label {
-    let s = format!("af_{}", self.next_anon);
-    self.next_anon += 1;
-    s
-  }
-
   pub fn get_label(&mut self) -> Label {
     let s = format!("L{}", self.next_label);
     self.next_label += 1;

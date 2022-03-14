@@ -45,9 +45,30 @@ impl Generatable for Expr {
       Expr::Call(func_type, ident, exprs) => {
         generate_call(scope, code, regs, func_type.clone(), ident, exprs)
       }
-      Expr::AnonFunc(_) => todo!(),
+      Expr::AnonFunc(func) => {
+        generate_anon_func(scope, code, regs, (**func).clone())
+      }
     }
   }
+}
+
+fn generate_anon_func(
+  scope: &ScopeReader,
+  code: &mut GeneratedCode,
+  regs: &[GenReg],
+  func: Func,
+) {
+  let uncond_label = code.get_label();
+  let anon_label = code.get_label();
+
+  code.data.push(Asm::b(uncond_label.clone()));
+
+  (anon_label.clone(), func).generate(scope, code, regs, ());
+
+  code
+    .data
+    .push(Asm::Directive(Directive::Label(uncond_label)));
+  code.data.push(Asm::ldr(Reg::General(regs[0]), anon_label));
 }
 
 fn generate_call(
