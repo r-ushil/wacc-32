@@ -8,27 +8,6 @@ use super::{
 use Directive::*;
 use Instr::*;
 
-fn generate_assign_lhs_struct_elem(
-  scope: &ScopeReader,
-  code: &mut GeneratedCode,
-  regs: &[GenReg],
-  elem: &StructElem,
-) {
-  let StructElem(struct_name, expr, field_name) = elem;
-
-  /* Get struct definition. */
-  let def = scope.get_def(struct_name).unwrap();
-
-  /* Get offset and type. */
-  let (type_, offset) = def.fields.get(field_name).unwrap();
-
-  /* Evaluate expression. */
-  expr.generate(scope, code, regs, None);
-
-  /* Return location. */
-  // (Reg::General(regs[0]), *offset, type_.size().into())
-}
-
 /* Mallocs {bytes} bytes and leaves the address in {reg}. */
 pub fn generate_malloc(bytes: i32, code: &mut GeneratedCode, reg: Reg) {
   /* LDR r0, ={bytes} */
@@ -163,7 +142,6 @@ fn generate_stat_assignment(
   code: &mut GeneratedCode,
   regs: &[GenReg],
   lhs: &Expr,
-  t: &Type,
   rhs: &Expr,
 ) {
   /* regs[0] = eval(rhs) */
@@ -464,11 +442,11 @@ impl Generatable for Stat {
   ) {
     match self {
       Stat::Skip => (),
-      Stat::Declaration(t, dst, rhs) => {
-        generate_stat_assignment(scope, code, regs, &dst, t, rhs);
+      Stat::Declaration(_, dst, rhs) => {
+        generate_stat_assignment(scope, code, regs, &dst, rhs);
       }
-      Stat::Assignment(lhs, t, rhs) => {
-        generate_stat_assignment(scope, code, regs, lhs, t, rhs)
+      Stat::Assignment(lhs, _, rhs) => {
+        generate_stat_assignment(scope, code, regs, lhs, rhs)
       }
       Stat::Read(dst) => generate_stat_read(scope, code, regs, dst),
       Stat::Free(TypedExpr(t, expr)) => {

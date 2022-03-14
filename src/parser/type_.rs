@@ -102,8 +102,6 @@ fn base_type(input: &str) -> IResult<&str, Type, ErrorTree<&str>> {
 
 /* pair-elem-type ::= <base-type> | <array-type> | 'pair' */
 fn pair_elem_type(input: &str) -> IResult<&str, Type, ErrorTree<&str>> {
-  use nom_supreme::error::Expectation;
-
   /* Type logic reused for base types and arrays, because pairs
   are different we have to handle that edge case. */
   match type_(input) {

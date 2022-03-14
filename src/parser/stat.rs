@@ -460,10 +460,10 @@ mod tests {
       (
         "restOfString",
         Stat::Assignment(
-          (Expr::ArrayElem(ArrayElem(
+          Expr::ArrayElem(ArrayElem(
             "array".to_string(),
             vec!(Expr::IntLiter(2))
-          ))),
+          )),
           Type::default(),
           Expr::PairLiter(
             Box::new(TypedExpr::new(Expr::IntLiter(1))),
@@ -543,12 +543,12 @@ mod tests {
             Box::new(Expr::IntLiter(2)),
           ),
           ScopedStat::new(Stat::Assignment(
-            (Expr::Ident("x".to_string())),
+            Expr::Ident("x".to_string()),
             Type::default(),
             Expr::IntLiter(5),
           )),
           ScopedStat::new(Stat::Assignment(
-            (Expr::Ident("x".to_string())),
+            Expr::Ident("x".to_string()),
             Type::default(),
             Expr::IntLiter(6),
           )),
@@ -570,7 +570,7 @@ mod tests {
           ),
           ScopedStat::new(Stat::Sequence(
             Box::new(Stat::Assignment(
-              (Expr::Ident("acc".to_string())),
+              Expr::Ident("acc".to_string()),
               Type::default(),
               Expr::BinaryApp(
                 Box::new(Expr::Ident("acc".to_string())),
@@ -579,7 +579,7 @@ mod tests {
               ),
             )),
             Box::new(Stat::Assignment(
-              (Expr::Ident("n".to_string())),
+              Expr::Ident("n".to_string()),
               Type::default(),
               Expr::BinaryApp(
                 Box::new(Expr::Ident("n".to_string())),
@@ -626,7 +626,7 @@ mod tests {
       Ok((
         "",
         ast)) if ast == Stat::Assignment(
-          (Expr::Ident("a".to_string())),
+          Expr::Ident("a".to_string()),
           Type::default(),
           Expr::BinaryApp(
             Box::new(Expr::BinaryApp(
