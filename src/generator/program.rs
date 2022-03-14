@@ -1,5 +1,11 @@
 use super::*;
 
+#[derive(PartialEq, Debug, Clone)]
+pub enum LabelPrefix {
+  Func,
+  AnonFunc,
+}
+
 // #[derive(PartialEq, Debug, Clone)]
 impl Generatable for Program {
   type Input = ();
@@ -22,7 +28,7 @@ impl Generatable for Program {
      * Each function is allowed to use the registers from min_regs variable
      * and up. */
     for function in &self.funcs {
-      function.generate(scope, code, regs, ());
+      function.generate(scope, code, regs, LabelPrefix::Func);
     }
     /* The statement of the program should be compiled as if it is in a
      * function called main, which takes nothing and returns an int exit code */
@@ -40,7 +46,7 @@ impl Generatable for Program {
         param_ids: Vec::new(),
       },
     )
-      .generate(scope, code, regs, ());
+      .generate(scope, code, regs, LabelPrefix::Func);
 
     /* Write all pre-defined functions that we require to the end of the
     GeneratedCode */
@@ -54,7 +60,7 @@ impl Generatable for Program {
 }
 
 impl Generatable for NamedFunc {
-  type Input = ();
+  type Input = LabelPrefix;
   type Output = ();
 
   fn generate(
@@ -62,7 +68,7 @@ impl Generatable for NamedFunc {
     scope: &ScopeReader,
     code: &mut GeneratedCode,
     regs: &[GenReg],
-    _aux: (),
+    aux: Self::Input,
   ) {
     let (ident, func) = self;
 
@@ -82,8 +88,12 @@ impl Generatable for NamedFunc {
     foo: */
     code.text.push(Asm::Directive(Directive::Label(if main {
       ident.to_string()
-    } else {
+    } else if aux == LabelPrefix::Func {
       generate_function_name(ident.to_string())
+    } else if aux == LabelPrefix::AnonFunc {
+      generate_anon_func_name(ident.to_string())
+    } else {
+      unreachable!("Not possible, all cases covered :)")
     })));
 
     /* Save link register.

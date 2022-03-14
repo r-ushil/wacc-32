@@ -9,6 +9,7 @@ use super::predef::{
 use super::*;
 use crate::analyser::context::*;
 use crate::generator::asm::*;
+use crate::generator::program::LabelPrefix;
 use stat::generate_malloc;
 
 impl Generatable for Expr {
@@ -64,14 +65,14 @@ fn generate_anon_func(
 
   code.text.push(Asm::b(uncond_label.clone()));
 
-  (anon_label.clone(), func).generate(scope, code, regs, ());
+  (anon_label.clone(), func).generate(scope, code, regs, LabelPrefix::AnonFunc);
 
   code
     .text
     .push(Asm::Directive(Directive::Label(uncond_label)));
   code
     .text
-    .push(Asm::ldr(Reg::General(regs[0]), format!("f_{}", anon_label)));
+    .push(Asm::ldr(Reg::General(regs[0]), format!("{}", anon_label)));
 }
 
 fn generate_call(
