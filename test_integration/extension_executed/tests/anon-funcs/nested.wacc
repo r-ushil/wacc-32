@@ -1,0 +1,11 @@
+begin
+    int(int) foo = int(int x) is 
+        int(int) bar = int(int) y is 
+            return y + 2
+        end ;
+        
+        return bar(x)
+    end;
+    
+    exit foo(1)
+end

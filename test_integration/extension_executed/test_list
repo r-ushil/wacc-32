@@ -21,4 +21,5 @@
 ./tests/array_for_loops/array_for.wacc,./tests/array_for_loops/array_for.output.observed,./tests/array_for_loops/array_for.output.expected,pass
 ./tests/anon-funcs/anon.wacc,./tests/anon-funcs/anon.output.observed,./tests/anon-funcs/anon.output.expected,pass
 ./tests/anon-funcs/anon-in-funcs.wacc,./tests/anon-funcs/anon-in-funcs.output.observed,./tests/anon-funcs/anon-in-funcs.output.expected,pass
+./tests/anon-funcs/nested.wacc,./tests/anon-funcs/nested.output.observed,./tests/anon-funcs/nested.output.expected,pass
 
