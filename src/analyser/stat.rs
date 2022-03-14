@@ -67,7 +67,7 @@ impl Analysable for StructLiter {
       };
 
       /* Assert it's type is the same as the field is expecting. */
-      expected_type(scope, field_type, liter_expr)?;
+      expected_type(scope, &mut field_type.clone(), liter_expr)?;
     }
 
     Ok(Type::Custom(id.clone()))
@@ -229,7 +229,7 @@ impl Analysable for Stat {
       Stat::Return(expr) => Ok(AtEnd(expr.analyse(scope, ())?)), /* Returns always return. */
       Stat::Exit(expr) => {
         /* Exit codes must be integers. */
-        expected_type(scope, &Type::Int, expr)?;
+        expected_type(scope, &mut Type::Int, expr)?;
         /* Exits can be concidered to return because they will never return the
         wrong type, by using any it won't collide with another type. */
         Ok(AtEnd(Type::Any))
@@ -243,7 +243,7 @@ impl Analysable for Stat {
       }
       Stat::If(cond, if_stat, else_stat) => {
         let ((_, true_behaviour), false_behaviour) =
-          expected_type(scope, &Type::Bool, cond)
+          expected_type(scope, &mut Type::Bool, cond)
             .join(if_stat.analyse(scope, ()))
             .join(else_stat.analyse(scope, ()))?;
 
@@ -276,7 +276,7 @@ impl Analysable for Stat {
         }
       }
       Stat::While(cond, body) => {
-        let (_, statement_result) = expected_type(scope, &Type::Bool, cond)
+        let (_, statement_result) = expected_type(scope, &mut Type::Bool, cond)
           .join(body.analyse(scope, ()))?;
 
         Ok(match statement_result {
