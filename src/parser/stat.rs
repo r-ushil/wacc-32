@@ -7,9 +7,9 @@ use nom::{
 };
 use nom_supreme::error::ErrorTree;
 
+use super::expr::*;
 use super::shared::*;
 use super::type_::*;
-use super::{expr::*, program::param_list};
 use crate::ast::*;
 
 /* stat ::= 'skip'
@@ -200,13 +200,6 @@ fn assign_lhs(input: &str) -> IResult<&str, AssignLhs, ErrorTree<&str>> {
     map(array_elem, AssignLhs::ArrayElem),
     map(ident, AssignLhs::Ident),
   ))(input)
-}
-
-fn anon_func(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
-  map(
-    tuple((param_list, tok("is"), stat, tok("end"))),
-    |(params, _, body, _)| todo!(),
-  )(input)
 }
 
 fn assign_rhs(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {

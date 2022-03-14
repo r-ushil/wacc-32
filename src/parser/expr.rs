@@ -10,8 +10,8 @@ use nom::{
 };
 use nom_supreme::error::ErrorTree;
 
-use super::shared::*;
 use super::stat::pair_elem;
+use super::{program::param_list, shared::*, stat::stat};
 use crate::ast::*;
 
 const BINARY_OP_MAX_PREC: u8 = 6;
@@ -64,6 +64,11 @@ fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
   let unary_app = map(pair(unary_oper, expr), |(op, expr)| {
     Expr::UnaryApp(op, Box::new(expr))
   });
+
+  let anon_func = map(
+    tuple((param_list, tok("is"), stat, tok("end"))),
+    |(param_list, _, body, _)| todo!(),
+  );
 
   let (mut input, mut e) = alt((
     map(int_liter, Expr::IntLiter),
