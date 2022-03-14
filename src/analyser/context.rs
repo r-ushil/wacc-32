@@ -64,7 +64,7 @@ impl ScopeBuilder<'_> {
     }
   }
 
-  fn get_ident(&mut self) -> Ident {
+  pub fn get_ident(&mut self) -> Ident {
     let ret = self.next_label;
     self.next_label += 1;
     format!("af_{}:", ret)
