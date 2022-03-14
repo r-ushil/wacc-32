@@ -72,6 +72,7 @@ fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
   });
 
   let (mut input, mut e) = alt((
+    anon_expr,
     map(int_liter, Expr::IntLiter),
     bool_liter,
     char_liter,

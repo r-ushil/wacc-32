@@ -39,7 +39,7 @@ impl Analysable for Expr {
       BinaryApp(exp1, op, exp2) => analyse_binary(scope, exp1, op, exp2),
       Expr::AnonFunc(func) => {
         (**func).analyse(scope, ())?;
-        Ok(func.signature.return_type.clone())
+        Ok(Type::Func(Box::new(func.signature.clone())))
       }
     }
   }
