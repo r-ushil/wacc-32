@@ -69,9 +69,10 @@ fn generate_anon_func(
   code
     .text
     .push(Asm::Directive(Directive::Label(uncond_label)));
-  code
-    .text
-    .push(Asm::ldr(Reg::General(regs[0]), format!("{}", anon_label)));
+  code.text.push(Asm::ldr(
+    Reg::General(regs[0]),
+    generate_anon_func_name(anon_label),
+  ));
 }
 
 fn generate_call(
