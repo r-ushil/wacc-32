@@ -1,0 +1,11 @@
+begin
+    int[] map(int(int) f, int[] arr) is
+        for a : arr do
+            a = call f(a)
+        done ;
+
+        return arr
+    end
+
+    exit 0
+end
