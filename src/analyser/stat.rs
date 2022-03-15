@@ -192,20 +192,49 @@ impl Analysable for Stat {
     /* Returns error if there is any. */
     match self {
       Stat::Skip => Ok(Never), /* Skips never return. */
-      Stat::Declaration(expected, dst, val) => {
-        expected_type(scope, expected, val)
+      Stat::Declaration(expected, dst, src) => {
+        if let (
+          Type::Pair(lhs_type, rhs_type),
+          Expr::PairLiter(lhs_expr, rhs_expr),
+        ) = (expected.clone(), dst.clone())
+        {
+          *self = desugar_pair_declaration(
+            scope,
+            (*lhs_expr).1,
+            *lhs_type,
+            (*rhs_expr).1,
+            *rhs_type,
+            src.clone(),
+          )?;
+
+          return self.analyse(scope, ());
+        }
+
+        expected_type(scope, expected, src)
           .join(dst.analyse(scope, ExprPerms::Declare(expected.clone())))?;
 
         /* Declarations never return. */
         Ok(Never)
       }
-      Stat::Assignment(lhs, t, rhs) => {
+      Stat::Assignment(dst, t, src) => {
+        /* De-sugar into pair destructure. */
+        if let Expr::PairLiter(lhs_expr, rhs_expr) = dst.clone() {
+          *self = desugar_pair_assignment(
+            scope,
+            (*lhs_expr).1,
+            (*rhs_expr).1,
+            src.clone(),
+          )?;
+
+          return self.analyse(scope, ());
+        }
+
         /* LHS and RHS must have same type. */
         *t = equal_types_with_inputs(
           scope,
-          lhs,
+          dst,
           ExprPerms::Assign,
-          rhs,
+          src,
           ExprPerms::Nothing,
         )?;
 
@@ -305,6 +334,84 @@ impl Analysable for Stat {
       }
     }
   }
+}
+
+/* Turns an assignment to a pair into a declaration */
+fn desugar_pair_declaration(
+  scope: &mut ScopeBuilder,
+  lhs_expr: Expr,
+  lhs_type: Type,
+  rhs_expr: Expr,
+  rhs_type: Type,
+  src: Expr,
+) -> AResult<Stat> {
+  let tmp_val = Expr::Ident(scope.get_unique());
+
+  Ok(Stat::Sequence(
+    Box::new(Stat::Declaration(
+      Type::Pair(Box::new(lhs_type.clone()), Box::new(rhs_type.clone())),
+      tmp_val.clone(),
+      src.clone(),
+    )),
+    Box::new(Stat::Sequence(
+      Box::new(Stat::Declaration(
+        lhs_type,
+        lhs_expr,
+        Expr::PairElem(Box::new(PairElem::Fst(TypedExpr(
+          Type::default(),
+          tmp_val.clone(),
+        )))),
+      )),
+      Box::new(Stat::Declaration(
+        rhs_type,
+        rhs_expr,
+        Expr::PairElem(Box::new(PairElem::Snd(TypedExpr(
+          Type::default(),
+          tmp_val.clone(),
+        )))),
+      )),
+    )),
+  ))
+}
+
+/* Turns an assignment to a pair into a declaration */
+fn desugar_pair_assignment(
+  scope: &mut ScopeBuilder,
+  lhs_expr: Expr,
+  rhs_expr: Expr,
+  src: Expr,
+) -> AResult<Stat> {
+  let tmp_val = Expr::Ident(scope.get_unique());
+
+  Ok(Stat::Sequence(
+    /* pair(T, U) @_1 =  */
+    Box::new(Stat::Declaration(
+      Type::Pair(
+        Box::new(lhs_expr.clone().analyse(scope, ExprPerms::Nothing)?),
+        Box::new(rhs_expr.clone().analyse(scope, ExprPerms::Nothing)?),
+      ),
+      tmp_val.clone(),
+      src.clone(),
+    )),
+    Box::new(Stat::Sequence(
+      Box::new(Stat::Assignment(
+        lhs_expr,
+        Type::default(),
+        Expr::PairElem(Box::new(PairElem::Fst(TypedExpr(
+          Type::default(),
+          tmp_val.clone(),
+        )))),
+      )),
+      Box::new(Stat::Assignment(
+        rhs_expr,
+        Type::default(),
+        Expr::PairElem(Box::new(PairElem::Snd(TypedExpr(
+          Type::default(),
+          tmp_val.clone(),
+        )))),
+      )),
+    )),
+  ))
 }
 
 #[cfg(test)]
