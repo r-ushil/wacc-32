@@ -159,8 +159,6 @@ mod tests {
           Box::new(Type::Int),
         )))
     ));
-    println!("{:?}", type_("pair(pair(int, int), string)"));
-    assert!(type_("pair(pair(int, int), string)").is_err());
   }
 
   #[test]
