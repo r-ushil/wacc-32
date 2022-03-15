@@ -1,11 +1,14 @@
 begin
     int(int) foo = int(int x) is 
-        int(int) bar = int(int) y is 
-            return y + 2
-        end ;
+
+        int(int) bar = int(int y) is 
+            return y + 2 
+        end;
         
-        return bar(x)
+        int res = call bar(x);
+        return res
     end;
-    
-    exit foo(1)
+
+    int outer_res = foo(1);
+    exit outer_res
 end
