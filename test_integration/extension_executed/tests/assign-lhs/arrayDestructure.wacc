@@ -31,27 +31,28 @@ begin
   println c; # 6
   println d; # 7
 
-  # # DECLARATION
+  # DECLARATION
 
-  # # single layer destructure.
-  # pair(int, int) newpair(a2, b2) = x;
-  # # pair(int, int) @_4 = x
-  # # int a2 = fst x
-  # # int b2 = snd x
+  # single layer destructure.
+  int[] [a2, b2] = [8, 9];
+  # pair(int, int) @_4 = x
+  # int a2 = @_4[0]
+  # int b2 = @_4[1]
 
-  # println "single layer pair declaration";
-  # println a2; # 42
-  # println b2; # 43
+  println "single layer array declaration";
+  println a2; # 8
+  println b2; # 9
 
-  # # multiple layer destructure declaration.
+  # multiple layer destructure declaration.
 
-  # # # (y = newpair(newpair(42, 43), 44))
-  # pair(pair(int, int), int) newpair(newpair(c3, b3), a3) = y;
+  # # (y = newpair(newpair(42, 43), 44))
+  int[][] [[a3, b3], [c3, d3]] = [[1,2],[3,4]];
 
-  # println "nested pairs declaration";
-  # println a3; # 44
-  # println b3; # 43
-  # println c3; # 42
+  println "nested pairs declaration";
+  println a3; # 1
+  println b3; # 2
+  println c3; # 3
+  println d3; # 4
 
   skip
 end

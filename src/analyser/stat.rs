@@ -193,28 +193,35 @@ impl Analysable for Stat {
     match self {
       Stat::Skip => Ok(Never), /* Skips never return. */
       Stat::Declaration(expected, dst, src) => {
-        if let (
-          Type::Pair(lhs_type, rhs_type),
-          Expr::PairLiter(lhs_expr, rhs_expr),
-        ) = (expected.clone(), dst.clone())
-        {
-          *self = sugar::pair_declaration(
-            scope,
-            (*lhs_expr).1,
-            *lhs_type,
-            (*rhs_expr).1,
-            *rhs_type,
-            src.clone(),
-          )?;
+        match (expected, dst) {
+          (
+            Type::Pair(lhs_type, rhs_type),
+            Expr::PairLiter(lhs_expr, rhs_expr),
+          ) => {
+            *self = sugar::pair_declaration(
+              scope,
+              (*lhs_expr.clone()).1,
+              *lhs_type.clone(),
+              (*rhs_expr.clone()).1,
+              *rhs_type.clone(),
+              src.clone(),
+            )?;
 
-          return self.analyse(scope, ());
+            self.analyse(scope, ())
+          }
+          (Type::Array(elem_type), Expr::ArrayLiter(lit)) => {
+            *self = sugar::array_declaration(scope, lit, elem_type, src)?;
+
+            self.analyse(scope, ())
+          }
+          (expected, dst) => {
+            expected_type(scope, expected, src)
+              .join(dst.analyse(scope, ExprPerms::Declare(expected.clone())))?;
+
+            /* Declarations never return. */
+            Ok(Never)
+          }
         }
-
-        expected_type(scope, expected, src)
-          .join(dst.analyse(scope, ExprPerms::Declare(expected.clone())))?;
-
-        /* Declarations never return. */
-        Ok(Never)
       }
       Stat::Assignment(dst, t, src) => {
         match dst {

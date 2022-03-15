@@ -1,6 +1,47 @@
 /* Place to put functions which desugar ast nodes into other ast nodes. */
 use super::*;
 
+pub fn array_declaration(
+  scope: &mut ScopeBuilder,
+  ArrayLiter(_, dst_exprs): &mut ArrayLiter,
+  elem_type: &Type,
+  src: &mut Expr,
+) -> AResult<Stat> {
+  if dst_exprs.len() == 0 {
+    return Err(SemanticError::Normal(format!(
+      "Cannot destructure into empty array."
+    )));
+  }
+
+  let tmp_val = Expr::Ident(scope.get_unique());
+
+  /* Store the whole array in a temporary variable. */
+  let mut new_stat = Stat::Declaration(
+    Type::Array(Box::new(elem_type.clone())),
+    tmp_val.clone(),
+    src.clone(),
+  );
+
+  /* Assign a value of the array to each destination expression. */
+  for (i, dst_expr) in dst_exprs.iter().enumerate() {
+    /* Writes the ith value of the temp value to this destination expression. */
+    let assignment = Stat::Declaration(
+      elem_type.clone(),
+      dst_expr.clone(),
+      Expr::ArrayElem(
+        Type::default(),
+        Box::new(tmp_val.clone()),
+        Box::new(Expr::IntLiter(i as i32)),
+      ),
+    );
+
+    /* Put it after new stat. */
+    new_stat = Stat::Sequence(Box::new(new_stat), Box::new(assignment));
+  }
+
+  Ok(new_stat)
+}
+
 pub fn array_assignment(
   scope: &mut ScopeBuilder,
   ArrayLiter(_, dst_exprs): &mut ArrayLiter,
