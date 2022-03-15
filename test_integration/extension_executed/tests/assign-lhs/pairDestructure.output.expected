@@ -1,0 +1,18 @@
+Compiler exit code: 0
+--------- stdout ---------
+single layer pair assignment
+42
+43
+nested pairs assignment
+44
+43
+42
+single layer pair declaration
+42
+43
+nested pairs declaration
+44
+43
+42
+--------------------------
+Exit code: 0

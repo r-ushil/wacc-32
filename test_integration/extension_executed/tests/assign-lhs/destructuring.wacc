@@ -1,6 +1,0 @@
-begin
-  pair(int, int) newpair(a, b) = newpair(1, 2);
-
-  println a;
-  println b
-end
