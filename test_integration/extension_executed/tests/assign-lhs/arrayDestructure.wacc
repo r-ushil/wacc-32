@@ -48,7 +48,7 @@ begin
   # # (y = newpair(newpair(42, 43), 44))
   int[][] [[a3, b3], [c3, d3]] = [[1,2],[3,4]];
 
-  println "nested pairs declaration";
+  println "nested arrays declaration";
   println a3; # 1
   println b3; # 2
   println c3; # 3
