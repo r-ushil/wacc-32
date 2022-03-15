@@ -2,6 +2,7 @@ pub mod context;
 mod expr;
 mod program;
 mod stat;
+mod sugar;
 mod unify;
 
 use std::fmt::Display;
