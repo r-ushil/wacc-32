@@ -3,5 +3,10 @@ Compiler exit code: 0
 single layer array assignment
 42
 43
+nested array assignment
+4
+5
+6
+7
 --------------------------
 Exit code: 0
