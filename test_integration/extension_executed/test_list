@@ -34,4 +34,4 @@
 ./tests/higher-order-funcs/concatMap.wacc,./tests/higher-order-funcs/concatMap.output.observed,./tests/higher-order-funcs/concatMap.output.expected,pass
 ./tests/assign-lhs/destructuring.wacc,./tests/assign-lhs/destructuring.output.observed,./tests/assign-lhs/destructuring.output.expected,fail
 ./tests/assign-lhs/pairDestructure.wacc,./tests/assign-lhs/pairDestructure.output.observed,./tests/assign-lhs/pairDestructure.output.expected,pass
-./tests/assign-lhs/arrayDestructure.wacc,./tests/assign-lhs/arrayDestructure.output.observed,./tests/assign-lhs/arrayDestructure.output.expected,fail
+./tests/assign-lhs/arrayDestructure.wacc,./tests/assign-lhs/arrayDestructure.output.observed,./tests/assign-lhs/arrayDestructure.output.expected,pass

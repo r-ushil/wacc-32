@@ -217,29 +217,36 @@ impl Analysable for Stat {
         Ok(Never)
       }
       Stat::Assignment(dst, t, src) => {
-        /* De-sugar into pair destructure. */
-        if let Expr::PairLiter(lhs_expr, rhs_expr) = dst.clone() {
-          *self = desugar_pair_assignment(
-            scope,
-            (*lhs_expr).1,
-            (*rhs_expr).1,
-            src.clone(),
-          )?;
+        match dst {
+          Expr::PairLiter(lhs_expr, rhs_expr) => {
+            *self = desugar_pair_assignment(
+              scope,
+              (*lhs_expr).1.clone(),
+              (*rhs_expr).1.clone(),
+              src.clone(),
+            )?;
 
-          return self.analyse(scope, ());
+            self.analyse(scope, ())
+          }
+          Expr::ArrayLiter(lit) => {
+            *self = desugar_array_assignment(scope, lit, src)?;
+
+            self.analyse(scope, ())
+          }
+          dst => {
+            /* LHS and RHS must have same type. */
+            *t = equal_types_with_inputs(
+              scope,
+              dst,
+              ExprPerms::Assign,
+              src,
+              ExprPerms::Nothing,
+            )?;
+
+            /* Assignments never return. */
+            Ok(Never)
+          }
         }
-
-        /* LHS and RHS must have same type. */
-        *t = equal_types_with_inputs(
-          scope,
-          dst,
-          ExprPerms::Assign,
-          src,
-          ExprPerms::Nothing,
-        )?;
-
-        /* Assignments never return. */
-        Ok(Never)
       }
       Stat::Read(dst) => {
         /* Any type can be read. */
@@ -334,6 +341,49 @@ impl Analysable for Stat {
       }
     }
   }
+}
+
+fn desugar_array_assignment(
+  scope: &mut ScopeBuilder,
+  ArrayLiter(_, dst_exprs): &mut ArrayLiter,
+  src: &mut Expr,
+) -> AResult<Stat> {
+  if dst_exprs.len() == 0 {
+    return Err(SemanticError::Normal(format!(
+      "Cannot destructure into empty array."
+    )));
+  }
+
+  /* Use first element to determine the element type. */
+  let elem_type = dst_exprs[0].clone().analyse(scope, ExprPerms::Nothing)?;
+
+  let tmp_val = Expr::Ident(scope.get_unique());
+
+  /* Store the whole array in a temporary variable. */
+  let mut new_stat = Stat::Declaration(
+    Type::Array(Box::new(elem_type.clone())),
+    tmp_val.clone(),
+    src.clone(),
+  );
+
+  /* Assign a value of the array to each destination expression. */
+  for (i, dst_expr) in dst_exprs.iter().enumerate() {
+    /* Writes the ith value of the temp value to this destination expression. */
+    let assignment = Stat::Assignment(
+      dst_expr.clone(),
+      Type::default(),
+      Expr::ArrayElem(
+        Type::default(),
+        Box::new(tmp_val.clone()),
+        Box::new(Expr::IntLiter(i as i32)),
+      ),
+    );
+
+    /* Put it after new stat. */
+    new_stat = Stat::Sequence(Box::new(new_stat), Box::new(assignment));
+  }
+
+  Ok(new_stat)
 }
 
 /* Turns an assignment to a pair into a declaration */

@@ -8,6 +8,9 @@ begin
   int b = 1;
 
   [a, b] = x;
+  # int[] @_1 = [42, 43];
+  # a = @_1[0]
+  # b = @_1[1]
 
   println "single layer array assignment";
   println a; # 42
