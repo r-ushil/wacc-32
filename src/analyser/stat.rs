@@ -477,8 +477,12 @@ mod tests {
     );
 
     assert_eq!(
-      (Expr::ArrayElem(ArrayElem(x_id.clone(), vec!(Expr::IntLiter(5)))))
-        .analyse(scope, ExprPerms::Nothing),
+      Expr::ArrayElem(
+        Type::default(),
+        Box::new(Expr::Ident(x_id.clone())),
+        Box::new(Expr::IntLiter(5))
+      )
+      .analyse(scope, ExprPerms::Nothing),
       Ok(Type::Int)
     );
   }

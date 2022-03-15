@@ -97,7 +97,10 @@ impl Analysable for Expr {
   ) -> AResult<Type> {
     /* Break assignment and declaration for everything but idents. */
     match self {
-      Ident(_) | PairElem(_) | Expr::ArrayElem(_) | Expr::StructElem(_) => (),
+      Ident(_)
+      | PairElem(_)
+      | Expr::ArrayElem(_, _, _)
+      | Expr::StructElem(_) => (),
       _ => perms.break_both()?,
     }
 
@@ -118,7 +121,9 @@ impl Analysable for Expr {
       StructLiter(s) => s.analyse(scope, ()),
       PairElem(elem) => elem.analyse(scope, perms),
       Ident(id) => id.analyse(scope, perms),
-      Expr::ArrayElem(elem) => elem.analyse(scope, perms),
+      Expr::ArrayElem(elem_type, arr, idx) => {
+        analyse_array_elem(scope, elem_type, arr, idx, &perms)
+      }
       Expr::StructElem(elem) => elem.analyse(scope, perms),
       Call(t, func_expr, args) => analyse_call(scope, t, func_expr, args),
       UnaryApp(op, exp) => analyse_unary(scope, op, exp),
@@ -137,6 +142,35 @@ impl Analysable for Expr {
         }
       }
     }
+  }
+}
+
+fn analyse_array_elem(
+  scope: &mut ScopeBuilder,
+  elem_type: &mut Type,
+  arr: &mut Expr,
+  idx: &mut Expr,
+  perms: &ExprPerms,
+) -> AResult<Type> {
+  /* Array elements cannot be declared. */
+  perms.break_declare()?;
+
+  /* Index must be int and array must be array. */
+  let (arr_type, _) = arr
+    .analyse(scope, ExprPerms::Nothing)
+    .join(expected_type(scope, &Type::Int, idx))?;
+
+  /* Type checking of array. */
+  if let Type::Array(et) = arr_type {
+    /* Save element type on AST node. */
+    *elem_type = *et;
+    Ok(elem_type.clone())
+  } else {
+    /* Can only perform array element access on arrays. */
+    Err(SemanticError::Normal(format!(
+      "Expected array, found {:?}",
+      arr_type
+    )))
   }
 }
 
@@ -333,8 +367,12 @@ mod tests {
     scope.insert_var(&mut x.clone(), x_type).unwrap();
 
     assert_eq!(
-      Expr::ArrayElem(ArrayElem(x, vec!(Expr::IntLiter(5))))
-        .analyse(&mut scope, ExprPerms::Nothing),
+      Expr::ArrayElem(
+        Type::default(),
+        Box::new(Expr::Ident(x)),
+        Box::new(Expr::IntLiter(5))
+      )
+      .analyse(&mut scope, ExprPerms::Nothing),
       Ok(Type::Int)
     );
   }

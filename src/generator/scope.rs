@@ -98,12 +98,11 @@ impl ScopeReader<'_> {
   }
 
   /* Returns type of given ident */
-
-  pub fn get_type(&self, ident: &Ident) -> Option<&Type> {
+  pub fn _get_type(&self, ident: &Ident) -> Option<&Type> {
     use IdentInfo::*;
     match self.current.table.get(ident) {
       Some(LocalVar(t, _) | Label(t, _)) => Some(t),
-      None => self.parents?.get_type(ident),
+      None => self.parents?._get_type(ident),
       Some(TypeDef(_)) => None,
     }
   }
