@@ -1,6 +1,6 @@
 import import-files/hof.wacc
 begin
-    int[] orig = [2, 3, 4];
+    int[] orig = [1, 2, 3];
     int(int) succ = int(int x) is return x + 1 end;
 
     int[] res = call map(succ, orig);
