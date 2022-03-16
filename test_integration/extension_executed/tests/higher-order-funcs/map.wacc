@@ -1,0 +1,14 @@
+import import-files/hof.wacc
+begin
+    int[] orig = [2, 3, 4];
+    int(int) succ = int(int x) is return x + 1 end;
+
+    int[] res = call map(succ, orig);
+
+    int total = 0;
+    for i : res do
+        total = total + i
+    done ;
+
+    exit(total) #total = 9
+end
