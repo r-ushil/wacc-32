@@ -26,3 +26,4 @@
 ./tests/uninitialised-arr/change-arr-val.wacc,./tests/uninitialised-arr/change-arr-val.output.observed,./tests/uninitialised-arr/change-arr-val.output.expected,pass
 ./tests/uninitialised-arr/using-ident.wacc,./tests/uninitialised-arr/using-ident.output.observed,./tests/uninitialised-arr/using-ident.output.expected,pass
 ./tests/higher-order-funcs/map.wacc,./tests/higher-order-funcs/map.output.observed,./tests/higher-order-funcs/map.output.expected,pass
+./tests/higher-order-funcs/filter.wacc,./tests/higher-order-funcs/filter.output.observed,./tests/higher-order-funcs/filter.output.expected,pass
