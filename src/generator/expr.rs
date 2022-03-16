@@ -75,7 +75,7 @@ fn generate_blank_arr(
   /* LDR {regs[0]}, =type_size */
   code.text.push(Asm::ldr(Reg::General(regs[0]), t.size()));
 
-  size.generate(scope, code, &regs[1..], ());
+  size.generate(scope, code, &regs[1..], None);
 
   /* Malloc space for array. */
   generate_malloc_with_reg(
@@ -88,7 +88,7 @@ fn generate_blank_arr(
   /* Write length to first byte.
   LDR r5, =3
   STR r5, [r4] */
-  size.generate(scope, code, &regs[1..], ());
+  size.generate(scope, code, &regs[1..], None);
   code
     .text
     .push(Asm::str(Reg::General(regs[1]), (Reg::General(regs[0]), 0)));

@@ -135,7 +135,7 @@ fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
     |(_, elem, _, array, _, body, _)| {
       let index_decl = Stat::Declaration(
         Type::Int,
-        "__reserved_for_array__".to_string(),
+        Expr::Ident("__reserved_for_array__".to_string()),
         Expr::IntLiter(0),
       );
 
@@ -149,7 +149,7 @@ fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
       );
 
       let assign = Stat::Assignment(
-        AssignLhs::Ident("__reserved_for_array__".to_string()),
+        Expr::Ident("__reserved_for_array__".to_string()),
         Type::Int,
         Expr::BinaryApp(
           Box::new(Expr::Ident("__reserved_for_array__".to_string())),
@@ -162,7 +162,7 @@ fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
 
       let elem_decl = Stat::Declaration(
         Type::default(),
-        elem,
+        Expr::Ident(elem),
         Expr::ArrayElem(ArrayElem(
           array,
           vec![Expr::Ident("__reserved_for_array__".to_string())],

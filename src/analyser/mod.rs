@@ -153,7 +153,7 @@ fn expected_type<'a, A: Analysable<Output = Type>>(
   scope: &mut ScopeBuilder,
   expected_type: &mut Type,
   actual: &mut A,
-) -> AResult<&'a Type> {
+) -> AResult<Type> {
   let actual_type = actual.analyse(scope, A::Input::default())?;
 
   let unified_expected = expected_type.clone().unify(actual_type.clone());
