@@ -1,4 +1,6 @@
 begin
+    # will replace with generic parameters once implemented
+
     int[] map(int(int) f, int[] arr) is
         for a : arr do
             a = call f(a)
@@ -27,6 +29,41 @@ begin
         done ;
 
         free tmp;
+
+        return res
+
+    end
+
+    int[] concat(int[][] arrs) is
+        int total = 0;
+
+        for arr : arrs do
+            total = total + len arr
+        done ;
+
+        int[] res = new int[total];
+
+        int i = 0;
+        for arr : arrs do
+
+            for a : arr do
+                res[i] = a;
+                i = i + 1
+            done ;
+
+            free arr
+        
+        done ;
+
+        return res
+    end
+
+    int[] concatMap(int(int) f, int[][] arrs) is
+        for arr : arrs do
+            arr = call map(f, arr)
+        done ;
+
+        int[] res = call concat(arrs);
 
         return res
 
