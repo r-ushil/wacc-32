@@ -7,5 +7,30 @@ begin
         return arr
     end
 
+    int[] filter(bool(int) f, int[] arr) is
+        int count = 0;
+        int[] tmp = new int[len arr];
+
+        for a : arr do
+            if f(a) then
+                tmp[count] = a;
+                count = count + 1
+            else
+                skip
+            fi
+        done ;
+
+        int[] res = new int[count];
+
+        for int i = 0; i < count; i = i + 1 do
+            res[i] = tmp[i]
+        done ;
+
+        free tmp;
+
+        return res
+
+    end
+
     exit 0
 end
