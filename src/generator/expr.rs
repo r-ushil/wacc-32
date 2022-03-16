@@ -10,6 +10,7 @@ use super::*;
 use crate::analyser::context::*;
 use crate::generator::asm::*;
 use crate::generator::program::LabelPrefix;
+use crate::generator::stat::generate_malloc_with_reg;
 use stat::generate_malloc;
 
 impl Generatable for Expr {
@@ -49,8 +50,40 @@ impl Generatable for Expr {
       Expr::AnonFunc(func) => {
         generate_anon_func(scope, code, regs, (**func).clone())
       }
+      Expr::BlankArrayLiter(t, size) => {
+        generate_blank_arr(scope, code, regs, t, size)
+      }
     }
   }
+}
+
+fn generate_blank_arr(
+  scope: &ScopeReader,
+  code: &mut GeneratedCode,
+  regs: &[GenReg],
+  t: &Type,
+  size: &Box<Expr>,
+) {
+  /* LDR {regs[0]}, =type_size */
+  code.text.push(Asm::ldr(Reg::General(regs[0]), t.size()));
+
+  size.generate(scope, code, &regs[1..], ());
+
+  /* Malloc space for array. */
+  generate_malloc_with_reg(
+    Reg::General(regs[0]),
+    Reg::General(regs[1]),
+    code,
+    Reg::General(regs[0]),
+  );
+
+  /* Write length to first byte.
+  LDR r5, =3
+  STR r5, [r4] */
+  size.generate(scope, code, &regs[1..], ());
+  code
+    .text
+    .push(Asm::str(Reg::General(regs[1]), (Reg::General(regs[0]), 0)));
 }
 
 fn generate_anon_func(

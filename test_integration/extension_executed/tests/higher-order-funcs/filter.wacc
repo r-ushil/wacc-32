@@ -1,0 +1,9 @@
+import import-files/hof.wacc
+begin
+    int[] orig = [1, 2, 11, 13, 5];
+    bool(int) digit = bool(int x) is return x < 10 end;
+
+    int[] res = call filter(digit, orig);
+
+    exit len res #len res = 3
+end

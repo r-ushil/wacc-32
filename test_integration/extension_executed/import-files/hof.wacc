@@ -1,0 +1,77 @@
+begin
+    # will replace with generic parameters once implemented
+
+    int[] map(int(int) f, int[] arr) is
+        for a : arr do
+            a = call f(a)
+        done ;
+
+        return arr
+    end
+
+    int[] filter(bool(int) f, int[] arr) is
+        int count = 0;
+        int[] tmp = new int[len arr];
+
+        for a : arr do
+            if f(a) then
+                tmp[count] = a;
+                count = count + 1
+            else
+                skip
+            fi
+        done ;
+
+        int[] res = new int[count];
+
+        for int i = 0; i < count; i = i + 1 do
+            res[i] = tmp[i]
+        done ;
+
+        free tmp;
+
+        return res
+
+    end
+
+    int[] concat(int[][] arrs) is
+        int total = 0;
+
+        for arr : arrs do
+            total = total + len arr
+        done ;
+
+        int[] res = new int[total];
+
+        int i = 0;
+        for arr : arrs do
+
+            for a : arr do
+                res[i] = a;
+                i = i + 1
+            done ;
+
+            free arr
+        
+        done ;
+
+        return res
+    end
+
+    #concatmap is currently broken!
+    int[] concatmap(int(int) f, int[][] arrs) is
+        int[] tmp = call concat(arrs);
+
+        int[] res = call map(f, tmp);       
+
+        return res
+
+    end
+
+    # int[][] filterMap(bool(int) f, int[][] arrs) is
+    #     int[][] res = call map(filter(f), arrs);
+    #     return res
+    # end
+
+    exit 0
+end

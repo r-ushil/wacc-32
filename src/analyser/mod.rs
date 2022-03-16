@@ -141,8 +141,6 @@ fn expected_type<A: Analysable<Input = (), Output = Type>>(
 
   let unified_expected = expected_type.clone().unify(actual_type.clone());
 
-  println!("{:#?}", unified_expected);
-
   match unified_expected {
     Some(t) => {
       *expected_type = t.clone();

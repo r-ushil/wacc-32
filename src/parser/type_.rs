@@ -72,7 +72,7 @@ pub fn type_(input: &str) -> IResult<&str, Type, ErrorTree<&str>> {
 }
 
 /* base-type ::= 'int' | 'bool' | 'char' | 'string' */
-fn base_type(input: &str) -> IResult<&str, Type, ErrorTree<&str>> {
+pub fn base_type(input: &str) -> IResult<&str, Type, ErrorTree<&str>> {
   alt((
     value(Type::Int, key("int")).context("expected int"),
     value(Type::Bool, key("bool")).context("expected bool"),
