@@ -11,6 +11,7 @@ use super::*;
 use crate::analyser::context::*;
 use crate::generator::asm::*;
 use crate::generator::program::LabelPrefix;
+use crate::generator::stat::generate_malloc_with_reg;
 use stat::generate_malloc;
 
 impl Generatable for Expr {
@@ -66,19 +67,28 @@ fn generate_blank_arr(
 ) {
   println!("{:#?}", arr_lit);
 
-  let def_expr = default_expr(arr_lit.0.clone());
+  /* LDR {regs[0]}, =type_size */
+  code
+    .text
+    .push(Asm::ldr(Reg::General(regs[0]), arr_lit.0.size()));
 
-  let n = match **size {
-    Expr::IntLiter(n) => n.try_into().unwrap(),
-    _ => unreachable!("Length must be declared before - can't be inline"),
-  };
+  size.generate(scope, code, &regs[1..], ());
 
-  let new_arr_lit = Expr::ArrayLiter(ArrayLiter {
-    0: arr_lit.0.clone(),
-    1: vec![def_expr; n],
-  });
+  /* Malloc space for array. */
+  generate_malloc_with_reg(
+    Reg::General(regs[0]),
+    Reg::General(regs[1]),
+    code,
+    Reg::General(regs[0]),
+  );
 
-  new_arr_lit.generate(scope, code, regs, ());
+  /* Write length to first byte.
+  LDR r5, =3
+  STR r5, [r4] */
+  size.generate(scope, code, &regs[1..], ());
+  code
+    .text
+    .push(Asm::str(Reg::General(regs[1]), (Reg::General(regs[0]), 0)));
 }
 
 fn default_expr(t: Type) -> Expr {
