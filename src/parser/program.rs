@@ -28,7 +28,7 @@ fn file_name(input: &str) -> IResult<&str, &str, ErrorTree<&str>> {
   alt((alphanumeric1, tag("/"), tag("-"), tag("_"), tag("../")))(input)
 }
 
-fn import_file(input: &str) -> IResult<&str, Vec<Func>, ErrorTree<&str>> {
+fn import_file(input: &str) -> IResult<&str, Vec<NamedFunc>, ErrorTree<&str>> {
   map(terminated(many1(file_name), tok(".wacc")), |filename| {
     let program_string =
       read_file(fs::File::open(format!("{}.wacc", filename.join(""))).unwrap());
@@ -38,7 +38,7 @@ fn import_file(input: &str) -> IResult<&str, Vec<Func>, ErrorTree<&str>> {
   })(input)
 }
 
-fn import_stat(input: &str) -> IResult<&str, Vec<Func>, ErrorTree<&str>> {
+fn import_stat(input: &str) -> IResult<&str, Vec<NamedFunc>, ErrorTree<&str>> {
   preceded(tok("import"), import_file)(input)
 }
 
@@ -50,12 +50,11 @@ pub fn final_program_parser(input: &str) -> Result<Program, ErrorTree<&str>> {
 pub fn program(input: &str) -> IResult<&str, Program, ErrorTree<&str>> {
   let (input, _) = comment_or_ws(input)?;
   let (input, funcs) = many0(import_stat)(input)?;
-  //println!("{:#?}", input);
-  let mut funcs = funcs.into_iter().flatten().collect::<Vec<Func>>();
+  let mut funcs = funcs.into_iter().flatten().collect::<Vec<NamedFunc>>();
 
   let (input, (type_defs_vec, mut prog_funcs, statement)) = delimited(
     preceded(comment_or_ws, tok("begin")),
-    tuple((many0(type_def), many0(func), stat)),
+    tuple((many0(type_def), many0(named_func), stat)),
     tok("end"),
   )(input)?;
 
@@ -107,37 +106,36 @@ fn type_def(input: &str) -> IResult<&str, (Ident, Struct), ErrorTree<&str>> {
   Ok((input, (struct_name, s)))
 }
 
+pub fn func(input: &str) -> IResult<&str, Func, ErrorTree<&str>> {
+  map(
+    tuple((tok("("), param_list, tok(")"), tok("is"), stat, tok("end"))),
+    |(_, params, _, _, body, _)| {
+      let (param_types, param_ids): (Vec<Type>, Vec<String>) =
+        params.into_iter().unzip();
+
+      Func {
+        signature: FuncSig {
+          param_types,
+          return_type: Type::default(),
+        },
+        body,
+        params_st: SymbolTable::default(),
+        body_st: SymbolTable::default(),
+        param_ids,
+      }
+    },
+  )(input)
+}
+
 /* func ::= <type> <ident> '(' <param-list>? ')' 'is' <stat> 'end' */
 /* param-list ::= <param> ( ',' <param> )* */
-fn func(input: &str) -> IResult<&str, Func, ErrorTree<&str>> {
-  let (input, (return_type, ident, _, params, _, _, body, _)) = tuple((
-    type_,
-    ident,
-    tok("("),
-    param_list,
-    tok(")"),
-    tok("is"),
-    stat,
-    tok("end"),
-  ))(input)?;
+fn named_func(input: &str) -> IResult<&str, NamedFunc, ErrorTree<&str>> {
+  let (input, (return_type, ident, mut func)) =
+    tuple((type_, ident, func))(input)?;
 
-  let (param_types, param_ids): (Vec<Type>, Vec<String>) =
-    params.into_iter().unzip();
+  func.signature.return_type = return_type;
 
-  Ok((
-    input,
-    Func {
-      ident,
-      signature: FuncSig {
-        param_types,
-        return_type,
-      },
-      body,
-      params_st: SymbolTable::default(),
-      body_st: SymbolTable::default(),
-      param_ids,
-    },
-  ))
+  Ok((input, (ident, func)))
 }
 
 /* param ::= <type> <ident> */
@@ -157,7 +155,7 @@ fn param(input: &str) -> IResult<&str, (Type, Ident), ErrorTree<&str>> {
   Ok((input, (t, id)))
 }
 
-fn param_list(
+pub fn param_list(
   input: &str,
 ) -> IResult<&str, Vec<(Type, Ident)>, ErrorTree<&str>> {
   many0_delimited(param, tok(","))(input)
@@ -178,17 +176,20 @@ mod tests {
       .unwrap()
       .1,
       Program {
-        funcs: vec!(Func {
-          signature: FuncSig {
-            param_types: vec!(Type::Int),
-            return_type: Type::Int
-          },
-          param_ids: vec!("x".to_string()),
-          ident: "foo".to_string(),
-          body: Stat::Return(Expr::Ident("x".to_string())),
-          params_st: SymbolTable::default(),
-          body_st: SymbolTable::default(),
-        }),
+        funcs: vec!((
+          "foo".to_string(),
+          Func {
+            signature: FuncSig {
+              param_types: vec!(Type::Int),
+              return_type: Type::Int
+            },
+            param_ids: vec!("x".to_string()),
+
+            body: Stat::Return(Expr::Ident("x".to_string())),
+            params_st: SymbolTable::default(),
+            body_st: SymbolTable::default(),
+          }
+        )),
         statement: ScopedStat::new(Stat::Declaration(
           Type::Int,
           Expr::Ident("y".to_string()),
@@ -244,28 +245,28 @@ mod tests {
   #[test]
   fn test_func() {
     assert!(matches!(
-    func("int firstFunc (int x, int y) is return x + y end"),
+    named_func("int firstFunc (int x, int y) is return x + y end"),
     Ok((
       "",
-      ast)) if ast == Func {ident:"firstFunc".to_string(),signature:FuncSig{param_types:vec!(Type::Int,Type::Int),return_type:Type::Int,},body:Stat::Return(Expr::BinaryApp(Box::new(Expr::Ident("x".to_string())),BinaryOper::Add,Box::new(Expr::Ident("y".to_string())))),params_st:SymbolTable::default(),body_st:SymbolTable::default(),
+      ast)) if ast == ("firstFunc".to_string() , Func {signature:FuncSig{param_types:vec!(Type::Int,Type::Int),return_type:Type::Int,},body:Stat::Return(Expr::BinaryApp(Box::new(Expr::Ident("x".to_string())),BinaryOper::Add,Box::new(Expr::Ident("y".to_string())))),params_st:SymbolTable::default(),body_st:SymbolTable::default(),
                                                                             param_ids
-                                                                          : vec!("x".to_string(),"y".to_string()) }
+                                                                          : vec!("x".to_string(),"y".to_string()) })
     ));
 
     assert!(matches!(
-    func("int exitThree () is exit 3 end"),
+    named_func("int exitThree () is exit 3 end"),
     Ok((
       "",
-      ast)) if ast == Func {signature:FuncSig{param_types:vec!(),return_type:Type::Int},ident:"exitThree".to_string(),body:Stat::Exit(Expr::IntLiter(3)),params_st:SymbolTable::default(),body_st:SymbolTable::default(), param_ids: vec!() }
+      ast)) if ast == ("exitThree".to_string(), Func {signature:FuncSig{param_types:vec!(),return_type:Type::Int},body:Stat::Exit(Expr::IntLiter(3)),params_st:SymbolTable::default(),body_st:SymbolTable::default(), param_ids: vec!() })
     ));
   }
 
   #[test]
   fn test_func_with_func_in_args() {
     assert_eq!(
-      func("int funcWithFunc (int(int, int) foo, int x) is int y = call foo(x); return y end").unwrap().1,
+      named_func("int funcWithFunc (int(int, int) foo, int x) is int y = call foo(x); return y end").unwrap().1,
+      ("funcWithFunc".to_string(),
       Func {
-        ident:"funcWithFunc".to_string(),
         signature:FuncSig{
           param_types:vec!(Type::Func(Box::new(FuncSig {param_types:vec!(Type::Int, Type::Int), return_type:Type::Int})), Type::Int),
           return_type:Type::Int,
@@ -277,7 +278,7 @@ mod tests {
         params_st:SymbolTable::default(),
         body_st:SymbolTable::default(),
         param_ids:vec!("foo".to_string(), "x".to_string()),
-      }
+      })
     );
   }
 

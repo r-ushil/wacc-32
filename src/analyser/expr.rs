@@ -123,6 +123,19 @@ impl Analysable for Expr {
       Call(t, func_expr, args) => analyse_call(scope, t, func_expr, args),
       UnaryApp(op, exp) => analyse_unary(scope, op, exp),
       BinaryApp(exp1, op, exp2) => analyse_binary(scope, exp1, op, exp2),
+      Expr::AnonFunc(func) => {
+        (**func).analyse(scope, ())?;
+        Ok(Type::Func(Box::new(func.signature.clone())))
+      }
+      Expr::BlankArrayLiter(t, size) => {
+        if size.analyse(scope, ExprPerms::Nothing)? == Type::Int {
+          Ok(t.clone())
+        } else {
+          Err(SemanticError::Normal(
+            "Size for blank array liter not a string.".to_string(),
+          ))
+        }
+      }
     }
   }
 }
@@ -144,12 +157,9 @@ fn analyse_call(
       } = *bx;
 
       /* Types must be pairwise the same. */
-      SemanticError::join_iter(
-        args
-          .iter_mut()
-          .zip(param_types.iter())
-          .map(|(arg, param_type)| expected_type(scope, param_type, arg)),
-      )?;
+      SemanticError::join_iter(args.iter_mut().zip(param_types.iter()).map(
+        |(arg, param_type)| expected_type(scope, &mut param_type.clone(), arg),
+      ))?;
 
       /* Must be same amount of args as parameters */
       if param_types.len() != args.len() {
@@ -173,8 +183,8 @@ fn analyse_unary(
   exp: &mut Box<Expr>,
 ) -> AResult<Type> {
   match op {
-    UnaryOper::Bang => Ok(expected_type(scope, &Type::Bool, exp)?.clone()),
-    UnaryOper::Neg => Ok(expected_type(scope, &Type::Int, exp)?.clone()),
+    UnaryOper::Bang => Ok(expected_type(scope, &mut Type::Bool, exp)?.clone()),
+    UnaryOper::Neg => Ok(expected_type(scope, &mut Type::Int, exp)?.clone()),
     UnaryOper::Len => match exp.analyse(scope, ExprPerms::Nothing)? {
       Type::Array(_) => Ok(Type::Int),
       t => {
@@ -185,11 +195,11 @@ fn analyse_unary(
       }
     },
     UnaryOper::Ord => {
-      expected_type(scope, &Type::Char, exp)?;
+      expected_type(scope, &mut Type::Char, exp)?;
       Ok(Type::Int)
     }
     UnaryOper::Chr => {
-      expected_type (scope, &Type::Int, exp)?;
+      expected_type (scope, &mut Type::Int, exp)?;
       Ok(Type::Char)
     }
   }

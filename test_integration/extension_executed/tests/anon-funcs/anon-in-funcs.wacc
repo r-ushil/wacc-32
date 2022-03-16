@@ -1,0 +1,15 @@
+begin
+    int succ(int x) is
+        int(int) doTheSucc = int(int x) is return x + 1 end;
+        return doTheSucc(x)
+    end
+
+    int applyThree(int(int) b) is
+        int z = call b(3);
+        return z
+    end
+
+    int res = call applyThree(succ);
+    
+    exit res
+end

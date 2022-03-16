@@ -18,3 +18,17 @@
 ./tests/assign-lhs/basicDeclaration.wacc,./tests/assign-lhs/basicDeclaration.output.observed,./tests/assign-lhs/basicDeclaration.output.expected,pass
 ./tests/assign-lhs/basicAssignment.wacc,./tests/assign-lhs/basicAssignment.output.observed,./tests/assign-lhs/basicAssignment.output.expected,pass
 ./tests/assign-lhs/assignments.wacc,./tests/assign-lhs/assignments.output.observed,./tests/assign-lhs/assignments.output.expected,pass
+./tests/for-loops/for.wacc,./tests/for-loops/for.output.observed,./tests/for-loops/for.output.expected,pass
+./tests/for-loops/for_scope.wacc,./tests/for-loops/for_scope.output.observed,./tests/for-loops/for_scope.output.expected,pass
+./tests/for-loops/for_no_decl.wacc,./tests/for-loops/for_no_decl.output.observed,./tests/for-loops/for_no_decl.output.expected,pass
+./tests/array_for_loops/array_for.wacc,./tests/array_for_loops/array_for.output.observed,./tests/array_for_loops/array_for.output.expected,pass
+./tests/anon-funcs/anon.wacc,./tests/anon-funcs/anon.output.observed,./tests/anon-funcs/anon.output.expected,pass
+./tests/anon-funcs/anon-in-funcs.wacc,./tests/anon-funcs/anon-in-funcs.output.observed,./tests/anon-funcs/anon-in-funcs.output.expected,pass
+./tests/anon-funcs/nested.wacc,./tests/anon-funcs/nested.output.observed,./tests/anon-funcs/nested.output.expected,pass
+./tests/uninitialised-arr/uninit.wacc,./tests/uninitialised-arr/uninit.output.observed,./tests/uninitialised-arr/uninit.output.expected,pass
+./tests/uninitialised-arr/change-arr-val.wacc,./tests/uninitialised-arr/change-arr-val.output.observed,./tests/uninitialised-arr/change-arr-val.output.expected,pass
+./tests/uninitialised-arr/using-ident.wacc,./tests/uninitialised-arr/using-ident.output.observed,./tests/uninitialised-arr/using-ident.output.expected,pass
+./tests/higher-order-funcs/map.wacc,./tests/higher-order-funcs/map.output.observed,./tests/higher-order-funcs/map.output.expected,pass
+./tests/higher-order-funcs/filter.wacc,./tests/higher-order-funcs/filter.output.observed,./tests/higher-order-funcs/filter.output.expected,pass
+./tests/higher-order-funcs/concat.wacc,./tests/higher-order-funcs/concat.output.observed,./tests/higher-order-funcs/concat.output.expected,pass
+./tests/higher-order-funcs/concatMap.wacc,./tests/higher-order-funcs/concatMap.output.observed,./tests/higher-order-funcs/concatMap.output.expected,pass

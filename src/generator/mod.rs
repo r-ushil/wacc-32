@@ -45,3 +45,7 @@ pub fn generate(ast: &Program) -> GeneratedCode {
 fn generate_function_name(function_name: String) -> String {
   format!("f_{}", function_name)
 }
+
+fn generate_anon_func_name(func_name: String) -> String {
+  format!("af_{}", func_name)
+}

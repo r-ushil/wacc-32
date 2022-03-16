@@ -151,18 +151,22 @@ fn equal_types<L: Analysable<Output = Type>, R: Analysable<Output = Type>>(
 /* Errors if AST node does not have expected type. */
 fn expected_type<'a, A: Analysable<Output = Type>>(
   scope: &mut ScopeBuilder,
-  expected_type: &'a Type,
+  expected_type: &mut Type,
   actual: &mut A,
 ) -> AResult<&'a Type> {
   let actual_type = actual.analyse(scope, A::Input::default())?;
 
-  if expected_type.clone().unify(actual_type.clone()).is_some() {
-    Ok(expected_type)
-  } else {
-    Err(SemanticError::Normal(format!(
+  let unified_expected = expected_type.clone().unify(actual_type.clone());
+
+  match unified_expected {
+    Some(t) => {
+      *expected_type = t.clone();
+      Ok(t)
+    }
+    None => Err(SemanticError::Normal(format!(
       "TYPE ERROR: Unexpected type.\n\tExpected: {:?}\n\tActual: {:?}",
       expected_type, actual_type
-    )))
+    ))),
   }
 }
 
@@ -257,7 +261,7 @@ impl Analysable for ArrayElem {
     SemanticError::join_iter(
       indexes
         .iter_mut()
-        .map(|index| expected_type(scope, &Type::Int, index)),
+        .map(|index| expected_type(scope, &mut Type::Int, index)),
     )?;
 
     /* Gets type of the array being looked up. */

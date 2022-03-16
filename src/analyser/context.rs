@@ -56,7 +56,6 @@ impl ScopeBuilder<'_> {
     /* This is base symbol table, depth = 0. */
     symbol_table.prefix = String::new();
 
-    /*  */
     ScopeBuilder {
       current: symbol_table,
       parents: None,

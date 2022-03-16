@@ -1,0 +1,4 @@
+begin
+    int[] arr = new int[10];
+    exit arr[9]
+end
