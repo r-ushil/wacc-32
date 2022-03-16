@@ -1,0 +1,8 @@
+import import-files/vector.wacc
+begin
+    Vector vec = create_vec();
+
+    int res = vec.size + vec.capacity; #0 + 2
+    
+    exit res #2
+end
