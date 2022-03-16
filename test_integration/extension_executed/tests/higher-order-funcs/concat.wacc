@@ -1,0 +1,14 @@
+import import-files/hof.wacc
+begin
+    int[] orig1 = [1, 2];
+    int[] orig2 = [3, 4];
+    int[][] orig = [orig1, orig2];
+
+    int[] res = call concat(orig);
+    
+    int orig_len = len orig;
+    int res_len = len res;
+
+    int ret = res_len - orig_len;
+    exit ret #len ret = 4 - 2 = 2
+end
