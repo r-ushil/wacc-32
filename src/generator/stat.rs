@@ -115,6 +115,49 @@ pub fn generate_malloc(bytes: i32, code: &mut GeneratedCode, reg: Reg) {
   }
 }
 
+pub fn generate_malloc_with_reg(
+  type_size: Reg,
+  exprs_size: Reg,
+  code: &mut GeneratedCode,
+  reg: Reg,
+) {
+  /* Mallocs {bytes} bytes and leaves the address in {reg}. */
+  /* MOV r1, {bytes} */
+  code
+    .text
+    .push(Asm::mov(Reg::Arg(ArgReg::R1), Op2::Reg(type_size, 0)));
+
+  /* MOV r0, {reg} */
+  code
+    .text
+    .push(Asm::mov(Reg::Arg(ArgReg::R0), Op2::Reg(exprs_size, 0)));
+
+  /* SMULL r0, r1, r0, r1 */
+  code.text.push(Asm::smull(
+    Reg::Arg(ArgReg::R0),
+    Reg::Arg(ArgReg::R1),
+    Reg::Arg(ArgReg::R0),
+    Reg::Arg(ArgReg::R1),
+  ));
+
+  /* ADD r0, r0, #4 */
+  code.text.push(Asm::add(
+    Reg::Arg(ArgReg::R0),
+    Reg::Arg(ArgReg::R0),
+    Op2::Imm(ARM_DSIZE_WORD),
+  ));
+
+  /* BL malloc */
+  code.text.push(Asm::b(PREDEF_SYS_MALLOC).link());
+
+  /* MOV {regs[0]}, r0 */
+  if reg != Reg::Arg(ArgReg::R0) {
+    code
+      .text
+      .push(Asm::mov(reg, Op2::Reg(Reg::Arg(ArgReg::R0), 0)));
+  }
+}
+
 impl Generatable for StructLiter {
   type Input = ();
   type Output = ();

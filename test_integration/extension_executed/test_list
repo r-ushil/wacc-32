@@ -24,4 +24,4 @@
 ./tests/anon-funcs/nested.wacc,./tests/anon-funcs/nested.output.observed,./tests/anon-funcs/nested.output.expected,pass
 ./tests/uninitialised-arr/uninit.wacc,./tests/uninitialised-arr/uninit.output.observed,./tests/uninitialised-arr/uninit.output.expected,pass
 ./tests/uninitialised-arr/change-arr-val.wacc,./tests/uninitialised-arr/change-arr-val.output.observed,./tests/uninitialised-arr/change-arr-val.output.expected,pass
-
+./tests/uninitialised-arr/using-ident.wacc,./tests/uninitialised-arr/using-ident.output.observed,./tests/uninitialised-arr/using-ident.output.expected,pass

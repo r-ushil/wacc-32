@@ -1,0 +1,6 @@
+begin
+    int x = 4 + 3;
+    int[] arr = new int[x];
+    arr[5] = 45;
+    exit arr[5]
+end

@@ -163,6 +163,7 @@ pub enum Expr {
   StrLiter(String),
   NullPairLiter,
   PairLiter(Box<TypedExpr>, Box<TypedExpr>),
+  BlankArrayLiter(Type, Box<Expr>),
   ArrayLiter(ArrayLiter), /* Type is type of elements. */
   StructLiter(StructLiter),
   /* Identifiers. */
