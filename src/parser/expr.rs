@@ -79,6 +79,7 @@ fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
     str_liter,
     value(Expr::NullPairLiter, tok("null")),
     pair_liter,
+    map(empty_array_liter, Expr::ArrayLiter),
     map(array_liter, Expr::ArrayLiter),
     map(struct_liter, Expr::StructLiter),
     map(array_elem, Expr::ArrayElem),
@@ -149,7 +150,6 @@ fn expr_binary_app(
 }
 
 /* creates an ArrayLiter node, of specified size, initialising elems to 0 */
-
 fn empty_array_liter(
   input: &str,
 ) -> IResult<&str, ArrayLiter, ErrorTree<&str>> {
