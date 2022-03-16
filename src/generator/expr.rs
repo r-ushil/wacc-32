@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::vec;
 
 use self::CondCode::*;
 use super::predef::{
@@ -49,9 +50,21 @@ impl Generatable for Expr {
       Expr::AnonFunc(func) => {
         generate_anon_func(scope, code, regs, (**func).clone())
       }
-      Expr::BlankArrayLiter(arr_lit, size) => todo!(),
+      Expr::BlankArrayLiter(arr_lit, size) => {
+        generate_blank_arr(scope, code, regs, arr_lit, size)
+      }
     }
   }
+}
+
+fn generate_blank_arr(
+  scope: &ScopeReader,
+  code: &mut GeneratedCode,
+  regs: &[GenReg],
+  arr_lit: &ArrayLiter,
+  size: &Box<Expr>,
+) {
+  todo!();
 }
 
 fn generate_anon_func(
