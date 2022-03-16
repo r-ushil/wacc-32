@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use std::vec;
+use std::convert::TryInto;
 
 use self::CondCode::*;
 use super::predef::{
@@ -64,7 +64,42 @@ fn generate_blank_arr(
   arr_lit: &ArrayLiter,
   size: &Box<Expr>,
 ) {
-  todo!();
+  let def_expr = default_expr(arr_lit.0.clone());
+
+  let n = match **size {
+    Expr::IntLiter(n) => n.try_into().unwrap(),
+    _ => unreachable!("Length must be declared before - can't be inline"),
+  };
+
+  let new_arr_lit = Expr::ArrayLiter(ArrayLiter {
+    0: arr_lit.0.clone(),
+    1: vec![def_expr; n],
+  });
+
+  new_arr_lit.generate(scope, code, regs, ());
+}
+
+fn default_expr(t: Type) -> Expr {
+  match t {
+    Type::Int => Expr::IntLiter(0),
+    Type::Bool => Expr::BoolLiter(false),
+    Type::Char => Expr::CharLiter('0'),
+    Type::String => Expr::StrLiter("0".to_string()),
+    Type::Any => Expr::IntLiter(0),
+    Type::Array(t) => default_expr(*t),
+    Type::Pair(t1, t2) => Expr::PairLiter(
+      Box::new(TypedExpr {
+        0: (*t1).clone(),
+        1: default_expr(*t1),
+      }),
+      Box::new(TypedExpr {
+        0: (*t2).clone(),
+        1: default_expr(*t2),
+      }),
+    ),
+    Type::Func(_) => unreachable!("undefined default for funcs"),
+    Type::Custom(_) => unreachable!("undefined default for custom"),
+  }
 }
 
 fn generate_anon_func(
