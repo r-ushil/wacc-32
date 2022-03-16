@@ -64,6 +64,8 @@ fn generate_blank_arr(
   arr_lit: &ArrayLiter,
   size: &Box<Expr>,
 ) {
+  println!("{:#?}", arr_lit);
+
   let def_expr = default_expr(arr_lit.0.clone());
 
   let n = match **size {
@@ -85,20 +87,7 @@ fn default_expr(t: Type) -> Expr {
     Type::Bool => Expr::BoolLiter(false),
     Type::Char => Expr::CharLiter('0'),
     Type::String => Expr::StrLiter("0".to_string()),
-    Type::Any => Expr::IntLiter(0),
-    Type::Array(t) => default_expr(*t),
-    Type::Pair(t1, t2) => Expr::PairLiter(
-      Box::new(TypedExpr {
-        0: (*t1).clone(),
-        1: default_expr(*t1),
-      }),
-      Box::new(TypedExpr {
-        0: (*t2).clone(),
-        1: default_expr(*t2),
-      }),
-    ),
-    Type::Func(_) => unreachable!("undefined default for funcs"),
-    Type::Custom(_) => unreachable!("undefined default for custom"),
+    _ => unreachable!("Only implemented defaults for base types"),
   }
 }
 

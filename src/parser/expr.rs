@@ -10,8 +10,8 @@ use nom::{
 };
 use nom_supreme::error::ErrorTree;
 
-use super::shared::*;
 use super::{program::func, stat::pair_elem, type_::type_};
+use super::{shared::*, type_::base_type};
 use crate::ast::*;
 
 const BINARY_OP_MAX_PREC: u8 = 6;
@@ -80,7 +80,7 @@ fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
     value(Expr::NullPairLiter, tok("null")),
     pair_liter,
     map(array_liter, Expr::ArrayLiter),
-    map(empty_array_liter, |(arr_lit, size)| {
+    map(blank_array_liter, |(arr_lit, size)| {
       Expr::BlankArrayLiter(arr_lit, Box::new(size))
     }),
     map(struct_liter, Expr::StructLiter),
@@ -152,12 +152,13 @@ fn expr_binary_app(
 }
 
 /* creates an ArrayLiter node, of specified size, initialising elems to 0 */
-fn empty_array_liter(
+fn blank_array_liter(
   input: &str,
 ) -> IResult<&str, (ArrayLiter, Expr), ErrorTree<&str>> {
-  ws(map(tuple((tok("new"), expr)), |(_, size)| {
-    (ArrayLiter(Type::default(), vec![]), size)
-  }))(input)
+  ws(map(
+    tuple((tok("new"), base_type, tok("["), expr, tok("]"))),
+    |(_, t, _, size, _)| (ArrayLiter(t, vec![]), size),
+  ))(input)
 }
 
 /* 〈array-liter〉::= ‘[’ (〈expr〉 (‘,’〈expr〉)* )? ‘]’ */
