@@ -65,8 +65,6 @@ fn generate_blank_arr(
   arr_lit: &ArrayLiter,
   size: &Box<Expr>,
 ) {
-  println!("{:#?}", arr_lit);
-
   /* LDR {regs[0]}, =type_size */
   code
     .text
@@ -89,16 +87,6 @@ fn generate_blank_arr(
   code
     .text
     .push(Asm::str(Reg::General(regs[1]), (Reg::General(regs[0]), 0)));
-}
-
-fn default_expr(t: Type) -> Expr {
-  match t {
-    Type::Int => Expr::IntLiter(0),
-    Type::Bool => Expr::BoolLiter(false),
-    Type::Char => Expr::CharLiter('0'),
-    Type::String => Expr::StrLiter("0".to_string()),
-    _ => unreachable!("Only implemented defaults for base types"),
-  }
 }
 
 fn generate_anon_func(

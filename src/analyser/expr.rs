@@ -43,7 +43,6 @@ impl Analysable for Expr {
       }
       Expr::BlankArrayLiter(arr_lit, size) => {
         if size.analyse(scope, ())? == Type::Int {
-          println!("{:#?}", arr_lit);
           arr_lit.analyse(scope, ())
         } else {
           Err(SemanticError::Normal(
