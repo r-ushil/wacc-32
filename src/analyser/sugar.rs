@@ -1,6 +1,86 @@
 /* Place to put functions which desugar ast nodes into other ast nodes. */
 use super::*;
 
+pub fn struct_declaration(
+  scope: &mut ScopeBuilder,
+  struct_name: &mut Ident,
+  StructLiter { id: _, fields }: &mut StructLiter,
+  src: &mut Expr,
+) -> AResult<Stat> {
+  let tmp_val = Expr::Ident(scope.get_unique());
+
+  /* Store the whole struct in a temporary variable. */
+  let mut new_stat = Stat::Declaration(
+    Type::Custom(struct_name.clone()),
+    tmp_val.clone(),
+    src.clone(),
+  );
+
+  /* Get struct def to lookup field types. */
+  let type_def = scope
+    .get_def(struct_name)
+    .expect("Analyser ensures this is valid.");
+
+  /* Set each destination expression equal to an element. */
+  for (field_name, field_expr) in fields.iter() {
+    let field_type = type_def
+      .fields
+      .get(field_name)
+      .expect("Analyser ensures this is valid")
+      .0
+      .clone();
+
+    let declaration = Stat::Declaration(
+      field_type,
+      field_expr.clone(),
+      Expr::StructElem(StructElem(
+        struct_name.clone(),
+        Box::new(tmp_val.clone()),
+        field_name.clone(),
+      )),
+    );
+
+    new_stat = Stat::Sequence(Box::new(new_stat), Box::new(declaration));
+  }
+
+  Ok(new_stat)
+}
+
+pub fn struct_assignment(
+  scope: &mut ScopeBuilder,
+  StructLiter {
+    id: struct_name,
+    fields,
+  }: &mut StructLiter,
+  src: &mut Expr,
+) -> AResult<Stat> {
+  let tmp_val = Expr::Ident(scope.get_unique());
+
+  /* Store the whole struct in a temporary variable. */
+  let mut new_stat = Stat::Declaration(
+    Type::Custom(struct_name.clone()),
+    tmp_val.clone(),
+    src.clone(),
+  );
+
+  /* Set each destination expression equal to an element. */
+  for (field_name, field_expr) in fields.iter() {
+    let assignment = Stat::Assignment(
+      field_expr.clone(),
+      Type::default(),
+      Expr::StructElem(StructElem(
+        struct_name.clone(),
+        Box::new(tmp_val.clone()),
+        field_name.clone(),
+      )),
+    );
+
+    new_stat = Stat::Sequence(Box::new(new_stat), Box::new(assignment));
+  }
+
+  Ok(new_stat)
+}
+
 pub fn array_declaration(
   scope: &mut ScopeBuilder,
   ArrayLiter(_, dst_exprs): &mut ArrayLiter,

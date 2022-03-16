@@ -1,0 +1,20 @@
+Compiler exit code: 0
+--------- stdout ---------
+single layer struct assignment
+42
+a
+nested struct assignment
+5
+d
+7
+e
+single layer struct declaration
+5
+d
+nested arrays declaration
+55
+@
+75
+!
+--------------------------
+Exit code: 0

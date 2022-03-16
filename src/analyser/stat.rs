@@ -214,6 +214,12 @@ impl Analysable for Stat {
 
             self.analyse(scope, ())
           }
+          (Type::Custom(struct_name), Expr::StructLiter(struct_lit)) => {
+            *self =
+              sugar::struct_declaration(scope, struct_name, struct_lit, src)?;
+
+            self.analyse(scope, ())
+          }
           (expected, dst) => {
             expected_type(scope, expected, src)
               .join(dst.analyse(scope, ExprPerms::Declare(expected.clone())))?;
@@ -237,6 +243,11 @@ impl Analysable for Stat {
           }
           Expr::ArrayLiter(lit) => {
             *self = sugar::array_assignment(scope, lit, src)?;
+
+            self.analyse(scope, ())
+          }
+          Expr::StructLiter(lit) => {
+            *self = sugar::struct_assignment(scope, lit, src)?;
 
             self.analyse(scope, ())
           }
