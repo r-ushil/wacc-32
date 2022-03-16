@@ -129,6 +129,11 @@ impl Analysable for ArrayLiter {
   fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
     let ArrayLiter(stored_type, exprs) = self;
 
+    /* Avoid analysis if it's an empty array */
+    if exprs.clone().is_empty() {
+      return Ok(Type::Array(Box::new(stored_type.clone())));
+    }
+
     /* Take first element as source of truth. */
     let mut array_type = Some(Type::Any);
 
