@@ -49,6 +49,7 @@ impl Generatable for Expr {
       Expr::AnonFunc(func) => {
         generate_anon_func(scope, code, regs, (**func).clone())
       }
+      Expr::BlankArrayLiter(arr_lit, size) => todo!(),
     }
   }
 }
