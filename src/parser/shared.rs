@@ -131,7 +131,7 @@ pub fn is_keyword(ident: &str) -> bool {
       | "true"
       | "false"
       | "null"
-      | "size"
+      | "new"
   )
 }
 

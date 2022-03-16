@@ -1,4 +1,4 @@
 begin
-    int[] arr = size 10;
+    int[] arr = new 10;
     exit arr[9]
 end
