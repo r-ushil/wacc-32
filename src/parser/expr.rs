@@ -154,10 +154,10 @@ fn expr_binary_app(
 /* creates an ArrayLiter node, of specified size, initialising elems to 0 */
 fn blank_array_liter(
   input: &str,
-) -> IResult<&str, (ArrayLiter, Expr), ErrorTree<&str>> {
+) -> IResult<&str, (Type, Expr), ErrorTree<&str>> {
   ws(map(
     tuple((tok("new"), base_type, tok("["), expr, tok("]"))),
-    |(_, t, _, size, _)| (ArrayLiter(t, vec![]), size),
+    |(_, t, _, size, _)| (Type::Array(Box::new(t)), size),
   ))(input)
 }
 

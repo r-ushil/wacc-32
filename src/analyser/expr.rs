@@ -41,9 +41,9 @@ impl Analysable for Expr {
         (**func).analyse(scope, ())?;
         Ok(Type::Func(Box::new(func.signature.clone())))
       }
-      Expr::BlankArrayLiter(arr_lit, size) => {
+      Expr::BlankArrayLiter(t, size) => {
         if size.analyse(scope, ())? == Type::Int {
-          arr_lit.analyse(scope, ())
+          Ok(t.clone())
         } else {
           Err(SemanticError::Normal(
             "Size for blank array liter not a string.".to_string(),
