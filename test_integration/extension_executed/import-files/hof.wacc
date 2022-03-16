@@ -51,9 +51,7 @@ begin
             for a : arr do
                 res[i] = a;
                 i = i + 1
-            done ;
-
-            free arr
+            done
         
         done ;
 
@@ -61,10 +59,12 @@ begin
     end
 
     #concatmap is currently broken!
-    int[] concatmap(int(int) f, int[][] arrs) is
+    int[] concatMap(int(int) f, int[][] arrs) is
         int[] tmp = call concat(arrs);
 
-        int[] res = call map(f, tmp);       
+        int[] res = call map(f, tmp);    
+
+        free tmp;
 
         return res
 
