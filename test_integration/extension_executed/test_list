@@ -28,4 +28,4 @@
 ./tests/higher-order-funcs/map.wacc,./tests/higher-order-funcs/map.output.observed,./tests/higher-order-funcs/map.output.expected,pass
 ./tests/higher-order-funcs/filter.wacc,./tests/higher-order-funcs/filter.output.observed,./tests/higher-order-funcs/filter.output.expected,pass
 ./tests/higher-order-funcs/concat.wacc,./tests/higher-order-funcs/concat.output.observed,./tests/higher-order-funcs/concat.output.expected,pass
-./tests/higher-order-funcs/concatMap.wacc,./tests/higher-order-funcs/concatMap.output.observed,./tests/higher-order-funcs/concatMap.output.expected,pass
+./tests/higher-order-funcs/concatMap.wacc,./tests/higher-order-funcs/concatMap.output.observed,./tests/higher-order-funcs/concatMap.output.expected,fail

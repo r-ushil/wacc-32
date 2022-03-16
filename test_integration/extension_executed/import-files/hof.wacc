@@ -58,12 +58,11 @@ begin
         return res
     end
 
-    int[] concatMap(int(int) f, int[][] arrs) is
-        for arr : arrs do
-            arr = call map(f, arr)
-        done ;
+    #concatmap is currently broken!
+    int[] concatmap(int(int) f, int[][] arrs) is
+        int[] tmp = call concat(arrs);
 
-        int[] res = call concat(arrs);
+        int[] res = call map(f, tmp);       
 
         return res
 
