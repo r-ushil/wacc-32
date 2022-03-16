@@ -148,6 +148,18 @@ fn expr_binary_app(
   Ok((input, lhs))
 }
 
+/* creates an ArrayLiter node, of specified size, initialising elems to 0 */
+
+fn empty_array_liter(
+  input: &str,
+) -> IResult<&str, ArrayLiter, ErrorTree<&str>> {
+  ws(map(tuple((tok("size"), digit1)), |(_, size_str)| {
+    let size = size_str.parse::<usize>().unwrap();
+    let es = vec![Expr::IntLiter(0); size]; //creates vec with "size" 0 Exprs
+    ArrayLiter(Type::default(), es)
+  }))(input)
+}
+
 /* 〈array-liter〉::= ‘[’ (〈expr〉 (‘,’〈expr〉)* )? ‘]’ */
 fn array_liter(input: &str) -> IResult<&str, ArrayLiter, ErrorTree<&str>> {
   ws(delimited(
