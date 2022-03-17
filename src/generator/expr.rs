@@ -29,10 +29,11 @@ impl Generatable for Expr {
     src: Option<Reg>,
   ) {
     let arena = Arena::new();
-    let mut cfg = CFG::new(code, &arena);
+    let cfg = &mut CFG::new(code, &arena);
 
     match self {
       Expr::IntLiter(val) => cfg.flow(Asm::ldr(Reg::General(regs[0]), *val)),
+      Expr::Ident(id) => generate_ident(scope, cfg, regs, id, src),
       other => {
         match other {
           Expr::BoolLiter(val) => generate_bool_liter(code, regs, val),
@@ -52,7 +53,6 @@ impl Generatable for Expr {
           Expr::PairLiter(e1, e2) => {
             generate_pair_liter(scope, code, regs, e1, e2)
           }
-          Expr::Ident(id) => generate_ident(scope, code, regs, id, src),
           Expr::ArrayElem(elem_type, arr_expr, idx_expr) => {
             generate_array_elem(
               scope, code, regs, elem_type, arr_expr, idx_expr, src,
@@ -448,13 +448,13 @@ fn generate_array_elem(
   Some(reg) => writes value at reg to this identifier,
   None => Evaluates this identifier into regs[0]
 } */
-fn generate_ident(
+fn generate_ident<'cfg, 'a>(
   scope: &ScopeReader,
-  code: &mut GeneratedCode,
+  cfg: &'a mut CFG<'cfg>,
   regs: &[GenReg],
   id: &Ident,
   src: Option<Reg>,
-) {
+) -> Flow<'cfg> {
   use IdentInfo::*;
 
   match scope.get(id) {
@@ -466,27 +466,17 @@ fn generate_ident(
         None => Asm::ldr(Reg::General(regs[0]), (Reg::StackPointer, offset)),
       };
 
-      code.text.push(instr.size(type_.size().into()))
+      cfg.flow(instr.size(type_.size().into()))
     }
     Some(Label(_, label)) => {
       /* Cannot write to labels. */
       assert!(src.is_none());
 
       /* LDR {regs[0]}, ={label} */
-      code.text.push(Asm::ldr(Reg::General(regs[0]), label));
+      cfg.flow(Asm::ldr(Reg::General(regs[0]), label))
     }
     _ => panic!("ident must be a local variable or function"),
-  };
-}
-
-fn generate_int_liter(code: &mut GeneratedCode, regs: &[GenReg], val: &i32) {
-  let arena = Arena::new();
-  let mut cfg = CFG::new(code, &arena);
-
-  /* LDR r{min_reg}, val */
-  cfg.flow(Asm::ldr(Reg::General(regs[0]), *val));
-
-  cfg.linearise();
+  }
 }
 
 fn generate_bool_liter(code: &mut GeneratedCode, regs: &[GenReg], val: &bool) {
