@@ -1,0 +1,4 @@
+begin
+    let x = 3;
+    exit x
+end

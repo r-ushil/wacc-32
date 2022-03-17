@@ -44,3 +44,4 @@
 ./tests/assign-lhs/arrayDestructure.wacc,./tests/assign-lhs/arrayDestructure.output.observed,./tests/assign-lhs/arrayDestructure.output.expected,pass
 ./tests/assign-lhs/structDestructure.wacc,./tests/assign-lhs/structDestructure.output.observed,./tests/assign-lhs/structDestructure.output.expected,pass
 ./tests/assign-lhs/mixedDestructure.wacc,./tests/assign-lhs/mixedDestructure.output.observed,./tests/assign-lhs/mixedDestructure.output.expected,pass
+./tests/decl-type-inference/let.wacc,./tests/decl-type-inference/let.output.observed,./tests/decl-type-inference/let.output.expected,pass
