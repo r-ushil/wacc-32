@@ -32,13 +32,21 @@ impl Generatable for Expr {
     let cfg = &mut CFG::new(code, &arena);
 
     match self {
-      Expr::IntLiter(val) => cfg.flow(Asm::ldr(Reg::General(regs[0]), *val)),
+      /* Identifiers, at this point only local variables and labels. */
       Expr::Ident(id) => generate_ident(scope, cfg, regs, id, src),
+      /* Literal values. */
+      Expr::IntLiter(val) => cfg.flow(Asm::ldr(Reg::General(regs[0]), *val)),
+      Expr::BoolLiter(val) => cfg.flow(Asm::mov(
+        Reg::General(regs[0]),
+        Op2::Imm(if *val { 1 } else { 0 }),
+      )),
+      Expr::CharLiter(val) => generate_char_liter(cfg, regs, val),
+      Expr::StrLiter(val) => generate_string_liter(cfg, regs, val),
+      Expr::NullPairLiter => {
+        cfg.flow(Asm::ldr(Reg::General(regs[0]), LoadArg::Imm(0)))
+      }
       other => {
         match other {
-          Expr::BoolLiter(val) => generate_bool_liter(code, regs, val),
-          Expr::CharLiter(val) => generate_char_liter(code, regs, val),
-          Expr::StrLiter(val) => generate_string_liter(code, regs, val),
           Expr::ArrayLiter(ArrayLiter(t, exprs)) => {
             generate_array_liter(scope, code, regs, t, exprs)
           }
@@ -49,7 +57,6 @@ impl Generatable for Expr {
           Expr::BinaryApp(expr1, op, expr2) => {
             generate_binary_app(code, regs, scope, expr1, op, expr2)
           }
-          Expr::NullPairLiter => generate_null_pair_liter(code, regs),
           Expr::PairLiter(e1, e2) => {
             generate_pair_liter(scope, code, regs, e1, e2)
           }
@@ -377,13 +384,6 @@ fn generate_struct_elem(
   code.text.push(instr.size(type_.size().into()));
 }
 
-fn generate_null_pair_liter(code: &mut GeneratedCode, regs: &[GenReg]) {
-  /* LDR reg[0] =0 */
-  code
-    .text
-    .push(Asm::ldr(Reg::General(regs[0]), LoadArg::Imm(0)));
-}
-
 fn generate_array_elem(
   scope: &ScopeReader,
   code: &mut GeneratedCode,
@@ -479,16 +479,11 @@ fn generate_ident<'cfg, 'a>(
   }
 }
 
-fn generate_bool_liter(code: &mut GeneratedCode, regs: &[GenReg], val: &bool) {
-  //set imm to 1 or 0 depending on val
-  let imm = if *val { 1 } else { 0 };
-  /* MOV r{min_reg}, #imm */
-  code
-    .text
-    .push(Asm::mov(Reg::General(regs[0]), Op2::Imm(imm)));
-}
-
-fn generate_char_liter(code: &mut GeneratedCode, regs: &[GenReg], val: &char) {
+fn generate_char_liter<'a, 'cfg>(
+  cfg: &'a mut CFG<'cfg>,
+  regs: &[GenReg],
+  val: &char,
+) -> Flow<'cfg> {
   let ch = *val;
   let ch_op2 = if ch == '\0' {
     Op2::Imm(0)
@@ -497,16 +492,20 @@ fn generate_char_liter(code: &mut GeneratedCode, regs: &[GenReg], val: &char) {
   };
 
   /* MOV r{min_reg}, #'val' */
-  code.text.push(Asm::mov(Reg::General(regs[0]), ch_op2))
+  cfg.flow(Asm::mov(Reg::General(regs[0]), ch_op2))
 }
 
-fn generate_string_liter(code: &mut GeneratedCode, regs: &[GenReg], val: &str) {
+fn generate_string_liter<'a, 'cfg>(
+  cfg: &'a mut CFG<'cfg>,
+  regs: &[GenReg],
+  val: &str,
+) -> Flow<'cfg> {
   /* Create a label msg_{msg_no} to display the text */
   /* msg_{msg_no}: */
-  let msg_label = code.get_msg(val);
+  let msg_label = cfg.code.get_msg(val);
 
   /* LDR r{min_reg}, ={msg_{msg_no}} */
-  code.text.push(Asm::ldr(Reg::General(regs[0]), msg_label))
+  cfg.flow(Asm::ldr(Reg::General(regs[0]), msg_label))
 }
 
 fn generate_unary_app(

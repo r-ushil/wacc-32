@@ -69,7 +69,7 @@ pub struct Block<'cfg> {
 
 /* Represents an entire control flow graph. */
 pub struct CFG<'cfg> {
-  code: &'cfg mut GeneratedCode,
+  pub code: &'cfg mut GeneratedCode,
   arena: &'cfg Arena<BlockRef<'cfg>>,
   ordering: Vec<&'cfg BlockRef<'cfg>>,
 }
