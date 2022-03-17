@@ -1,6 +1,10 @@
 # some defined functions to be used for import
 
 begin
+    struct Peano {
+        int x
+    } 
+
     int succ(int x) is
         return x + 1
     end
