@@ -4,6 +4,8 @@ begin
 
     bool res = call is_empty_vec(vec);
 
+    bool freed = free_vec(vec);
+
     if res then #res = true
         exit 12
     else

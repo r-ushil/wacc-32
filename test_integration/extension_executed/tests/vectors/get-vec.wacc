@@ -8,6 +8,8 @@ begin
 
 
     int val = call get_vec(vec, 2);
+
+    bool freed = free_vec(vec);
     
     exit val # vec[2] = 17
 end
