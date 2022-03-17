@@ -15,6 +15,12 @@ begin
         return res
     end
 
+    
+
+    bool is_empty_vec(Vector vec) is
+        return vec.size == 0
+    end
+
     # bool realloc_vec(Vector vec, int new_capacity) is
 
     # end
@@ -33,10 +39,6 @@ begin
     #         vec.arr[size] = elem;
     #         size = size + 1
     #     fi
-    # end
-
-    # bool is_empty_vec(Vector vec) is
-    #     return size == 0;
     # end
 
     # # Vector free_vec(Vector vec) is

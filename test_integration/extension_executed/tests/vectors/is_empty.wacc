@@ -1,0 +1,12 @@
+import import-files/vector.wacc
+begin
+    Vector vec = call create_vec();
+
+    bool res = call is_empty_vec(vec);
+
+    if res then #res = true
+        exit 12
+    else
+        exit 21
+    fi
+end

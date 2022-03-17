@@ -30,3 +30,5 @@
 ./tests/higher-order-funcs/filter.wacc,./tests/higher-order-funcs/filter.output.observed,./tests/higher-order-funcs/filter.output.expected,pass
 ./tests/higher-order-funcs/concat.wacc,./tests/higher-order-funcs/concat.output.observed,./tests/higher-order-funcs/concat.output.expected,pass
 ./tests/higher-order-funcs/concatMap.wacc,./tests/higher-order-funcs/concatMap.output.observed,./tests/higher-order-funcs/concatMap.output.expected,pass
+./tests/vectors/create-vec.wacc,./tests/vectors/create-vec.output.observed,./tests/vectors/create-vec.output.expected,pass
+./tests/vectors/is_empty.wacc,./tests/vectors/is_empty.output.observed,./tests/vectors/is_empty.output.expected,pass
