@@ -1,6 +1,6 @@
 --------- stdout ---------
 This program calculates the nth fibonacci number iteratively.
-Please enter n (should not be too large): The input n is 0
-The nth fibonacci number is 0
+Please enter n (should not be too large): The input n is 42
+The nth fibonacci number is 267914296
 --------------------------
 Exit code: 0

@@ -15,20 +15,6 @@ impl ReturnBehaviour {
   }
 }
 
-impl Analysable for AssignLhs {
-  type Input = ();
-  type Output = Type;
-
-  fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
-    match self {
-      AssignLhs::Ident(id) => id.analyse(scope, ()),
-      AssignLhs::ArrayElem(elem) => elem.analyse(scope, ()),
-      AssignLhs::PairElem(elem) => elem.analyse(scope, ()),
-      AssignLhs::StructElem(elem) => elem.analyse(scope, ()),
-    }
-  }
-}
-
 impl Analysable for StructLiter {
   type Input = ();
   type Output = Type;
@@ -75,14 +61,23 @@ impl Analysable for StructLiter {
 }
 
 impl Analysable for PairElem {
-  type Input = ();
+  type Input = ExprPerms;
   type Output = Type;
-  fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
+  fn analyse(
+    &mut self,
+    scope: &mut ScopeBuilder,
+    perms: ExprPerms,
+  ) -> AResult<Type> {
     use PairElem::*;
+
+    /* Pair elements can be assigned but not declared. */
+    perms.break_declare()?;
 
     /* Gets type of thing being accessed, and stored type. */
     let pair_type = match self {
-      Fst(p) | Snd(p) => p.analyse(scope, ())?,
+      /* The pair doesn't have to be assignable, only evaluatable.
+      E.g: foo().fst = 5 */
+      Fst(p) | Snd(p) => p.analyse(scope, ExprPerms::Nothing)?,
     };
 
     /* Gets type of left and right element of pair. */
@@ -139,7 +134,7 @@ impl Analysable for ArrayLiter {
 
     /* Ensure every other element has same type. */
     for expr in exprs {
-      if let Ok(expr_type) = expr.analyse(scope, ()) {
+      if let Ok(expr_type) = expr.analyse(scope, ExprPerms::Nothing) {
         if let Some(t) = array_type {
           array_type = t.unify(expr_type)
         }
@@ -197,41 +192,44 @@ impl Analysable for Stat {
     /* Returns error if there is any. */
     match self {
       Stat::Skip => Ok(Never), /* Skips never return. */
-      Stat::Declaration(expected, id, val) => {
+      Stat::Declaration(expected, dst, val) => {
         expected_type(scope, expected, val)
-          .join(scope.insert_var(id, expected.clone()))?;
+          .join(dst.analyse(scope, ExprPerms::Declare(expected.clone())))?;
 
         /* Declarations never return. */
         Ok(Never)
       }
       Stat::Assignment(lhs, t, rhs) => {
         /* LHS and RHS must have same type. */
-        *t = equal_types(scope, lhs, rhs)?;
+        *t = equal_types_with_inputs(
+          scope,
+          lhs,
+          ExprPerms::Assign,
+          rhs,
+          ExprPerms::Nothing,
+        )?;
 
         /* Assignments never return. */
         Ok(Never)
       }
-      Stat::Read(t, dest) => {
+      Stat::Read(dst) => {
         /* Any type can be read. */
-        match dest.analyse(scope, ())? {
+        match dst.analyse(scope, ExprPerms::Assign)? {
           /* Reads never return. */
-          new_t @ (Type::Int | Type::Char) => {
-            *t = new_t;
-            Ok(Never)
-          }
+          Type::Int | Type::Char => Ok(Never),
           _ => Err(SemanticError::Normal(
             "Read statements must read char or int.".to_string(),
           )), /*  */
         }
       }
-      Stat::Free(expr) => match expr.analyse(scope, ())? {
+      Stat::Free(expr) => match expr.analyse(scope, ExprPerms::Nothing)? {
         Type::Pair(_, _) | Type::Array(_) => Ok(Never), /* Frees never return. */
         actual_type => Err(SemanticError::Normal(format!(
           "TYPE ERROR: Expected Type\n\tExpected: Pair or Array\n\tActual:{:?}",
           actual_type
         ))),
       },
-      Stat::Return(expr) => Ok(AtEnd(expr.analyse(scope, ())?)), /* Returns always return. */
+      Stat::Return(expr) => Ok(AtEnd(expr.analyse(scope, ExprPerms::Nothing)?)), /* Returns always return. */
       Stat::Exit(expr) => {
         /* Exit codes must be integers. */
         expected_type(scope, &mut Type::Int, expr)?;
@@ -241,7 +239,7 @@ impl Analysable for Stat {
       }
       Stat::Print(expr) | Stat::Println(expr) => {
         /* Any type can be printed. */
-        expr.analyse(scope, ())?;
+        expr.analyse(scope, ExprPerms::Nothing)?;
 
         /* Prints never return. */
         Ok(Never)
@@ -367,13 +365,13 @@ mod tests {
     let x_type = Type::Array(Box::new(Type::Int));
     scope.insert_var(&mut x_id.clone(), x_type.clone()).unwrap();
     assert_eq!(
-      AssignLhs::Ident(x_id.clone()).analyse(scope, ()),
+      (Expr::Ident(x_id.clone())).analyse(scope, ExprPerms::Nothing),
       Ok(x_type)
     );
 
     assert_eq!(
-      AssignLhs::ArrayElem(ArrayElem(x_id.clone(), vec!(Expr::IntLiter(5))))
-        .analyse(scope, ()),
+      (Expr::ArrayElem(ArrayElem(x_id.clone(), vec!(Expr::IntLiter(5)))))
+        .analyse(scope, ExprPerms::Nothing),
       Ok(Type::Int)
     );
   }
@@ -384,7 +382,8 @@ mod tests {
     int x = 5
     */
     let x = || String::from("x");
-    let mut intx5 = Stat::Declaration(Type::Int, x(), Expr::IntLiter(5));
+    let mut intx5 =
+      Stat::Declaration(Type::Int, Expr::Ident(x()), Expr::IntLiter(5));
 
     let mut outer_symbol_table = SymbolTable::default();
     let mut outer_scope = ScopeBuilder::new(&mut outer_symbol_table);
@@ -415,9 +414,12 @@ mod tests {
     let x = || String::from("x");
     let y = || String::from("y");
     let z = || String::from("z");
-    let intx5 = Stat::Declaration(Type::Int, x(), Expr::IntLiter(5));
-    let intyx = Stat::Declaration(Type::Int, y(), Expr::Ident(x()));
-    let intz7 = Stat::Declaration(Type::Int, z(), Expr::IntLiter(7));
+    let intx5 =
+      Stat::Declaration(Type::Int, Expr::Ident(x()), Expr::IntLiter(5));
+    let intyx =
+      Stat::Declaration(Type::Int, Expr::Ident(y()), Expr::Ident(x()));
+    let intz7 =
+      Stat::Declaration(Type::Int, Expr::Ident(z()), Expr::IntLiter(7));
     let mut statement = Stat::Scope(ScopedStat::new(Stat::Sequence(
       Box::new(intx5),
       Box::new(Stat::Sequence(

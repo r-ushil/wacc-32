@@ -33,9 +33,9 @@ pub struct FuncSig {
 #[derive(PartialEq, Debug, Clone)]
 pub enum Stat {
   Skip,
-  Declaration(Type, Ident, Expr),
-  Assignment(AssignLhs, Type, Expr),
-  Read(Type, AssignLhs),
+  Declaration(Type, Expr, Expr),
+  Assignment(Expr, Type, Expr),
+  Read(TypedExpr),
   Free(TypedExpr),
   Return(Expr),
   Exit(Expr),
@@ -58,14 +58,6 @@ impl ScopedStat {
   pub fn new(statement: Stat) -> ScopedStat {
     ScopedStat(SymbolTable::default(), Box::new(statement))
   }
-}
-
-#[derive(PartialEq, Debug, Clone)]
-pub enum AssignLhs {
-  Ident(Ident),
-  ArrayElem(ArrayElem),
-  PairElem(PairElem),
-  StructElem(StructElem),
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -220,5 +212,6 @@ pub type Ident = String;
 #[derive(PartialEq, Debug, Clone)]
 pub struct ArrayElem(pub Ident, pub Vec<Expr>);
 
+/* Stores the type of the elements. */
 #[derive(PartialEq, Debug, Clone)]
 pub struct ArrayLiter(pub Type, pub Vec<Expr>);

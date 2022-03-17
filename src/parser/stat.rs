@@ -5,7 +5,7 @@ use nom::{
   sequence::{preceded, tuple},
   IResult,
 };
-use nom_supreme::error::ErrorTree;
+use nom_supreme::error::{ErrorTree, Expectation};
 
 use super::expr::*;
 use super::shared::*;
@@ -31,26 +31,47 @@ pub fn stat(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
 
 fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
   let skip = value(Stat::Skip, tok("skip"));
-  let declaration = map(
-    tuple((type_, ident, tok("="), assign_rhs)),
-    |(t, id, _, ass)| Stat::Declaration(t, id, ass),
-  );
+
+  let declaration = |input| {
+    let (input, (t, lhs_expr, _, ass)) =
+      tuple((type_, expr, tok("="), assign_rhs))(input)?;
+
+    /* RULE: local variables must not start with an upper case. */
+    if let Expr::Ident(id) = &lhs_expr {
+      if id.chars().nth(0).unwrap().is_uppercase() {
+        return Err(nom::Err::Error(nom_supreme::error::ErrorTree::Base {
+          location: input,
+          kind: nom_supreme::error::BaseErrorKind::Expected(Expectation::Tag(
+            "Variable names cannot start with an upper case character.",
+          )),
+        }));
+      }
+    }
+
+    Ok((input, Stat::Declaration(t, lhs_expr, ass)))
+  };
+
   let assignment = map(
-    tuple((assign_lhs, tok("="), assign_rhs)),
+    tuple((expr, tok("="), assign_rhs)),
     |(ass_lhs, _, ass_rhs)| Stat::Assignment(ass_lhs, Type::default(), ass_rhs),
   );
-  let read = map(preceded(tok("read"), assign_lhs), |e| {
-    Stat::Read(Type::default(), e)
+
+  let read = map(preceded(tok("read"), expr), |e| {
+    Stat::Read(TypedExpr::new(e))
   });
 
   let free = map(preceded(tok("free"), expr), |e| {
     Stat::Free(TypedExpr::new(e))
   });
+
   let return_ = map(preceded(tok("return"), expr), Stat::Return);
+
   let exit = map(preceded(tok("exit"), expr), Stat::Exit);
+
   let print = map(preceded(tok("print"), expr), |e| {
     Stat::Print(TypedExpr::new(e))
   });
+
   let println = map(preceded(tok("println"), expr), |e| {
     Stat::Println(TypedExpr::new(e))
   });
@@ -114,7 +135,7 @@ fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
     |(_, elem, _, array, _, body, _)| {
       let index_decl = Stat::Declaration(
         Type::Int,
-        "__reserved_for_array__".to_string(),
+        Expr::Ident("__reserved_for_array__".to_string()),
         Expr::IntLiter(0),
       );
 
@@ -128,7 +149,7 @@ fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
       );
 
       let assign = Stat::Assignment(
-        AssignLhs::Ident("__reserved_for_array__".to_string()),
+        Expr::Ident("__reserved_for_array__".to_string()),
         Type::Int,
         Expr::BinaryApp(
           Box::new(Expr::Ident("__reserved_for_array__".to_string())),
@@ -141,7 +162,7 @@ fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
 
       let elem_decl = Stat::Declaration(
         Type::default(),
-        elem,
+        Expr::Ident(elem),
         Expr::ArrayElem(ArrayElem(
           array,
           vec![Expr::Ident("__reserved_for_array__".to_string())],
@@ -188,20 +209,6 @@ fn stat_multiple(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
   })(input)
 }
 
-/* assign-lhs ::= <struct-elem> | <ident> | <array-elem> | <pair-elem> */
-fn assign_lhs(input: &str) -> IResult<&str, AssignLhs, ErrorTree<&str>> {
-  /* Attempt to parse as expression just to catch struct elem case. */
-  if let Ok((input, Expr::StructElem(elem))) = expr(input) {
-    return Ok((input, AssignLhs::StructElem(elem)));
-  }
-
-  alt((
-    map(pair_elem, AssignLhs::PairElem),
-    map(array_elem, AssignLhs::ArrayElem),
-    map(ident, AssignLhs::Ident),
-  ))(input)
-}
-
 fn assign_rhs(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
   /* EXCEPTION: Expressions may be preceded by 'call' if they
   are a function call. */
@@ -242,7 +249,7 @@ mod tests {
     };
 
     assert_eq!(t, Type::Custom(format!("IntBox")));
-    assert_eq!(id, format!("box"));
+    assert_eq!(id, Expr::Ident(format!("box")));
     assert_eq!(
       rhs,
       (Expr::StructLiter(StructLiter {
@@ -273,7 +280,7 @@ mod tests {
         "",
         ast)) if ast == Stat::Declaration(
           Type::Int,
-          "interesting".to_string(),
+          Expr::Ident("interesting".to_string()),
           Expr::IntLiter(5),
         )
     ));
@@ -287,7 +294,7 @@ mod tests {
         "",
         ast)) if ast == Stat::Declaration(
           Type::Int,
-          "x".to_string(),
+          Expr::Ident("x".to_string()),
           Expr::IntLiter(5),
         )
     ));
@@ -301,7 +308,7 @@ mod tests {
         "",
         ast)) if ast == Stat::Declaration(
           Type::Bool,
-          "x".to_string(),
+          Expr::Ident("x".to_string()),
           Expr::BoolLiter(true),
         )
     ));
@@ -312,7 +319,7 @@ mod tests {
         "",
         ast)) if ast == Stat::Declaration(
           Type::Bool,
-          "x".to_string(),
+          Expr::Ident("x".to_string()),
           Expr::BoolLiter(false),
         )
     ));
@@ -326,7 +333,7 @@ mod tests {
         "",
         ast)) if ast == Stat::Declaration(
           Type::Char,
-          "x".to_string(),
+          Expr::Ident("x".to_string()),
           Expr::CharLiter('a'),
         )
     ));
@@ -340,7 +347,7 @@ mod tests {
         "",
         ast)) if ast == Stat::Declaration(
           Type::Char,
-          "x".to_string(),
+          Expr::Ident("x".to_string()),
           Expr::CharLiter('\n'),
         )
     ));
@@ -354,7 +361,7 @@ mod tests {
         "",
         ast)) if ast == Stat::Declaration(
           Type::String,
-          "x".to_string(),
+          Expr::Ident("x".to_string()),
           Expr::StrLiter("hello world!".to_string()),
         )
     ));
@@ -368,7 +375,7 @@ mod tests {
         "",
         ast)) if ast == Stat::Declaration(
           Type::Array(Box::new(Type::Int)),
-          "arr".to_string(),
+          Expr::Ident("arr".to_string()),
           Expr::ArrayLiter(ArrayLiter(Type::default(), (1..=5).map(Expr::IntLiter).collect()))
         )
     ));
@@ -382,7 +389,7 @@ mod tests {
         "",
         ast)) if ast == Stat::Declaration(
           Type::Array(Box::new(Type::Char)),
-          "arr".to_string(),
+          Expr::Ident("arr".to_string()),
           Expr::ArrayLiter(ArrayLiter(Type::default(), ('a'..='e').map(Expr::CharLiter).collect()))
         )
     ));
@@ -396,7 +403,7 @@ mod tests {
         "",
         ast)) if ast == Stat::Declaration(
           Type::Array(Box::new(Type::String)),
-          "arr".to_string(),
+          Expr::Ident("arr".to_string()),
           Expr::ArrayLiter(ArrayLiter(Type::default(), vec![
             Expr::StrLiter("hello".to_string()),
             Expr::StrLiter("world".to_string())
@@ -416,7 +423,7 @@ mod tests {
             Box::new(Type::Int),
             Box::new(Type::Int)
           ))),
-          "arr".to_string(),
+          Expr::Ident("arr".to_string()),
           Expr::ArrayLiter(ArrayLiter(Type::default(), vec![Expr::NullPairLiter; 3]))
         )
     ));
@@ -428,7 +435,7 @@ mod tests {
       stat("pair(int, int) x = newpair(1,2)").unwrap().1,
       Stat::Declaration(
         Type::Pair(Box::new(Type::Int), Box::new(Type::Int)),
-        "x".to_string(),
+        Expr::Ident("x".to_string()),
         Expr::PairLiter(
           Box::new(TypedExpr::new(Expr::IntLiter(1))),
           Box::new(TypedExpr::new(Expr::IntLiter(2)))
@@ -446,7 +453,7 @@ mod tests {
           Box::new(Type::Pair(Box::new(Type::Any), Box::new(Type::Any))),
           Box::new(Type::Pair(Box::new(Type::Any), Box::new(Type::Any)))
         ),
-        "x".to_string(),
+        Expr::Ident("x".to_string()),
         Expr::PairLiter(
           Box::new(TypedExpr::new(Expr::NullPairLiter)),
           Box::new(TypedExpr::new(Expr::NullPairLiter))
@@ -466,7 +473,7 @@ mod tests {
             Box::new(Type::Pair(Box::new(Type::Any), Box::new(Type::Any))),
             Box::new(Type::Pair(Box::new(Type::Any), Box::new(Type::Any)))
           ),
-          "x".to_string(),
+          Expr::Ident("x".to_string()),
           Expr::NullPairLiter,
         )
     ));
@@ -481,7 +488,7 @@ mod tests {
           Box::new(Type::Int),
           Box::new(Type::Pair(Box::new(Type::Any), Box::new(Type::Any)))
         ),
-        "x".to_string(),
+        Expr::Ident("x".to_string()),
         Expr::PairLiter(
           Box::new(TypedExpr::new(Expr::IntLiter(1))),
           Box::new(TypedExpr::new(Expr::NullPairLiter))
@@ -498,7 +505,7 @@ mod tests {
       Ok((
         "",
         ast)) if ast == Stat::Assignment(
-          AssignLhs::Ident("intx".to_string()),
+          Expr::Ident("intx".to_string()),
           Type::default(),
           Expr::IntLiter(5)
         )
@@ -513,7 +520,7 @@ mod tests {
         "",
         ast)) if ast == Stat::Declaration(
           Type::Array(Box::new(Type::Int)),
-          "arr".to_string(),
+          Expr::Ident("arr".to_string()),
           Expr::ArrayLiter(ArrayLiter(Type::default(), (1..=5).map(Expr::IntLiter).collect()))
         )
     ));
@@ -526,7 +533,7 @@ mod tests {
       Ok((
         "",
         ast)) if ast == Stat::Assignment(
-          AssignLhs::Ident("aaa".to_string()),
+          Expr::Ident("aaa".to_string()),
           Type::default(),
           Expr::IntLiter(123)
         )
@@ -540,7 +547,7 @@ mod tests {
       (
         "restOfString",
         Stat::Assignment(
-          AssignLhs::ArrayElem(ArrayElem(
+          Expr::ArrayElem(ArrayElem(
             "array".to_string(),
             vec!(Expr::IntLiter(2))
           )),
@@ -556,10 +563,10 @@ mod tests {
 
   #[test]
   fn test_stat_read() {
-    assert!(matches!(
-      stat("read test"),
-      Ok(("", ast)) if ast == Stat::Read(Type::default(), AssignLhs::Ident("test".to_string()))
-    ));
+    assert_eq!(
+      stat("read test").unwrap().1,
+      Stat::Read(TypedExpr::new(Expr::Ident("test".to_string())))
+    );
   }
 
   #[test]
@@ -623,12 +630,12 @@ mod tests {
             Box::new(Expr::IntLiter(2)),
           ),
           ScopedStat::new(Stat::Assignment(
-            AssignLhs::Ident("x".to_string()),
+            Expr::Ident("x".to_string()),
             Type::default(),
             Expr::IntLiter(5),
           )),
           ScopedStat::new(Stat::Assignment(
-            AssignLhs::Ident("x".to_string()),
+            Expr::Ident("x".to_string()),
             Type::default(),
             Expr::IntLiter(6),
           )),
@@ -650,7 +657,7 @@ mod tests {
           ),
           ScopedStat::new(Stat::Sequence(
             Box::new(Stat::Assignment(
-              AssignLhs::Ident("acc".to_string()),
+              Expr::Ident("acc".to_string()),
               Type::default(),
               Expr::BinaryApp(
                 Box::new(Expr::Ident("acc".to_string())),
@@ -659,7 +666,7 @@ mod tests {
               ),
             )),
             Box::new(Stat::Assignment(
-              AssignLhs::Ident("n".to_string()),
+              Expr::Ident("n".to_string()),
               Type::default(),
               Expr::BinaryApp(
                 Box::new(Expr::Ident("n".to_string())),
@@ -690,7 +697,7 @@ mod tests {
         "",
         ast)) if ast == Stat::Declaration(
           Type::Array(Box::new(Type::Bool)),
-          String::from("bools"),
+          Expr::Ident(String::from("bools")),
           Expr::ArrayLiter(ArrayLiter(Type::default(), vec!(
             Expr::BoolLiter(false),
             Expr::BoolLiter(true)
@@ -706,7 +713,7 @@ mod tests {
       Ok((
         "",
         ast)) if ast == Stat::Assignment(
-          AssignLhs::Ident("a".to_string()),
+          Expr::Ident("a".to_string()),
           Type::default(),
           Expr::BinaryApp(
             Box::new(Expr::BinaryApp(
@@ -739,24 +746,22 @@ mod tests {
 
   #[test]
   fn test_assign_lhs() {
+    assert_eq!(expr("foo").unwrap().1, (Expr::Ident("foo".to_string())));
     assert_eq!(
-      assign_lhs("foo").unwrap().1,
-      AssignLhs::Ident("foo".to_string())
+      expr("foo [ 5]").unwrap().1,
+      (Expr::ArrayElem(ArrayElem("foo".to_string(), vec!(Expr::IntLiter(5))))),
     );
     assert_eq!(
-      assign_lhs("foo [ 5]").unwrap().1,
-      AssignLhs::ArrayElem(ArrayElem(
-        "foo".to_string(),
-        vec!(Expr::IntLiter(5))
-      )),
+      expr("fst 5").unwrap().1,
+      (Expr::PairElem(Box::new(PairElem::Fst(TypedExpr::new(
+        Expr::IntLiter(5)
+      )))))
     );
     assert_eq!(
-      assign_lhs("fst 5").unwrap().1,
-      AssignLhs::PairElem(PairElem::Fst(TypedExpr::new(Expr::IntLiter(5))))
-    );
-    assert_eq!(
-      assign_lhs("snd null").unwrap().1,
-      AssignLhs::PairElem(PairElem::Snd(TypedExpr::new(Expr::NullPairLiter)))
+      expr("snd null").unwrap().1,
+      (Expr::PairElem(Box::new(PairElem::Snd(TypedExpr::new(
+        Expr::NullPairLiter
+      )))))
     );
   }
 

@@ -1,4 +1,5 @@
+Compiler exit code: 0
 --------- stdout ---------
-Please input an integer: You input: 500
+5
 --------------------------
 Exit code: 0
