@@ -1,0 +1,92 @@
+begin
+    struct Vector {
+        int size,
+        int capacity,
+        int[] arr
+    }
+
+
+    Vector create_vec() is
+        int[] a = new int[2];
+        int s = 0;
+        int c = 2;
+
+        Vector res = Vector {size: s, capacity: c, arr: a};
+        return res
+    end
+
+    
+
+    bool is_empty_vec(Vector vec) is
+        return vec.size == 0
+    end
+
+    bool realloc_vec(Vector vec) is
+        int new_capacity = vec.capacity * 2;
+        vec.capacity = new_capacity;
+
+        int[] new_arr = new int[new_capacity];
+
+        int[] vec_arr = vec.arr;
+
+        for int i = 0; i < vec.size; i = i + 1 do
+            new_arr[i] = vec_arr[i]
+        done ;
+
+
+        free vec.arr;
+        vec.arr = new_arr;
+        
+        return true
+    end
+
+    bool insert_vec(Vector vec, int elem) is
+        if vec.size == vec.capacity then
+            bool res = call realloc_vec(vec);
+            int[] vec_arr = vec.arr;
+            vec_arr[vec.size] = elem;
+            vec.size = vec.size + 1        
+        else
+            int[] vec_arr = vec.arr;
+            vec_arr[vec.size] = elem;
+            vec.size = vec.size + 1
+        fi ;
+
+        return true
+    end
+
+    int get_vec(Vector vec, int index) is
+        int res = 0;
+        if index < vec.size then
+            int[] vec_arr = vec.arr;
+            res = vec_arr[index]
+        else
+            print "ARRAY OUT OF BOUNDS!";
+            exit -1
+        fi ;
+
+        return res
+    end
+
+    int pop_vec(Vector vec) is
+        int res = 0;
+        bool empty = call is_empty_vec(vec);
+        if empty then
+            print "CAN\'T POP EMPTY ARRAY!";
+            exit -1
+        else
+            int[] vec_arr = vec.arr;
+            vec.size = vec.size - 1;
+            res = vec_arr[vec.size]
+        fi ;
+
+        return res
+    end
+
+    bool free_vec(Vector vec) is
+       free vec.arr;
+       return true
+    end
+
+    exit 0
+end

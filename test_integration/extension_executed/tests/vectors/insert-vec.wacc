@@ -1,0 +1,20 @@
+import import-files/vector.wacc
+begin
+    Vector vec = call create_vec(); #size = 0, capacity = 2
+
+    bool res = call insert_vec(vec, 1); #size = 1, capacity = 2
+    res = call insert_vec(vec, 2); #size = 2, capacity = 2
+    res = call insert_vec(vec, 3); #size = 3, capacity = 4
+    res = call insert_vec(vec, 4); #size = 4, capacity = 4
+    res = call insert_vec(vec, 5); #size = 5, capacity = 8
+
+
+    int total = 0;
+    int[] vec_arr = vec.arr;
+
+    for int i = 0; i < vec.size; i = i + 1 do
+        total = total + vec_arr[i]
+    done ;
+    
+    exit vec.size + (vec.capacity + total) # 5 + 8 + (1 + 2 + 3 + 4 + 5) = 28
+end

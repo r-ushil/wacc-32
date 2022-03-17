@@ -1,0 +1,6 @@
+import import-files/peano.wacc
+begin
+    Peano n = Peano { x: 13 };
+    int res = call succ(n.x);
+    exit res #14
+end

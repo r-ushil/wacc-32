@@ -14,6 +14,7 @@
 ./tests/assign_rhs/funcExpr2.wacc,./tests/assign_rhs/funcExpr2.output.observed,./tests/assign_rhs/funcExpr2.output.expected,pass
 ./tests/assign_rhs/functionMissingCall.wacc,./tests/assign_rhs/functionMissingCall.output.observed,./tests/assign_rhs/functionMissingCall.output.expected,pass
 ./tests/imports/import.wacc,./tests/imports/import.output.observed,./tests/imports/import.output.expected,pass
+./tests/imports/typedef.wacc,./tests/imports/typedef.output.observed,./tests/imports/typedef.output.expected,pass
 ./tests/imports/importWithFuncPtrs.wacc,./tests/imports/importWithFuncPtrs.output.observed,./tests/imports/importWithFuncPtrs.output.expected,pass
 ./tests/assign-lhs/basicDeclaration.wacc,./tests/assign-lhs/basicDeclaration.output.observed,./tests/assign-lhs/basicDeclaration.output.expected,pass
 ./tests/assign-lhs/basicAssignment.wacc,./tests/assign-lhs/basicAssignment.output.observed,./tests/assign-lhs/basicAssignment.output.expected,pass
@@ -32,6 +33,12 @@
 ./tests/higher-order-funcs/filter.wacc,./tests/higher-order-funcs/filter.output.observed,./tests/higher-order-funcs/filter.output.expected,pass
 ./tests/higher-order-funcs/concat.wacc,./tests/higher-order-funcs/concat.output.observed,./tests/higher-order-funcs/concat.output.expected,pass
 ./tests/higher-order-funcs/concatMap.wacc,./tests/higher-order-funcs/concatMap.output.observed,./tests/higher-order-funcs/concatMap.output.expected,pass
+./tests/vectors/create-vec.wacc,./tests/vectors/create-vec.output.observed,./tests/vectors/create-vec.output.expected,pass
+./tests/vectors/is_empty.wacc,./tests/vectors/is_empty.output.observed,./tests/vectors/is_empty.output.expected,pass
+./tests/vectors/insert-vec.wacc,./tests/vectors/insert-vec.output.observed,./tests/vectors/insert-vec.output.expected,pass
+./tests/vectors/get-vec.wacc,./tests/vectors/get-vec.output.observed,./tests/vectors/get-vec.output.expected,pass
+./tests/vectors/pop-vec.wacc,./tests/vectors/pop-vec.output.observed,./tests/vectors/pop-vec.output.expected,pass
+./tests/vectors/free.wacc,./tests/vectors/free.output.observed,./tests/vectors/free.output.expected,pass
 ./tests/assign-lhs/destructuring.wacc,./tests/assign-lhs/destructuring.output.observed,./tests/assign-lhs/destructuring.output.expected,fail
 ./tests/assign-lhs/pairDestructure.wacc,./tests/assign-lhs/pairDestructure.output.observed,./tests/assign-lhs/pairDestructure.output.expected,pass
 ./tests/assign-lhs/arrayDestructure.wacc,./tests/assign-lhs/arrayDestructure.output.observed,./tests/assign-lhs/arrayDestructure.output.expected,pass
