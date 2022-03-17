@@ -1,7 +1,5 @@
 use super::{
-  predef::{
-    ReadFmt, PREDEF_CHECK_NULL_POINTER, PREDEF_FREE_ARRAY, PREDEF_FREE_PAIR,
-  },
+  predef::{ReadFmt, PREDEF_FREE_ARRAY, PREDEF_FREE_PAIR},
   predef::{RequiredPredefs, PREDEF_SYS_MALLOC},
   *,
 };

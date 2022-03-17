@@ -405,26 +405,6 @@ pub enum Op2 {
   Reg(Reg, Shift),
 }
 
-impl Op2 {
-  pub fn imm_unroll<F>(mut instr_builder: F, imm: Imm) -> Vec<Asm>
-  where
-    F: FnMut(Imm) -> Asm,
-  {
-    let asm_count = (imm / OP2_MAX_VALUE).unsigned_abs();
-    let mut asms: Vec<Asm> = Vec::with_capacity(asm_count as usize);
-
-    let imm_sign = imm.signum();
-    let mut imm_abs = imm;
-
-    while imm_abs > 0 {
-      asms.push(instr_builder(imm_sign * OP2_MAX_VALUE.min(imm_abs)));
-      imm_abs -= OP2_MAX_VALUE;
-    }
-
-    asms
-  }
-}
-
 impl From<Imm> for Op2 {
   fn from(i: Imm) -> Self {
     Op2::Imm(i)

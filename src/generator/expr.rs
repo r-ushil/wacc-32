@@ -2,10 +2,9 @@ use std::collections::HashSet;
 
 use self::CondCode::*;
 use super::predef::{
-  ReadFmt, RequiredPredefs, PREDEF_AEABI_IDIV, PREDEF_AEABI_IDIVMOD,
+  RequiredPredefs, PREDEF_AEABI_IDIV, PREDEF_AEABI_IDIVMOD,
   PREDEF_CHECK_ARRAY_BOUNDS, PREDEF_CHECK_DIVIDE_BY_ZERO,
-  PREDEF_CHECK_NULL_POINTER, PREDEF_FREE_ARRAY, PREDEF_FREE_PAIR,
-  PREDEF_THROW_OVERFLOW_ERR,
+  PREDEF_CHECK_NULL_POINTER, PREDEF_THROW_OVERFLOW_ERR,
 };
 use super::*;
 use crate::analyser::context::*;
@@ -13,7 +12,6 @@ use crate::generator::asm::*;
 use crate::generator::program::LabelPrefix;
 use crate::generator::stat::generate_malloc_with_reg;
 use stat::generate_malloc;
-use typed_arena::Arena;
 
 impl CFGable for StructLiter {
   type Input = ();
