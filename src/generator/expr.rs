@@ -23,25 +23,53 @@ impl CFGable for StructLiter {
     scope: &ScopeReader,
     cfg: &'a mut CFG<'cfg>,
     regs: &[GenReg],
-    aux: Self::Input,
+    _: (),
   ) -> Flow<'cfg> {
-    todo!()
+    let StructLiter { id, fields } = self;
+
+    /* Get size of struct. */
+    let struct_def = scope
+      .get_def(id)
+      .expect("Analyser should ensure all struct usages are valid.");
+
+    /* Malloc for the struct. */
+    let mut flow = generate_malloc(struct_def.size, cfg, Reg::General(regs[0]));
+
+    /* Expression evaluation can't use register malloc */
+    let expr_regs = &regs[1..];
+
+    /* For each field: */
+    for (field_name, expr) in fields.iter() {
+      /* Calculate offset. */
+      let offset = struct_def.fields.get(field_name).unwrap().1;
+
+      /* Evaluate expression. */
+      flow += expr.cfg_generate(scope, cfg, expr_regs, None)
+
+      /* Write to struct. */
+      + cfg.flow(Asm::str(
+        Reg::General(expr_regs[0]),
+        (Reg::General(regs[0]), offset),
+      ));
+    }
+
+    flow
   }
 }
 
-impl CFGable for PairElem {
-  type Input = ();
+// impl CFGable for PairElem {
+//   type Input = ();
 
-  fn cfg_generate<'a, 'cfg>(
-    &self,
-    scope: &ScopeReader,
-    cfg: &'a mut CFG<'cfg>,
-    regs: &[GenReg],
-    aux: Self::Input,
-  ) -> Flow<'cfg> {
-    todo!()
-  }
-}
+//   fn cfg_generate<'a, 'cfg>(
+//     &self,
+//     scope: &ScopeReader,
+//     cfg: &'a mut CFG<'cfg>,
+//     regs: &[GenReg],
+//     aux: Self::Input,
+//   ) -> Flow<'cfg> {
+//     todo!()
+//   }
+// }
 
 impl CFGable for Expr {
   type Input = Option<Reg>;
@@ -136,20 +164,26 @@ fn generate_anon_func<'a, 'cfg>(
   let uncond_label = cfg.code.get_label();
   let anon_label = cfg.code.get_label();
 
-  todo!()
+  /* Skips over the assembly used to define the anonymous function. */
+  let flow = cfg.flow(Asm::b(uncond_label.clone()));
 
-  // cfg.flow(Asm::b(uncond_label.clone()))
-  //   + (anon_label.clone(), func).cfg_generate(
-  //     scope,
-  //     cfg,
-  //     regs,
-  //     LabelPrefix::AnonFunc,
-  //   )
-  //   + cfg.flow(Asm::Directive(Directive::Label(uncond_label)))
-  //   + cfg.flow(Asm::ldr(
-  //     Reg::General(regs[0]),
-  //     generate_anon_func_name(anon_label),
-  //   ))
+  /* Generates function definition. */
+  // TODO: uncomment this when anonymous functions can be made into a flow
+  // (anon_label.clone(), func).cfg_generate(
+  //   scope,
+  //   cfg,
+  //   regs,
+  //   LabelPrefix::AnonFunc,
+  // );
+
+  /* Creates label for branch to land on, and loads pointer to
+  anonymous function into regs[0]. */
+  flow
+    + cfg.flow(Asm::Directive(Directive::Label(uncond_label)))
+    + cfg.flow(Asm::ldr(
+      Reg::General(regs[0]),
+      generate_anon_func_name(anon_label),
+    ))
 }
 
 fn generate_call<'a, 'cfg>(
