@@ -88,7 +88,7 @@ impl Default for GeneratedCode {
 /* ======== Represents line within produced assembly apart from instructions.  ======== */
 
 /* Line of assembly. */
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Asm {
   Directive(Directive),
   Instr(CondCode, Instr),
@@ -257,7 +257,7 @@ impl Asm {
 
 /* ======== ASM HELPERS ======== */
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Directive {
   Text,          /* .text */
   Data,          /* .data */
@@ -438,6 +438,8 @@ pub enum Reg {
   StackPointer,
   Link,
   PC,
+  /* Represents a value which has not yet been given a register. */
+  Virtual(u32),
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]

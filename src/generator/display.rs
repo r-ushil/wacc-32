@@ -237,6 +237,7 @@ impl Display for Reg {
       PC => write!(f, "pc"),
       Arg(arg_reg) => write!(f, "{}", arg_reg),
       General(gen_reg) => write!(f, "{}", gen_reg),
+      Virtual(_) => panic!("A virtual register made it to assembly!"),
     }
   }
 }
