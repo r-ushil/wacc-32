@@ -1,6 +1,7 @@
 use super::{
   predef::{
-    ReadFmt, PREDEF_CHECK_NULL_POINTER, PREDEF_FREE_ARRAY, PREDEF_FREE_PAIR,
+    ReadFmt, PREDEF_CHECK_NULL_POINTER, PREDEF_FREE_ARRAY, PREDEF_FREE_CUSTOM,
+    PREDEF_FREE_PAIR,
   },
   predef::{RequiredPredefs, PREDEF_SYS_MALLOC},
   *,
@@ -365,6 +366,12 @@ fn generate_stat_free(
 
       /* BL p_free_pair */
       code.text.push(Asm::b(PREDEF_FREE_PAIR).link());
+    }
+    Type::Custom(_) => {
+      //mark freecustom predef as true
+
+      /* BL p_free_custom */
+      code.text.push(Asm::b(PREDEF_FREE_CUSTOM).link());
     }
     _ => unreachable!("Can't free this type!"),
   }

@@ -20,6 +20,7 @@ pub const PREDEF_PRINT_REFS: &str = "p_print_reference";
 pub const PREDEF_PRINTLN: &str = "p_print_ln";
 pub const PREDEF_FREE_PAIR: &str = "p_free_pair";
 pub const PREDEF_FREE_ARRAY: &str = "p_free_array";
+pub const PREDEF_FREE_CUSTOM: &str = "p_free_custom";
 
 pub const PREDEF_THROW_RUNTIME_ERR: &str = "p_throw_runtime_error";
 pub const PREDEF_THROW_OVERFLOW_ERR: &str = "p_throw_overflow_error";
