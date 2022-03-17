@@ -161,29 +161,21 @@ fn generate_anon_func<'a, 'cfg>(
   regs: &[GenReg],
   func: Func,
 ) -> Flow<'cfg> {
-  let uncond_label = cfg.code.get_label();
   let anon_label = cfg.code.get_label();
 
-  /* Skips over the assembly used to define the anonymous function. */
-  let flow = cfg.flow(Asm::b(uncond_label.clone()));
-
   /* Generates function definition. */
-  // TODO: uncomment this when anonymous functions can be made into a flow
-  // (anon_label.clone(), func).cfg_generate(
-  //   scope,
-  //   cfg,
-  //   regs,
-  //   LabelPrefix::AnonFunc,
-  // );
+  (anon_label.clone(), func).generate(
+    scope,
+    cfg.code,
+    regs,
+    LabelPrefix::AnonFunc,
+  );
 
-  /* Creates label for branch to land on, and loads pointer to
-  anonymous function into regs[0]. */
-  flow
-    + cfg.flow(Asm::Directive(Directive::Label(uncond_label)))
-    + cfg.flow(Asm::ldr(
-      Reg::General(regs[0]),
-      generate_anon_func_name(anon_label),
-    ))
+  /* Loads pointer to anonymous function into regs[0]. */
+  cfg.flow(Asm::ldr(
+    Reg::General(regs[0]),
+    generate_anon_func_name(anon_label),
+  ))
 }
 
 fn generate_call<'a, 'cfg>(

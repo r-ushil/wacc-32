@@ -93,6 +93,10 @@ impl Generatable for NamedFunc {
     // TODO: make this a more robust check
     let main = ident == WACC_PROGRAM_MAIN_LABEL;
 
+    /* Make control flow graph to write this function into. */
+    let arena = Arena::new();
+    let cfg = &mut CFG::new(code, &arena);
+
     /* Comments reflect the following example:
     int foo(int x) is
       int y = 5;
@@ -100,27 +104,26 @@ impl Generatable for NamedFunc {
     end */
     /* Function label.
     foo: */
-    code.text.push(Asm::Directive(Directive::Label(if main {
+    let mut flow = cfg.flow(Asm::Directive(Directive::Label(if main {
       ident.to_string()
-    } else if aux == LabelPrefix::Func {
-      generate_function_name(ident.to_string())
-    } else if aux == LabelPrefix::AnonFunc {
-      generate_anon_func_name(ident.to_string())
     } else {
-      unreachable!("Not possible, all cases covered :)")
+      match aux {
+        LabelPrefix::Func => generate_function_name(ident.to_string()),
+        LabelPrefix::AnonFunc => generate_anon_func_name(ident.to_string()),
+      }
     })));
 
     /* Save link register.
     PUSH {lr} */
-    code.text.push(Asm::push(Reg::Link));
+    flow += cfg.flow(Asm::push(Reg::Link));
 
     let body_st_size = func.body_st.size;
 
     /* Allocate space on stack for local vars. */
-    code.text.append(&mut Op2::imm_unroll(
+    flow += cfg.imm_unroll(
       |offset| Asm::sub(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset)),
       body_st_size,
-    ));
+    );
 
     /* Move into parameter scope. */
     let scope = &scope.new_scope(&func.params_st);
@@ -139,29 +142,35 @@ impl Generatable for NamedFunc {
     LDR r4, [sp, #8]
     MOV r0, r4
     ADD sp, sp, #4 */
-    func.body.generate(scope, code, regs, ());
+    flow += func.body.cfg_generate(scope, cfg, regs, ());
 
     /* Main function implicitly ends in return 0. */
     if main {
       /* Deallocate stack for main function. */
       let body_st_size = scope.get_total_offset();
 
-      code.text.append(&mut Op2::imm_unroll(
+      flow += cfg.imm_unroll(
         |offset: i32| {
           Asm::add(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset))
         },
         body_st_size,
-      ));
+      );
 
-      code.text.push(Asm::ldr(Reg::Arg(ArgReg::R0), 0))
+      flow += cfg.flow(Asm::ldr(Reg::Arg(ArgReg::R0), 0))
     }
 
     /* Jump back to caller.
     POP {pc} */
-    code.text.push(Asm::pop(Reg::PC));
+    flow += cfg.flow(Asm::pop(Reg::PC));
 
     /* Mark block for compilations.
     .ltorg */
-    code.text.push(Asm::Directive(Directive::Assemble));
+    flow += cfg.flow(Asm::Directive(Directive::Assemble));
+
+    /* We don't actually use flow but the process of creating
+    it creates all the cfg links that we do need. */
+
+    /* Linearise CFG. (Saving it into generated code) */
+    cfg.linearise();
   }
 }
