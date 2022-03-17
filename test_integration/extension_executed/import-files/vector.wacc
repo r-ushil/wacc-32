@@ -1,37 +1,49 @@
 begin
     struct Vector {
-        int size
-        int capacity
+        int size,
+        int capacity,
         int[] arr
     }
+
 
     Vector create_vec() is
         int[] a = new int[2];
         int s = 0;
         int c = 2;
 
-        Vector res = {size: s, capacity: c, arr: a};
+        Vector res = Vector {size: s, capacity: c, arr: a};
         return res
     end
 
-    bool insert_vec(Vector vec, int elem) is
-        if vec.size == vec.capacity then
-            vec.capacity = vec.capacity * 2;
-            vec.arr[size] = elem;
-            size = size + 1        
-        else
-            vec.arr[size] = elem;
-            size = size + 1
-        fi
-    end
+    # bool realloc_vec(Vector vec, int new_capacity) is
 
-    bool is_empty_vec(Vector vec) is
-        return size == 0;
-    end
-
-    # Vector free_vec(Vector vec) is
-    #    free dyn.arr;
-    #    free vec;
-    #    return true
     # end
+
+    # bool insert_vec(Vector vec, int elem) is
+    #     if vec.size == vec.capacity then
+    #         vec.capacity = vec.capacity * 2;
+
+    #         free vec.arr;
+    #         int[] arr = new int[capacity];
+    #         vec.
+
+    #         vec.arr[size] = elem;
+    #         size = size + 1        
+    #     else
+    #         vec.arr[size] = elem;
+    #         size = size + 1
+    #     fi
+    # end
+
+    # bool is_empty_vec(Vector vec) is
+    #     return size == 0;
+    # end
+
+    # # Vector free_vec(Vector vec) is
+    # #    free dyn.arr;
+    # #    free vec;
+    # #    return true
+    # # end
+
+    skip
 end
