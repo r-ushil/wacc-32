@@ -67,370 +67,375 @@ pub fn generate_malloc_with_reg<'a, 'cfg>(
   flow
 }
 
-impl Generatable for ScopedStat {
+impl CFGable for ScopedStat {
   type Input = ();
-  type Output = ();
-  fn generate(
+
+  fn cfg_generate<'a, 'cfg>(
     &self,
     scope: &ScopeReader,
-    code: &mut GeneratedCode,
+    cfg: &'a mut CFG<'cfg>,
     regs: &[GenReg],
     _aux: (),
-  ) {
+  ) -> Flow<'cfg> {
     let ScopedStat(st, statement) = self;
 
     /* Allocate space on stack for variables declared in this scope. */
-    code.text.append(&mut Op2::imm_unroll(
+    let flow = cfg.imm_unroll(
       |offset| Asm::sub(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset)),
       st.size,
-    ));
+    );
 
     /* Enter new scope. */
     let scope = scope.new_scope(st);
 
-    /* Generated statement. */
-    statement.generate(&scope, code, regs, ());
+    flow
+      /* Generated statement. */
+      + statement.cfg_generate(&scope, cfg, regs, ())
 
-    /* Increment stack pointer to old position. */
-    code.text.append(&mut Op2::imm_unroll(
-      |offset| Asm::add(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset)),
-      st.size,
-    ));
+      /* Increment stack pointer to old position. */
+      + cfg.imm_unroll(
+        |offset| Asm::add(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset)),
+        st.size,
+      )
   }
 }
 
-fn generate_stat_assignment(
+fn generate_stat_assignment<'a, 'cfg>(
   scope: &ScopeReader,
-  code: &mut GeneratedCode,
+  cfg: &'a mut CFG<'cfg>,
   regs: &[GenReg],
   lhs: &Expr,
   rhs: &Expr,
-) {
+) -> Flow<'cfg> {
   /* regs[0] = eval(rhs) */
-  rhs.generate(scope, code, regs, None);
+  rhs.cfg_generate(scope, cfg, regs, None)
 
   /* stores value of regs[0] into lhs */
-  lhs.generate(scope, code, &regs[1..], Some(Reg::General(regs[0])));
+  + lhs.cfg_generate(scope, cfg, &regs[1..], Some(Reg::General(regs[0])))
 }
 
-fn generate_stat_read(
+fn generate_stat_read<'a, 'cfg>(
   scope: &ScopeReader,
-  code: &mut GeneratedCode,
+  cfg: &'a mut CFG<'cfg>,
   regs: &[GenReg],
   TypedExpr(dst_type, dst_expr): &TypedExpr,
-) {
+) -> Flow<'cfg> {
   /* Allocate space on stack for p_read_{} to write into. */
-  code
-    .text
-    .push(Asm::sub(Reg::StackPointer, Reg::StackPointer, Op2::Imm(4)));
+  cfg.flow(Asm::sub(Reg::StackPointer, Reg::StackPointer, Op2::Imm(4)))
 
   /* Store stack pointer to r0 to pass to p_read_{} */
-  code.text.push(Asm::mov(
+  + cfg.flow(Asm::mov(
     Reg::Arg(ArgReg::R0),
     Op2::Reg(Reg::StackPointer, 0),
-  ));
+  ))
 
   /* Determine if we need p_read_char or p_read_int, and mark it. */
-  let read_type = match dst_type {
-    Type::Char => {
-      RequiredPredefs::ReadChar.mark(code);
-      ReadFmt::Char
-    }
-    Type::Int => {
-      RequiredPredefs::ReadInt.mark(code);
-      ReadFmt::Int
-    }
-    _ => unreachable!(
-      "Analyser has allowed reading from console to int to char variable."
-    ),
-  };
+  + {
+    let read_type = match dst_type {
+      Type::Char => {
+        RequiredPredefs::ReadChar.mark(cfg.code);
+        ReadFmt::Char
+      }
+      Type::Int => {
+        RequiredPredefs::ReadInt.mark(cfg.code);
+        ReadFmt::Int
+      }
+      _ => unreachable!(
+        "Analyser has allowed reading from console to int to char variable."
+      ),
+    };
 
-  /* Branch to the appropriate read branch. */
-  code
-    .text
-    .push(Asm::b(format!("p_read_{}", read_type)).link());
+    /* Branch to the appropriate read branch. */
+    cfg.flow(Asm::b(format!("p_read_{}", read_type)).link())
+  }
 
   /* Save the read value into a register. */
-  let value_reg = Reg::General(regs[0]);
-  code.text.push(Asm::ldr(value_reg, Reg::StackPointer));
+  + {
+    let value_reg = Reg::General(regs[0]);
+    cfg.flow(Asm::ldr(value_reg, Reg::StackPointer))
 
-  /* Deallocate space for this value. */
-  code
-    .text
-    .push(Asm::add(Reg::StackPointer, Reg::StackPointer, Op2::Imm(4)));
+    /* Deallocate space for this value. */
+    + cfg.flow(Asm::add(Reg::StackPointer, Reg::StackPointer, Op2::Imm(4)))
 
-  /* Write this value to the destination expression. */
-  dst_expr.generate(scope, code, regs, Some(value_reg));
+    /* Write this value to the destination expression. */
+    + dst_expr.cfg_generate(scope, cfg, regs, Some(value_reg))
+  }
 }
 
-fn generate_stat_free(
+fn generate_stat_free<'a, 'cfg>(
   scope: &ScopeReader,
-  code: &mut GeneratedCode,
+  cfg: &'a mut CFG<'cfg>,
   regs: &[GenReg],
   t: &Type,
   expr: &Expr,
-) {
-  expr.generate(scope, code, regs, None);
+) -> Flow<'cfg> {
+  expr.cfg_generate(scope, cfg, regs, None)
 
   /* MOV r0, {min_reg}        //move heap address into r0 */
-  code.text.push(Asm::mov(
+  + cfg.flow(Asm::mov(
     Reg::Arg(ArgReg::R0),
     Op2::Reg(Reg::General(regs[0]), 0),
-  ));
-  match *t {
+  ))
+
+  + match *t {
     Type::Array(_) => {
-      RequiredPredefs::FreeArray.mark(code);
+      RequiredPredefs::FreeArray.mark(cfg.code);
 
       /* BL p_free_array */
-      code.text.push(Asm::b(PREDEF_FREE_ARRAY).link());
+      cfg.flow(Asm::b(PREDEF_FREE_ARRAY).link())
     }
     Type::Pair(_, _) => {
-      RequiredPredefs::FreePair.mark(code);
+      RequiredPredefs::FreePair.mark(cfg.code);
 
       /* BL p_free_pair */
-      code.text.push(Asm::b(PREDEF_FREE_PAIR).link());
+      cfg.flow(Asm::b(PREDEF_FREE_PAIR).link())
     }
     _ => unreachable!("Can't free this type!"),
   }
 }
 
-fn generate_stat_return(
+fn generate_stat_return<'a, 'cfg>(
   scope: &ScopeReader,
-  code: &mut GeneratedCode,
+  cfg: &'a mut CFG<'cfg>,
   regs: &[GenReg],
   expr: &Expr,
-) {
+) -> Flow<'cfg> {
   /* regs[0] = eval(expr) */
-  expr.generate(scope, code, regs, None);
+  expr.cfg_generate(scope, cfg, regs, None)
 
   /* r0 = regs[0] */
-  code.text.push(Asm::mov(
+  + cfg.flow(Asm::mov(
     Reg::Arg(ArgReg::R0),
     Op2::Reg(Reg::General(regs[0]), 0),
-  ));
+  ))
 
-  let total_offset = scope.get_total_offset();
+  + {
+    let total_offset = scope.get_total_offset();
 
-  /* ADD sp, sp, #{total_offset} */
-  code.text.append(&mut Op2::imm_unroll(
-    |offset| Asm::add(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset)),
-    total_offset,
-  ));
+    /* ADD sp, sp, #{total_offset} */
+    cfg.imm_unroll(
+      |offset| Asm::add(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset)),
+      total_offset,
+    )
+  }
 
   /* POP {pc} */
-  code.text.push(Asm::pop(Reg::PC));
+  + cfg.flow(Asm::pop(Reg::PC))
 }
 
-fn generate_stat_exit(
+fn generate_stat_exit<'a, 'cfg>(
   scope: &ScopeReader,
-  code: &mut GeneratedCode,
+  cfg: &'a mut CFG<'cfg>,
   regs: &[GenReg],
   expr: &Expr,
-) {
+) -> Flow<'cfg> {
   /* regs[0] = eval(expr) */
-  expr.generate(scope, code, regs, None);
+  expr.cfg_generate(scope, cfg, regs, None)
 
   /* r0 = regs[0] */
-  code.text.push(Asm::mov(
+  + cfg.flow(Asm::mov(
     Reg::Arg(ArgReg::R0),
     Op2::Reg(Reg::General(regs[0]), 0),
-  ));
+  ))
 
   /* BL exit */
-  code.text.push(Asm::b(predef::PREDEF_SYS_EXIT).link());
+  + cfg.flow(Asm::b(predef::PREDEF_SYS_EXIT).link())
 }
 
-fn generate_stat_print(
+fn generate_stat_print<'a, 'cfg>(
   scope: &ScopeReader,
-  code: &mut GeneratedCode,
+  cfg: &'a mut CFG<'cfg>,
   regs: &[GenReg],
   t: &Type,
   expr: &Expr,
-) {
-  expr.generate(scope, code, regs, None);
+) -> Flow<'cfg> {
+  expr.cfg_generate(scope, cfg, regs, None)
+    + cfg.flow(Asm::mov(
+      Reg::Arg(ArgReg::R0),
+      Op2::Reg(Reg::General(regs[0]), 0),
+    ))
+    + {
+      match t {
+        Type::Int => RequiredPredefs::PrintInt.mark(cfg.code),
+        Type::Bool => RequiredPredefs::PrintBool.mark(cfg.code),
+        Type::String => RequiredPredefs::PrintString.mark(cfg.code),
+        Type::Array(elem_type) => match **elem_type {
+          Type::Char => RequiredPredefs::PrintString.mark(cfg.code),
+          _ => RequiredPredefs::PrintRefs.mark(cfg.code),
+        },
+        Type::Pair(_, _) => RequiredPredefs::PrintRefs.mark(cfg.code),
+        _ => (),
+      };
 
-  code.text.push(Asm::mov(
-    Reg::Arg(ArgReg::R0),
-    Op2::Reg(Reg::General(regs[0]), 0),
-  ));
+      let print_label = match t {
+        Type::Int => predef::PREDEF_PRINT_INT,
+        Type::Bool => predef::PREDEF_PRINT_BOOL,
+        Type::String => predef::PREDEF_PRINT_STRING,
+        Type::Char => predef::PREDEF_SYS_PUTCHAR,
+        Type::Array(elem_type) => match **elem_type {
+          Type::Char => predef::PREDEF_PRINT_STRING,
+          _ => predef::PREDEF_PRINT_REFS,
+        },
+        Type::Pair(_, _) => predef::PREDEF_PRINT_REFS,
+        _ => unreachable!(),
+      };
 
-  match t {
-    Type::Int => RequiredPredefs::PrintInt.mark(code),
-    Type::Bool => RequiredPredefs::PrintBool.mark(code),
-    Type::String => RequiredPredefs::PrintString.mark(code),
-    Type::Array(elem_type) => match **elem_type {
-      Type::Char => RequiredPredefs::PrintString.mark(code),
-      _ => RequiredPredefs::PrintRefs.mark(code),
-    },
-    Type::Pair(_, _) => RequiredPredefs::PrintRefs.mark(code),
-    _ => (),
-  };
-
-  let print_label = match t {
-    Type::Int => predef::PREDEF_PRINT_INT,
-    Type::Bool => predef::PREDEF_PRINT_BOOL,
-    Type::String => predef::PREDEF_PRINT_STRING,
-    Type::Char => predef::PREDEF_SYS_PUTCHAR,
-    Type::Array(elem_type) => match **elem_type {
-      Type::Char => predef::PREDEF_PRINT_STRING,
-      _ => predef::PREDEF_PRINT_REFS,
-    },
-    Type::Pair(_, _) => predef::PREDEF_PRINT_REFS,
-    _ => unreachable!(),
-  };
-
-  code
-    .text
-    .push(Asm::instr(Branch(true, print_label.to_string())));
+      cfg.flow(Asm::instr(Branch(true, print_label.to_string())))
+    }
 }
 
-fn generate_stat_println(
+fn generate_stat_println<'a, 'cfg>(
   scope: &ScopeReader,
-  code: &mut GeneratedCode,
+  cfg: &'a mut CFG<'cfg>,
   regs: &[GenReg],
   t: &Type,
   expr: &Expr,
-) {
-  generate_stat_print(scope, code, regs, t, expr);
+) -> Flow<'cfg> {
+  RequiredPredefs::PrintLn.mark(cfg.code);
+
+  generate_stat_print(scope, cfg, regs, t, expr)
 
   /* BL println */
-  RequiredPredefs::PrintLn.mark(code);
-  code.text.push(Asm::b(predef::PREDEF_PRINTLN).link());
+  + cfg.flow(Asm::b(predef::PREDEF_PRINTLN).link())
 }
 
-fn generate_stat_if(
+fn generate_stat_if<'a, 'cfg>(
   scope: &ScopeReader,
-  code: &mut GeneratedCode,
+  cfg: &'a mut CFG<'cfg>,
   regs: &[GenReg],
   cond: &Expr,
   true_body: &ScopedStat,
   false_body: &ScopedStat,
-) {
-  let false_label = code.get_label();
-  let exit_label = code.get_label();
+) -> Flow<'cfg> {
+  let false_label = cfg.code.get_label();
+  let exit_label = cfg.code.get_label();
 
-  /* regs[0] = eval(cond) */
-  cond.generate(scope, code, regs, None);
+  let cond_flow =
+    /* regs[0] = eval(cond) */
+    cond.cfg_generate(scope, cfg, regs, None)
+    /* cmp(regs[0], 0) */
+    + cfg.flow(Asm::cmp(Reg::General(regs[0]), Op2::Imm(0)))
+    /* Branch to false case if cond == 0. */
+    + cfg.flow(Asm::Instr(CondCode::EQ, Branch(false, false_label.clone())));
 
-  /* cmp(regs[0], 0) */
-  code.text.push(Asm::cmp(Reg::General(regs[0]), Op2::Imm(0)));
+  let true_flow =
+    /* True body. */
+    true_body.cfg_generate(scope, cfg, regs, ())
+    /* Exit if statement. */
+    + cfg.flow(Asm::instr(Branch(false, exit_label.clone())));
 
-  /* Branch to false case if cond == 0. */
-  code
-    .text
-    .push(Asm::Instr(CondCode::EQ, Branch(false, false_label.clone())));
+  let false_flow =
+    /* Label for false case to skip to. */
+    cfg.flow(Asm::Directive(Label(false_label)))
+    /* False body. */
+    + false_body.cfg_generate(scope, cfg, regs, ());
 
-  /* True body. */
-  true_body.generate(scope, code, regs, ());
+  let exit_flow =
+    /* Label to exit if statement. */
+    cfg.flow(Asm::Directive(Label(exit_label)));
 
-  /* Exit if statement. */
-  code
-    .text
-    .push(Asm::instr(Branch(false, exit_label.clone())));
+  /* Link cond -> false -> exit. */
+  cond_flow.add_succ(&false_flow);
+  false_flow.add_succ(&exit_flow);
 
-  /* Label for false case to skip to. */
-  code.text.push(Asm::Directive(Label(false_label)));
-
-  /* False body. */
-  false_body.generate(scope, code, regs, ());
-
-  /* Label to exit if statement. */
-  code.text.push(Asm::Directive(Label(exit_label)));
+  /* Link cond -> true -> exit. */
+  cond_flow + true_flow + exit_flow
 }
 
-fn generate_stat_while(
+fn generate_stat_while<'a, 'cfg>(
   scope: &ScopeReader,
-  code: &mut GeneratedCode,
+  cfg: &'a mut CFG<'cfg>,
   regs: &[GenReg],
   cond: &Expr,
   body: &ScopedStat,
-) {
-  let cond_label = code.get_label();
-  let body_label = code.get_label();
+) -> Flow<'cfg> {
+  let cond_label = cfg.code.get_label();
+  let body_label = cfg.code.get_label();
 
-  /* Jump to condition evaluation. */
-  code.text.push(Asm::b(cond_label.clone()));
+  let branch_flow =
+    /* Jump to condition evaluation. */
+    cfg.flow(Asm::b(cond_label.clone()));
 
-  /* Loop body label. */
-  code.text.push(Asm::Directive(Label(body_label.clone())));
+  let body_flow =
+    /* Loop body label. */
+    cfg.flow(Asm::Directive(Label(body_label.clone())))
+    /* Loop body. */
+    + body.cfg_generate(scope, cfg, regs, ());
 
-  /* Loop body. */
-  body.generate(scope, code, regs, ());
+  let cond_flow =
+    /* Cond label */
+    cfg.flow(Asm::Directive(Label(cond_label)))
+    /* regs[0] = eval(cond) */
+    + cond.cfg_generate(scope, cfg, regs, None)
+    /* cmp(regs[0], 1) */
+    + cfg.flow(Asm::cmp(Reg::General(regs[0]), Op2::Imm(1)))
+    /* If regs[0] == 1, jump back to loop body. */
+    + cfg.flow(Asm::Instr(CondCode::EQ, Branch(false, body_label)));
 
-  /* Cond label */
-  code.text.push(Asm::Directive(Label(cond_label)));
+  /* Two way link from cond to body. */
+  cond_flow.add_succ(&body_flow);
+  body_flow.add_succ(&cond_flow);
 
-  /* regs[0] = eval(cond) */
-  cond.generate(scope, code, regs, None);
-
-  /* cmp(regs[0], 1) */
-  code.text.push(Asm::cmp(Reg::General(regs[0]), Op2::Imm(1)));
-
-  /* If regs[0] == 1, jump back to loop body. */
-  code
-    .text
-    .push(Asm::Instr(CondCode::EQ, Branch(false, body_label)));
+  /* Start to end link. */
+  branch_flow + cond_flow
 }
 
-fn generate_stat_scope(
+fn generate_stat_scope<'a, 'cfg>(
   scope: &ScopeReader,
-  code: &mut GeneratedCode,
+  cfg: &'a mut CFG<'cfg>,
   regs: &[GenReg],
   stat: &ScopedStat,
-) {
-  stat.generate(scope, code, regs, ())
+) -> Flow<'cfg> {
+  stat.cfg_generate(scope, cfg, regs, ())
 }
 
-fn generate_stat_sequence(
+fn generate_stat_sequence<'a, 'cfg>(
   scope: &ScopeReader,
-  code: &mut GeneratedCode,
+  cfg: &'a mut CFG<'cfg>,
   regs: &[GenReg],
   head: &Stat,
   tail: &Stat,
-) {
-  head.generate(scope, code, regs, ());
-  tail.generate(scope, code, regs, ());
+) -> Flow<'cfg> {
+  head.cfg_generate(scope, cfg, regs, ())
+    + tail.cfg_generate(scope, cfg, regs, ())
 }
 
-impl Generatable for Stat {
+impl CFGable for Stat {
   type Input = ();
-  type Output = ();
-  fn generate(
+
+  fn cfg_generate<'a, 'cfg>(
     &self,
     scope: &ScopeReader,
-    code: &mut GeneratedCode,
+    cfg: &'a mut CFG<'cfg>,
     regs: &[GenReg],
     _aux: (),
-  ) {
+  ) -> Flow<'cfg> {
     match self {
-      Stat::Skip => (),
-      Stat::Declaration(_, dst, rhs) => {
-        generate_stat_assignment(scope, code, regs, &dst, rhs);
+      Stat::Skip => cfg.dummy_flow(),
+      Stat::Declaration(_, lhs, rhs) | Stat::Assignment(lhs, _, rhs) => {
+        generate_stat_assignment(scope, cfg, regs, lhs, rhs)
       }
-      Stat::Assignment(lhs, _, rhs) => {
-        generate_stat_assignment(scope, code, regs, lhs, rhs)
-      }
-      Stat::Read(dst) => generate_stat_read(scope, code, regs, dst),
+      Stat::Read(dst) => generate_stat_read(scope, cfg, regs, dst),
       Stat::Free(TypedExpr(t, expr)) => {
-        generate_stat_free(scope, code, regs, t, expr)
+        generate_stat_free(scope, cfg, regs, t, expr)
       }
-      Stat::Return(expr) => generate_stat_return(scope, code, regs, expr),
-      Stat::Exit(expr) => generate_stat_exit(scope, code, regs, expr),
+      Stat::Return(expr) => generate_stat_return(scope, cfg, regs, expr),
+      Stat::Exit(expr) => generate_stat_exit(scope, cfg, regs, expr),
       Stat::Print(TypedExpr(t, expr)) => {
-        generate_stat_print(scope, code, regs, t, expr)
+        generate_stat_print(scope, cfg, regs, t, expr)
       }
       Stat::Println(TypedExpr(t, expr)) => {
-        generate_stat_println(scope, code, regs, t, expr)
+        generate_stat_println(scope, cfg, regs, t, expr)
       }
       Stat::If(cond, body_t, body_f) => {
-        generate_stat_if(scope, code, regs, cond, body_t, body_f)
+        generate_stat_if(scope, cfg, regs, cond, body_t, body_f)
       }
       Stat::While(cond, body) => {
-        generate_stat_while(scope, code, regs, cond, body)
+        generate_stat_while(scope, cfg, regs, cond, body)
       }
-      Stat::Scope(stat) => generate_stat_scope(scope, code, regs, stat),
+      Stat::Scope(stat) => generate_stat_scope(scope, cfg, regs, stat),
       Stat::Sequence(head, tail) => {
-        generate_stat_sequence(scope, code, regs, head, tail)
+        generate_stat_sequence(scope, cfg, regs, head, tail)
       }
     }
   }
@@ -447,25 +452,29 @@ mod tests {
     let expr = Expr::IntLiter(0);
     let stat = Stat::Exit(expr.clone());
     let regs = &GENERAL_REGS;
+    let arena = Arena::new();
 
     /* Actual output. */
     let mut actual_code = GeneratedCode::default();
-    stat.generate(scope, &mut actual_code, regs, ());
+    let mut actual_cfg = CFG::new(&mut actual_code, &arena);
+    let _ = stat.cfg_generate(scope, &mut actual_cfg, regs, ());
+    actual_cfg.linearise();
 
     /* Expected output. */
     let mut expected_code = GeneratedCode::default();
-    expr.generate(scope, &mut expected_code, regs, None);
+    let mut expected_cfg = CFG::new(&mut expected_code, &arena);
+    let _ =
+      /* Evaluate exit code. */
+      expr.cfg_generate(scope, &mut expected_cfg, regs, None)
+      /* MOV r0, r4 */
+      + expected_cfg.flow(Asm::mov(
+        Reg::Arg(ArgReg::R0),
+        Op2::Reg(Reg::General(GenReg::R4), 0),
+      ))
+      /* BL exit */
+      + expected_cfg.flow(Asm::b(predef::PREDEF_SYS_EXIT).link());
 
-    /* MOV r0, r4 */
-    expected_code.text.push(Asm::mov(
-      Reg::Arg(ArgReg::R0),
-      Op2::Reg(Reg::General(GenReg::R4), 0),
-    ));
-
-    /* BL exit */
-    expected_code
-      .text
-      .push(Asm::b(predef::PREDEF_SYS_EXIT).link());
+    expected_cfg.linearise();
 
     assert_eq!(format!("{}", actual_code), format!("{}", expected_code));
   }

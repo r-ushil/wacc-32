@@ -17,6 +17,14 @@ pub struct Flow<'cfg> {
   last: &'cfg BlockRef<'cfg>,
 }
 
+impl<'cfg> Flow<'cfg> {
+  /* Adds a successor to this flow WITHOUT
+  extending it's exit point. */
+  pub fn add_succ(&self, succ: &Flow<'cfg>) {
+    self.last.borrow_mut().succs.push(succ.first);
+  }
+}
+
 impl<'cfg> Add for Flow<'cfg> {
   type Output = Flow<'cfg>;
 
