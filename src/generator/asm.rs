@@ -455,7 +455,7 @@ pub const GENERAL_REGS: [GenReg; 8] = [
 ];
 
 // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289860997.htm
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum CondCode {
   EQ,
   NE,

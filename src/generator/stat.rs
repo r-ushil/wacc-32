@@ -3,7 +3,6 @@ use super::{
   predef::{RequiredPredefs, PREDEF_SYS_MALLOC},
   *,
 };
-use Directive::*;
 use Instr::*;
 
 /* Mallocs {bytes} bytes and leaves the address in {reg}. */
@@ -305,39 +304,30 @@ fn generate_stat_if<'a, 'cfg>(
   true_body: &ScopedStat,
   false_body: &ScopedStat,
 ) -> Flow<'cfg> {
-  let false_label = cfg.code.get_label();
-  let exit_label = cfg.code.get_label();
-
   let cond_flow =
     /* regs[0] = eval(cond) */
     cond.cfg_generate(scope, cfg, regs, None)
     /* cmp(regs[0], 0) */
-    + cfg.flow(Asm::cmp(Reg::General(regs[0]), Op2::Imm(0)))
-    /* Branch to false case if cond == 0. */
-    + cfg.flow(Asm::Instr(CondCode::EQ, Branch(false, false_label.clone())));
+    + cfg.flow(Asm::cmp(Reg::General(regs[0]), Op2::Imm(0)));
 
-  let true_flow =
-    /* True body. */
-    true_body.cfg_generate(scope, cfg, regs, ())
-    /* Exit if statement. */
-    + cfg.flow(Asm::instr(Branch(false, exit_label.clone())));
+  /* True body. */
+  let true_flow = true_body.cfg_generate(scope, cfg, regs, ());
 
-  let false_flow =
-    /* Label for false case to skip to. */
-    cfg.flow(Asm::Directive(Label(false_label)))
-    /* False body. */
-    + false_body.cfg_generate(scope, cfg, regs, ());
+  /* False body. */
+  let false_flow = false_body.cfg_generate(scope, cfg, regs, ());
 
-  let exit_flow =
-    /* Label to exit if statement. */
-    cfg.flow(Asm::Directive(Label(exit_label)));
+  /* Block to jump to. */
+  let exit_flow = cfg.dummy_flow();
 
-  /* Link cond -> false -> exit. */
-  cond_flow.add_succ(&false_flow);
+  /* Link cond -> true & false. */
+  cond_flow.add_succ_cond(CondCode::EQ, &false_flow);
+  cond_flow.add_succ_cond(CondCode::NE, &true_flow);
+
+  /* Link true & false -> exit. */
+  true_flow.add_succ(&exit_flow);
   false_flow.add_succ(&exit_flow);
 
-  /* Link cond -> true -> exit. */
-  cond_flow + true_flow + exit_flow
+  cond_flow.tunnel(&exit_flow)
 }
 
 fn generate_stat_while<'a, 'cfg>(
@@ -347,35 +337,22 @@ fn generate_stat_while<'a, 'cfg>(
   cond: &Expr,
   body: &ScopedStat,
 ) -> Flow<'cfg> {
-  let cond_label = cfg.code.get_label();
-  let body_label = cfg.code.get_label();
-
-  let branch_flow =
-    /* Jump to condition evaluation. */
-    cfg.flow(Asm::b(cond_label.clone()));
-
   let body_flow =
-    /* Loop body label. */
-    cfg.flow(Asm::Directive(Label(body_label.clone())))
     /* Loop body. */
-    + body.cfg_generate(scope, cfg, regs, ());
+    body.cfg_generate(scope, cfg, regs, ());
 
   let cond_flow =
-    /* Cond label */
-    cfg.flow(Asm::Directive(Label(cond_label)))
     /* regs[0] = eval(cond) */
-    + cond.cfg_generate(scope, cfg, regs, None)
+    cond.cfg_generate(scope, cfg, regs, None)
     /* cmp(regs[0], 1) */
-    + cfg.flow(Asm::cmp(Reg::General(regs[0]), Op2::Imm(1)))
-    /* If regs[0] == 1, jump back to loop body. */
-    + cfg.flow(Asm::Instr(CondCode::EQ, Branch(false, body_label)));
+    + cfg.flow(Asm::cmp(Reg::General(regs[0]), Op2::Imm(1)));
 
   /* Two way link from cond to body. */
-  cond_flow.add_succ(&body_flow);
+  cond_flow.add_succ_cond(CondCode::EQ, &body_flow);
   body_flow.add_succ(&cond_flow);
 
   /* Start to end link. */
-  branch_flow + cond_flow
+  cond_flow
 }
 
 fn generate_stat_scope<'a, 'cfg>(
@@ -441,6 +418,8 @@ impl CFGable for Stat {
 
 #[cfg(test)]
 mod tests {
+  use typed_arena::Arena;
+
   use super::*;
 
   #[test]

@@ -1,3 +1,5 @@
+use typed_arena::Arena;
+
 use super::*;
 
 #[derive(PartialEq, Debug, Clone)]
@@ -95,7 +97,7 @@ impl Generatable for NamedFunc {
 
     /* Make control flow graph to write this function into. */
     let arena = Arena::new();
-    let cfg = &mut CFG::new(code, &arena);
+    let mut cfg = CFG::new(code, &arena);
 
     /* Comments reflect the following example:
     int foo(int x) is
@@ -142,7 +144,7 @@ impl Generatable for NamedFunc {
     LDR r4, [sp, #8]
     MOV r0, r4
     ADD sp, sp, #4 */
-    flow += func.body.cfg_generate(scope, cfg, regs, ());
+    flow += func.body.cfg_generate(scope, &mut cfg, regs, ());
 
     /* Main function implicitly ends in return 0. */
     if main {
