@@ -80,8 +80,8 @@ pub struct Block<'cfg> {
   /* Stored assembly. */
   asm: Option<Asm>,
   /* This blocks relationship to the rest of the graph. */
-  // uses: Vec<Reg>,
-  // defines: Vec<Reg>,
+  uses: Vec<Reg>,
+  defines: Vec<Reg>,
   // live_in: Vec<Reg>,
   // live_out: Vec<Reg>,
   /* This blocks successors. */
@@ -145,6 +145,13 @@ impl<'cfg> CFG<'cfg> {
 
   /* Creates a flow which starts and ends on a given instruction. */
   fn option_flow<'a>(&'a mut self, asm: Option<Asm>) -> Flow<'cfg> {
+    /* Calculates which virtuals this instruction defines. */
+    let (uses, defines) = if let Some(asm) = &asm {
+      (asm.uses(), asm.defines())
+    } else {
+      (vec![], vec![])
+    };
+
     /* Create new block out of asm. */
     let block = Block {
       id: self.ordering.len(),
@@ -152,6 +159,8 @@ impl<'cfg> CFG<'cfg> {
       succs: vec![],
       needs_label: false,
       label: None,
+      uses,
+      defines,
     };
 
     /* Allocate it in the arena. */
@@ -198,11 +207,16 @@ impl<'cfg> CFG<'cfg> {
     flow
   }
 
-  /* Consumes this cfg, linearising all instructions into the text segment.
-  This takes ownership of the cfg so this is guarenteed to be the last
+  /* This takes ownership of the cfg so this is guarenteed to be the last
   operation on the cfg. */
-  pub fn linearise(self) {
-    for block in self.ordering.into_iter() {
+  pub fn save(mut self) {
+    self.linearise();
+  }
+
+  /* Writes the cfg to code, transforming
+  it from a graph to a linear structure. */
+  fn linearise(&mut self) {
+    for block in self.ordering.iter() {
       let mut block = block.borrow_mut();
 
       /* If anyone needs to jump to this block, add a label. */

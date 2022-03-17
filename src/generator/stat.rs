@@ -442,7 +442,7 @@ mod tests {
     let mut actual_code = GeneratedCode::default();
     let mut actual_cfg = CFG::new(&mut actual_code, &arena);
     let _ = stat.cfg_generate(scope, &mut actual_cfg, regs, ());
-    actual_cfg.linearise();
+    actual_cfg.save();
 
     /* Expected output. */
     let mut expected_code = GeneratedCode::default();
@@ -458,7 +458,7 @@ mod tests {
       /* BL exit */
       + expected_cfg.flow(Asm::b(predef::PREDEF_SYS_EXIT).link());
 
-    expected_cfg.linearise();
+    expected_cfg.save();
 
     assert_eq!(format!("{}", actual_code), format!("{}", expected_code));
   }

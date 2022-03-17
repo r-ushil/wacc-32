@@ -100,6 +100,67 @@ pub enum Asm {
 so we're allowing unused functions in this case. */
 #[allow(dead_code)]
 impl Asm {
+  /* Returns vector of registers this instruction reads. */
+  pub fn uses(&self) -> Vec<Reg> {
+    use Instr::*;
+
+    let uses = match self {
+      Asm::Instr(_,
+        /* Binary uses two registers if it's second
+        operand is a register. */
+        Binary(_, _, r1, Op2::Reg(r2, _), _)
+        /* Store and multiply always use two registers. */
+        | Store(_, r1, (r2, _), _)
+        | Multiply(_, _, r1, r2)
+      ) => vec!(r1.clone(), r2.clone()),
+      Asm::Instr(_, instr) => match instr {
+        /* Push, BranchReg, and Load always use one register. */
+        Push(r)=> vec!(r.clone()),
+        BranchReg(_, r) => vec!(r.clone()),
+        /* Unary uses a register if it's operand is a register. */
+        Unary(UnaryInstr::Mov, _, Op2::Reg(r, _), _) => vec!(r.clone()),
+        Unary(UnaryInstr::Cmp, r1, Op2::Reg(r2, _), _) => vec!(r1.clone(), r2.clone()),
+        Unary(UnaryInstr::Cmp, r1, _, _) => vec!(r1.clone()),
+        /* Binary uses one register if it's second operand isn't
+        a register, which we know to be the case at this pointer because
+        otherwise we would've hit above branch and returned. */
+        Binary(_, r, _, _, _) => vec!(r.clone()),
+        /* Load uses a register if the memory address is specified
+        by a register. */
+        Load(_, _, LoadArg::MemAddress(r, _)) => vec!(r.clone()),
+        _ => vec!(),
+      }
+      _ => vec!()
+    };
+
+    uses
+      .into_iter()
+      .filter(|reg| matches!(reg, Reg::Virtual(_)))
+      .collect()
+  }
+
+  /* Returns register this instruction defines. */
+  pub fn defines(&self) -> Vec<Reg> {
+    use Instr::*;
+
+    let defines = match self {
+      /* Pop always defines the register it writes to from the stack. */
+      /* Unar, Binary, and Load always defines it's output register. */
+      Asm::Instr(_, Pop(r)) => vec![r.clone()],
+      Asm::Instr(_, Unary(UnaryInstr::Mov, r, _, _)) => vec![r.clone()],
+      Asm::Instr(_, Binary(_, r, _, _, _)) => vec![r.clone()],
+      Asm::Instr(_, Load(_, r, _)) => vec![r.clone()],
+      /* Multiply always writes to two register. */
+      Asm::Instr(_, Multiply(r1, r2, _, _)) => vec![r1.clone(), r2.clone()],
+      _ => vec![],
+    };
+
+    defines
+      .into_iter()
+      .filter(|reg| matches!(reg, Reg::Virtual(_)))
+      .collect()
+  }
+
   /* ==== MODIFIERS ==== */
   /* These modify already existing Asm instructions. */
 

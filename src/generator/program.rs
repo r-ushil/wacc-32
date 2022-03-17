@@ -173,6 +173,6 @@ impl Generatable for NamedFunc {
     it creates all the cfg links that we do need. */
 
     /* Linearise CFG. (Saving it into generated code) */
-    cfg.linearise();
+    cfg.save();
   }
 }
