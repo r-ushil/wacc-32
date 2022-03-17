@@ -105,16 +105,6 @@ fn pair_elem_type(input: &str) -> IResult<&str, Type, ErrorTree<&str>> {
   /* Type logic reused for base types and arrays, because pairs
   are different we have to handle that edge case. */
   match type_(input) {
-    /* pair(int, int) is allowed as a regular type, but not as a pair_elem_type */
-    Ok((input, Type::Pair(_, _))) => {
-      Err(nom::Err::Error(nom_supreme::error::ErrorTree::Base {
-        location: input,
-        kind: nom_supreme::error::BaseErrorKind::Expected(Expectation::Tag(
-          "cannot have strongly defined nested pair types.",
-        )),
-      }))
-    }
-
     /* Everything else the regular type parser can deal with is also a pair_elem_type */
     Ok(result) => Ok(result),
     /* But pair_elem_type can also 'pair' */
@@ -169,8 +159,6 @@ mod tests {
           Box::new(Type::Int),
         )))
     ));
-    println!("{:?}", type_("pair(pair(int, int), string)"));
-    assert!(type_("pair(pair(int, int), string)").is_err());
   }
 
   #[test]

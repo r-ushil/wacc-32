@@ -161,7 +161,8 @@ pub enum Expr {
   /* Identifiers. */
   Ident(Ident),
   /* Element access. */
-  ArrayElem(ArrayElem),
+  /* Type stored on array elem is the type of the elements of the array. */
+  ArrayElem(Type, Box<Expr>, Box<Expr>), /* a[b] where a, b are 1st and 2nd expression. */
   StructElem(StructElem),
   PairElem(Box<PairElem>),
   /* Operator application. */
@@ -208,9 +209,6 @@ pub enum BinaryOper {
 // #[derive(PartialEq, Debug, Clone, Hash, Eq)]
 pub type Ident = String;
 // pub struct Ident(pub String);
-
-#[derive(PartialEq, Debug, Clone)]
-pub struct ArrayElem(pub Ident, pub Vec<Expr>);
 
 /* Stores the type of the elements. */
 #[derive(PartialEq, Debug, Clone)]

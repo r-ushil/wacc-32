@@ -1,5 +1,5 @@
 --------- stdout ---------
-Please input an integer: echo input: 0
+Please input an integer: echo input: 5
 Do you want to continue entering input?
 (enter Y for 'yes' and N for 'no')
 --------------------------

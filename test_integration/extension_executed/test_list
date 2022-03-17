@@ -32,3 +32,8 @@
 ./tests/higher-order-funcs/filter.wacc,./tests/higher-order-funcs/filter.output.observed,./tests/higher-order-funcs/filter.output.expected,pass
 ./tests/higher-order-funcs/concat.wacc,./tests/higher-order-funcs/concat.output.observed,./tests/higher-order-funcs/concat.output.expected,pass
 ./tests/higher-order-funcs/concatMap.wacc,./tests/higher-order-funcs/concatMap.output.observed,./tests/higher-order-funcs/concatMap.output.expected,pass
+./tests/assign-lhs/destructuring.wacc,./tests/assign-lhs/destructuring.output.observed,./tests/assign-lhs/destructuring.output.expected,fail
+./tests/assign-lhs/pairDestructure.wacc,./tests/assign-lhs/pairDestructure.output.observed,./tests/assign-lhs/pairDestructure.output.expected,pass
+./tests/assign-lhs/arrayDestructure.wacc,./tests/assign-lhs/arrayDestructure.output.observed,./tests/assign-lhs/arrayDestructure.output.expected,pass
+./tests/assign-lhs/structDestructure.wacc,./tests/assign-lhs/structDestructure.output.observed,./tests/assign-lhs/structDestructure.output.expected,pass
+./tests/assign-lhs/mixedDestructure.wacc,./tests/assign-lhs/mixedDestructure.output.observed,./tests/assign-lhs/mixedDestructure.output.expected,pass

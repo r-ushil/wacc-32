@@ -1,0 +1,21 @@
+Compiler exit code: 0
+--------- stdout ---------
+x:
+1
+2
+42
+4
+x destructured via ints box:
+1
+2
+42
+4
+complex destructure declare:
+1
+5
+a
+b
+c
+d
+--------------------------
+Exit code: 0

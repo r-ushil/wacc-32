@@ -192,25 +192,79 @@ impl Analysable for Stat {
     /* Returns error if there is any. */
     match self {
       Stat::Skip => Ok(Never), /* Skips never return. */
-      Stat::Declaration(expected, dst, val) => {
-        expected_type(scope, expected, val)
-          .join(dst.analyse(scope, ExprPerms::Declare(expected.clone())))?;
+      Stat::Declaration(expected, dst, src) => {
+        match (expected, dst) {
+          (
+            Type::Pair(lhs_type, rhs_type),
+            Expr::PairLiter(lhs_expr, rhs_expr),
+          ) => {
+            *self = sugar::pair_declaration(
+              scope,
+              (*lhs_expr.clone()).1,
+              *lhs_type.clone(),
+              (*rhs_expr.clone()).1,
+              *rhs_type.clone(),
+              src.clone(),
+            )?;
 
-        /* Declarations never return. */
-        Ok(Never)
+            self.analyse(scope, ())
+          }
+          (Type::Array(elem_type), Expr::ArrayLiter(lit)) => {
+            *self = sugar::array_declaration(scope, lit, elem_type, src)?;
+
+            self.analyse(scope, ())
+          }
+          (Type::Custom(struct_name), Expr::StructLiter(struct_lit)) => {
+            *self =
+              sugar::struct_declaration(scope, struct_name, struct_lit, src)?;
+
+            self.analyse(scope, ())
+          }
+          (expected, dst) => {
+            expected_type(scope, expected, src)
+              .join(dst.analyse(scope, ExprPerms::Declare(expected.clone())))?;
+
+            /* Declarations never return. */
+            Ok(Never)
+          }
+        }
       }
-      Stat::Assignment(lhs, t, rhs) => {
-        /* LHS and RHS must have same type. */
-        *t = equal_types_with_inputs(
-          scope,
-          lhs,
-          ExprPerms::Assign,
-          rhs,
-          ExprPerms::Nothing,
-        )?;
+      Stat::Assignment(dst, t, src) => {
+        match dst {
+          Expr::PairLiter(lhs_expr, rhs_expr) => {
+            *self = sugar::pair_assignment(
+              scope,
+              (*lhs_expr).1.clone(),
+              (*rhs_expr).1.clone(),
+              src.clone(),
+            )?;
 
-        /* Assignments never return. */
-        Ok(Never)
+            self.analyse(scope, ())
+          }
+          Expr::ArrayLiter(lit) => {
+            *self = sugar::array_assignment(scope, lit, src)?;
+
+            self.analyse(scope, ())
+          }
+          Expr::StructLiter(lit) => {
+            *self = sugar::struct_assignment(scope, lit, src)?;
+
+            self.analyse(scope, ())
+          }
+          dst => {
+            /* LHS and RHS must have same type. */
+            *t = equal_types_with_inputs(
+              scope,
+              dst,
+              ExprPerms::Assign,
+              src,
+              ExprPerms::Nothing,
+            )?;
+
+            /* Assignments never return. */
+            Ok(Never)
+          }
+        }
       }
       Stat::Read(dst) => {
         /* Any type can be read. */
@@ -370,8 +424,12 @@ mod tests {
     );
 
     assert_eq!(
-      (Expr::ArrayElem(ArrayElem(x_id.clone(), vec!(Expr::IntLiter(5)))))
-        .analyse(scope, ExprPerms::Nothing),
+      Expr::ArrayElem(
+        Type::default(),
+        Box::new(Expr::Ident(x_id.clone())),
+        Box::new(Expr::IntLiter(5))
+      )
+      .analyse(scope, ExprPerms::Nothing),
       Ok(Type::Int)
     );
   }

@@ -4,7 +4,7 @@ use nom::{
   bytes::complete::tag,
   character::complete::{char as char_, digit1, none_of},
   combinator::{map, opt, value},
-  multi::{many0, many1},
+  multi::many0,
   sequence::{delimited, pair, preceded, separated_pair, tuple},
   IResult,
 };
@@ -84,7 +84,6 @@ fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
       Expr::BlankArrayLiter(arr_lit, Box::new(size))
     }),
     map(struct_liter, Expr::StructLiter),
-    map(array_elem, Expr::ArrayElem),
     map(pair_elem, |elem| Expr::PairElem(Box::new(elem))),
     unary_app,
     map(ident, Expr::Ident),
@@ -102,6 +101,11 @@ fn expr_atom(input: &str) -> IResult<&str, Expr, ErrorTree<&str>> {
       /* Check if expression followed by function call. */
       input = i;
       e = Expr::Call(Type::default(), Box::new(e), args)
+    }
+    if let Ok((i, index)) = delimited(tok("["), expr, tok("]"))(input) {
+      /* Add array element lookup. */
+      input = i;
+      e = Expr::ArrayElem(Type::default(), Box::new(e), Box::new(index));
     } else {
       break;
     }
@@ -238,18 +242,6 @@ fn binary_oper_prec<'a>(
   }
 }
 
-/* 〈array-elem〉::=〈ident〉(‘[’〈expr〉‘]’)+ */
-pub fn array_elem(input: &str) -> IResult<&str, ArrayElem, ErrorTree<&str>> {
-  let (input, id) = ident(input)?;
-
-  /* Gets the exprs to be indexed. */
-  /* This matches many times because we might have arr[x][y][z], which has
-  multiple expressions. (=> ArrayElem("arr", [x, y, z])) */
-  let (input, exprs) = many1(delimited(tok("["), expr, tok("]")))(input)?;
-
-  Ok((input, ArrayElem(id, exprs)))
-}
-
 /* 〈character〉 ::= any-ASCII-character-except-‘\’-‘'’-‘"’
 | ‘\’ 〈escaped-char〉 */
 fn character(input: &str) -> IResult<&str, char, ErrorTree<&str>> {
@@ -373,13 +365,14 @@ mod tests {
       expr("hello  5"),
       Ok(("5", ast)) if ast == Expr::Ident(String::from("hello"))
     ));
-    assert!(matches!(
-      expr("hello [ 2] "),
-      Ok((
-        "",
-        ast)) if ast == Expr::ArrayElem(ArrayElem(String::from("hello"), vec!(Expr::IntLiter(2)),
-      ))
-    ));
+    assert_eq!(
+      expr("hello [ 2] ").unwrap().1,
+      Expr::ArrayElem(
+        Type::default(),
+        Box::new(Expr::Ident(String::from("hello"))),
+        Box::new(Expr::IntLiter(2))
+      ),
+    );
     assert!(matches!(
       expr("- (5)"),
       Ok((
@@ -563,20 +556,27 @@ mod tests {
 
   #[test]
   fn test_array_elem() {
-    assert!(matches!(
-      array_elem("array[2]"),
-      Ok(("", ast)) if ast == ArrayElem("array".to_string(), vec!(Expr::IntLiter(2)))
-    ));
+    assert_eq!(
+      expr("array[2]").unwrap().1,
+      Expr::ArrayElem(
+        Type::default(),
+        Box::new(Expr::Ident("array".to_string())),
+        Box::new(Expr::IntLiter(2))
+      ),
+    );
 
-    assert!(matches!(
-      array_elem("otherArray[1][2]"),
-      Ok((
-        "",
-        ast)) if ast == ArrayElem(
-          "otherArray".to_string(),
-          vec!(Expr::IntLiter(1), Expr::IntLiter(2))
-        )
-    ));
+    assert_eq!(
+      expr("otherArray[1][2]").unwrap().1,
+      Expr::ArrayElem(
+        Type::default(),
+        Box::new(Expr::ArrayElem(
+          Type::default(),
+          Box::new(Expr::Ident("otherArray".to_string())),
+          Box::new(Expr::IntLiter(1))
+        )),
+        Box::new(Expr::IntLiter(2)),
+      ),
+    );
   }
 
   #[test]

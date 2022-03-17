@@ -163,10 +163,11 @@ fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
       let elem_decl = Stat::Declaration(
         Type::default(),
         Expr::Ident(elem),
-        Expr::ArrayElem(ArrayElem(
-          array,
-          vec![Expr::Ident("__reserved_for_array__".to_string())],
-        )),
+        Expr::ArrayElem(
+          Type::default(),
+          Box::new(Expr::Ident(array)),
+          Box::new(Expr::Ident("__reserved_for_array__".to_string())),
+        ),
       );
 
       let body_with_decl =
@@ -547,10 +548,11 @@ mod tests {
       (
         "restOfString",
         Stat::Assignment(
-          Expr::ArrayElem(ArrayElem(
-            "array".to_string(),
-            vec!(Expr::IntLiter(2))
-          )),
+          Expr::ArrayElem(
+            Type::default(),
+            Box::new(Expr::Ident("array".to_string())),
+            Box::new(Expr::IntLiter(2))
+          ),
           Type::default(),
           Expr::PairLiter(
             Box::new(TypedExpr::new(Expr::IntLiter(1))),
@@ -749,7 +751,11 @@ mod tests {
     assert_eq!(expr("foo").unwrap().1, (Expr::Ident("foo".to_string())));
     assert_eq!(
       expr("foo [ 5]").unwrap().1,
-      (Expr::ArrayElem(ArrayElem("foo".to_string(), vec!(Expr::IntLiter(5))))),
+      (Expr::ArrayElem(
+        Type::default(),
+        Box::new(Expr::Ident("foo".to_string())),
+        Box::new(Expr::IntLiter(5))
+      )),
     );
     assert_eq!(
       expr("fst 5").unwrap().1,

@@ -2,6 +2,7 @@ pub mod context;
 mod expr;
 mod program;
 mod stat;
+mod sugar;
 mod unify;
 
 use std::fmt::Display;
@@ -245,47 +246,6 @@ impl Analysable for Ident {
   }
 }
 
-impl Analysable for ArrayElem {
-  type Input = ExprPerms;
-  type Output = Type;
-  fn analyse(
-    &mut self,
-    scope: &mut ScopeBuilder,
-    perms: ExprPerms,
-  ) -> AResult<Type> {
-    let ArrayElem(id, indexes) = self;
-
-    perms.break_declare()?;
-
-    /* If any indexes aren't Int, return errors. */
-    SemanticError::join_iter(
-      indexes
-        .iter_mut()
-        .map(|index| expected_type(scope, &mut Type::Int, index)),
-    )?;
-
-    /* Gets type of the array being looked up. */
-    /* The array itself doesn't have to be assignable, even if the
-    element acces does, e.g: foo()[5] = 42 */
-    let mut curr_type = id.analyse(scope, ExprPerms::Nothing)?;
-
-    /* For each index, unwrap the type by one array. */
-    for _ in indexes {
-      curr_type = match curr_type {
-        Type::Array(t) => *t,
-        t => {
-          return Err(SemanticError::Normal(format!(
-            "Expected array, found {:?}",
-            t
-          )))
-        }
-      };
-    }
-
-    Ok(curr_type)
-  }
-}
-
 impl Analysable for StructElem {
   type Input = ExprPerms;
   type Output = Type;
@@ -403,9 +363,14 @@ mod tests {
       .unwrap();
 
     /* x[5]['a'] is error */
-    assert!(ArrayElem(
-      id.clone(),
-      vec![Expr::IntLiter(5), Expr::CharLiter('a')]
+    assert!(Expr::ArrayElem(
+      Type::default(),
+      Box::new(Expr::ArrayElem(
+        Type::default(),
+        Box::new(Expr::Ident(id.clone())),
+        Box::new(Expr::IntLiter(5))
+      )),
+      Box::new(Expr::CharLiter('a'))
     )
     .analyse(&mut scope, ExprPerms::Nothing)
     .is_err());
@@ -447,30 +412,56 @@ mod tests {
 
     /* x[5][2]: Int */
     assert_eq!(
-      ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::IntLiter(2)])
-        .analyse(&mut scope, ExprPerms::Nothing),
+      Expr::ArrayElem(
+        Type::default(),
+        Box::new(Expr::ArrayElem(
+          Type::default(),
+          Box::new(Expr::Ident(id.clone())),
+          Box::new(Expr::IntLiter(5))
+        )),
+        Box::new(Expr::IntLiter(2))
+      )
+      .analyse(&mut scope, ExprPerms::Nothing),
       Ok(Type::Int),
     );
 
     /* x[5]['a'] is error */
-    assert!(ArrayElem(
-      id.clone(),
-      vec![Expr::IntLiter(5), Expr::CharLiter('a')]
+    assert!(Expr::ArrayElem(
+      Type::default(),
+      Box::new(Expr::ArrayElem(
+        Type::default(),
+        Box::new(Expr::Ident(id.clone())),
+        Box::new(Expr::IntLiter(5))
+      )),
+      Box::new(Expr::CharLiter('a'))
     )
     .analyse(&mut scope, ExprPerms::Nothing)
     .is_err());
 
     /* x[5]: Array(Int) */
     assert_eq!(
-      ArrayElem(id.clone(), vec![Expr::IntLiter(5)])
-        .analyse(&mut scope, ExprPerms::Nothing),
+      Expr::ArrayElem(
+        Type::default(),
+        Box::new(Expr::Ident(id.clone())),
+        Box::new(Expr::IntLiter(5))
+      )
+      .analyse(&mut scope, ExprPerms::Nothing),
       Ok(Type::Array(Box::new(Type::Int))),
     );
 
     /* x[5][2][1] is error */
-    assert!(ArrayElem(
-      id.clone(),
-      vec![Expr::IntLiter(5), Expr::IntLiter(2), Expr::IntLiter(1)]
+    assert!(Expr::ArrayElem(
+      Type::default(),
+      Box::new(Expr::ArrayElem(
+        Type::default(),
+        Box::new(Expr::ArrayElem(
+          Type::default(),
+          Box::new(Expr::Ident(id.clone())),
+          Box::new(Expr::IntLiter(5))
+        )),
+        Box::new(Expr::IntLiter(2))
+      )),
+      Box::new(Expr::IntLiter(1))
     )
     .analyse(&mut scope, ExprPerms::Nothing)
     .is_err());

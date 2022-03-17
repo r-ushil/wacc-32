@@ -47,6 +47,8 @@ pub struct ScopeBuilder<'a> {
   and where abouts within that scope it is. */
   /* context: None means this is the global scope. */
   parents: Option<&'a ScopeBuilder<'a>>,
+  /* Auto-increment for unique, internal use, idents. */
+  uniques: u32,
 }
 
 #[allow(dead_code)]
@@ -59,6 +61,7 @@ impl ScopeBuilder<'_> {
     ScopeBuilder {
       current: symbol_table,
       parents: None,
+      uniques: 0,
     }
   }
 
@@ -111,6 +114,15 @@ impl ScopeBuilder<'_> {
     }
   }
 
+  /* Returns a unique identifer. */
+  pub fn get_unique(&mut self) -> Ident {
+    /* Increments how many uniques there are. */
+    self.uniques += 1;
+
+    /* Makes a unique identifier based on this. */
+    format!("@{}{}", self.current.prefix, self.uniques)
+  }
+
   pub fn insert_var(&mut self, ident: &mut Ident, t: Type) -> AResult<()> {
     /* Local variables increase the size of this scope. */
     self.current.size += t.size();
@@ -152,6 +164,7 @@ impl ScopeBuilder<'_> {
     ScopeBuilder {
       current: symbol_table,
       parents: Some(self),
+      uniques: 0,
     }
   }
 }
