@@ -68,6 +68,21 @@ begin
         return res
     end
 
+    int pop_vec(Vector vec) is
+        int res = 0;
+        bool empty = call is_empty_vec(vec);
+        if empty then
+            print "CAN\'T POP EMPTY ARRAY!";
+            exit -1
+        else
+            int[] vec_arr = vec.arr;
+            vec.size = vec.size - 1;
+            res = vec_arr[vec.size]
+        fi ;
+
+        return res
+    end
+
     # # Vector free_vec(Vector vec) is
     # #    free dyn.arr;
     # #    free vec;
