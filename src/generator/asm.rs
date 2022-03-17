@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 use super::{display::unescape_char, predef::RequiredPredefs};
 
 /* ======== Type aliases. ======== */
@@ -101,7 +103,7 @@ so we're allowing unused functions in this case. */
 #[allow(dead_code)]
 impl Asm {
   /* Returns vector of registers this instruction reads. */
-  pub fn uses(&self) -> Vec<Reg> {
+  pub fn uses(&self) -> Vec<RegRef> {
     use Instr::*;
 
     let uses = match self {
@@ -135,12 +137,12 @@ impl Asm {
 
     uses
       .into_iter()
-      .filter(|reg| matches!(reg, Reg::Virtual(_)))
+      .filter(|reg| matches!(*reg.borrow(), Reg::Virtual(_)))
       .collect()
   }
 
   /* Returns register this instruction defines. */
-  pub fn defines(&self) -> Vec<Reg> {
+  pub fn defines(&self) -> Vec<RegRef> {
     use Instr::*;
 
     let defines = match self {
@@ -157,7 +159,7 @@ impl Asm {
 
     defines
       .into_iter()
-      .filter(|reg| matches!(reg, Reg::Virtual(_)))
+      .filter(|reg| matches!(*reg.borrow(), Reg::Virtual(_)))
       .collect()
   }
 
@@ -206,20 +208,20 @@ impl Asm {
     Self::Instr(CondCode::AL, i)
   }
 
-  pub fn push(reg: Reg) -> Self {
-    Self::instr(Instr::Push(reg))
+  pub fn push(reg: impl Into<RegRef>) -> Self {
+    Self::instr(Instr::Push(reg.into()))
   }
 
-  pub fn pop(reg: Reg) -> Self {
-    Self::instr(Instr::Pop(reg))
+  pub fn pop(reg: impl Into<RegRef>) -> Self {
+    Self::instr(Instr::Pop(reg.into()))
   }
 
   pub fn b(label: impl Into<Label>) -> Self {
     Self::instr(Instr::Branch(false, label.into()))
   }
 
-  pub fn bx(reg: Reg) -> Self {
-    Self::instr(Instr::BranchReg(false, reg))
+  pub fn bx(reg: impl Into<RegRef>) -> Self {
+    Self::instr(Instr::BranchReg(false, reg.into()))
   }
 
   pub fn link(mut self) -> Self {
@@ -231,45 +233,87 @@ impl Asm {
   }
 
   /* UNARY INSTRUCTIONS */
-  fn unary(unary_instr: UnaryInstr, reg: Reg, op2: Op2) -> Self {
-    Self::instr(Instr::Unary(unary_instr, reg, op2, false))
+  fn unary(
+    unary_instr: UnaryInstr,
+    reg: impl Into<RegRef>,
+    op2: impl Into<Op2>,
+  ) -> Self {
+    Self::instr(Instr::Unary(unary_instr, reg.into(), op2.into(), false))
   }
-  pub fn mov(reg: Reg, op2: Op2) -> Self {
-    Self::unary(UnaryInstr::Mov, reg, op2)
+  pub fn mov(reg: impl Into<RegRef>, op2: impl Into<Op2>) -> Self {
+    Self::unary(UnaryInstr::Mov, reg, op2.into())
   }
-  pub fn cmp(reg: Reg, op2: Op2) -> Self {
+  pub fn cmp(reg: impl Into<RegRef>, op2: impl Into<Op2>) -> Self {
     Self::unary(UnaryInstr::Cmp, reg, op2)
   }
 
   /* BINARY INSTRUCTIONS */
-  fn binary(binary_instr: BinaryInstr, r1: Reg, r2: Reg, op2: Op2) -> Self {
-    Self::instr(Instr::Binary(binary_instr, r1, r2, op2, false))
+  fn binary(
+    binary_instr: BinaryInstr,
+    r1: impl Into<RegRef>,
+    r2: impl Into<RegRef>,
+    op2: impl Into<Op2>,
+  ) -> Self {
+    Self::instr(Instr::Binary(
+      binary_instr,
+      r1.into(),
+      r2.into(),
+      op2.into(),
+      false,
+    ))
   }
-  pub fn add(r1: Reg, r2: Reg, op2: Op2) -> Self {
-    Self::binary(BinaryInstr::Add, r1, r2, op2)
+  pub fn add(
+    r1: impl Into<RegRef>,
+    r2: impl Into<RegRef>,
+    op2: impl Into<Op2>,
+  ) -> Self {
+    Self::binary(BinaryInstr::Add, r1.into(), r2.into(), op2.into())
   }
-  pub fn sub(r1: Reg, r2: Reg, op2: Op2) -> Self {
-    Self::binary(BinaryInstr::Sub, r1, r2, op2)
+  pub fn sub(
+    r1: impl Into<RegRef>,
+    r2: impl Into<RegRef>,
+    op2: impl Into<Op2>,
+  ) -> Self {
+    Self::binary(BinaryInstr::Sub, r1.into(), r2.into(), op2.into())
   }
-  pub fn rev_sub(r1: Reg, r2: Reg, op2: Op2) -> Self {
-    Self::binary(BinaryInstr::RevSub, r1, r2, op2)
+  pub fn rev_sub(
+    r1: impl Into<RegRef>,
+    r2: impl Into<RegRef>,
+    op2: impl Into<Op2>,
+  ) -> Self {
+    Self::binary(BinaryInstr::RevSub, r1.into(), r2.into(), op2.into())
   }
-  pub fn and(r1: Reg, r2: Reg, op2: Op2) -> Self {
-    Self::binary(BinaryInstr::And, r1, r2, op2)
+  pub fn and(
+    r1: impl Into<RegRef>,
+    r2: impl Into<RegRef>,
+    op2: impl Into<Op2>,
+  ) -> Self {
+    Self::binary(BinaryInstr::And, r1.into(), r2.into(), op2.into())
   }
-  pub fn or(r1: Reg, r2: Reg, op2: Op2) -> Self {
-    Self::binary(BinaryInstr::Or, r1, r2, op2)
+  pub fn or(
+    r1: impl Into<RegRef>,
+    r2: impl Into<RegRef>,
+    op2: impl Into<Op2>,
+  ) -> Self {
+    Self::binary(BinaryInstr::Or, r1.into(), r2.into(), op2.into())
   }
-  pub fn eor(r1: Reg, r2: Reg, op2: Op2) -> Self {
-    Self::binary(BinaryInstr::Eor, r1, r2, op2)
+  pub fn eor(
+    r1: impl Into<RegRef>,
+    r2: impl Into<RegRef>,
+    op2: impl Into<Op2>,
+  ) -> Self {
+    Self::binary(BinaryInstr::Eor, r1.into(), r2.into(), op2.into())
   }
 
   /* STORE AND LOAD */
-  pub fn str(r1: Reg, (r2, offset): (Reg, Offset)) -> Self {
+  pub fn str(
+    r1: impl Into<RegRef>,
+    (r2, offset): (impl Into<RegRef>, Offset),
+  ) -> Self {
     Self::instr(Instr::Store(
       DataSize::Word,
-      r1,
-      (r2, offset),
+      r1.into(),
+      (r2.into(), offset),
       AddressingMode::Default,
     ))
   }
@@ -282,8 +326,8 @@ impl Asm {
     }
     self
   }
-  pub fn ldr(r1: Reg, arg: impl Into<LoadArg>) -> Self {
-    Self::instr(Instr::Load(DataSize::Word, r1, arg.into()))
+  pub fn ldr(r1: impl Into<RegRef>, arg: impl Into<LoadArg>) -> Self {
+    Self::instr(Instr::Load(DataSize::Word, r1.into(), arg.into()))
   }
   pub fn size(mut self, size: DataSize) -> Self {
     match &mut self {
@@ -299,8 +343,13 @@ impl Asm {
   }
 
   /* MUL */
-  pub fn smull(r1: Reg, r2: Reg, r3: Reg, r4: Reg) -> Self {
-    Self::instr(Instr::Multiply(r1, r2, r3, r4))
+  pub fn smull(
+    r1: impl Into<RegRef>,
+    r2: impl Into<RegRef>,
+    r3: impl Into<RegRef>,
+    r4: impl Into<RegRef>,
+  ) -> Self {
+    Self::instr(Instr::Multiply(r1.into(), r2.into(), r3.into(), r4.into()))
   }
 
   /* FLAGS */
@@ -340,9 +389,9 @@ pub enum AddressingMode {
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Instr {
   /* PUSH {reg} */
-  Push(Reg),
+  Push(RegRef),
   /* POP {reg} */
-  Pop(Reg),
+  Pop(RegRef),
 
   /* B{L?}{CondCode} {Label} */
   /* If bool true, branch with link. */
@@ -352,32 +401,32 @@ pub enum Instr {
 
   /* B{L?}X{CondCode} {Reg} */
   /* Jumps to address specified by register. (Function pointers) */
-  BranchReg(bool, Reg),
+  BranchReg(bool, RegRef),
   // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289866466.htm
 
   /* Instructions which take an operand2 and store result in a register. */
   /* {UnaryInstr}{UnaryArgs}Flags){CondCode} {UnaryArgs.Reg,Reg,Op2) */
-  Unary(UnaryInstr, Reg, Op2, Flags),
+  Unary(UnaryInstr, RegRef, Op2, Flags),
 
   /* Instructions which take an operand2, register and store result in a register. */
   /* {BinaryInstr}{BinaryArgs.Flags){CondCode} {BinaryArgs.Reg,Reg,Op2} */
-  Binary(BinaryInstr, Reg, Reg, Op2, Flags),
+  Binary(BinaryInstr, RegRef, RegRef, Op2, Flags),
 
   /* STR{DataSize}{CondCode}, {Reg}, [{Reg}, #{Offset}] */
-  Store(DataSize, Reg, (Reg, Offset), AddressingMode), // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289906890.htm
+  Store(DataSize, RegRef, (RegRef, Offset), AddressingMode), // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289906890.htm
 
   /* LDR{DataSize}{CondCode}, {Reg}, [{Reg}, #{Offset}] */
-  Load(DataSize, Reg, LoadArg), // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289873425.htm
+  Load(DataSize, RegRef, LoadArg), // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289873425.htm
 
   /* SMULL{CondCode} {Reg}, {Reg}, {Reg}, {Reg}  */
-  Multiply(Reg, Reg, Reg, Reg), // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289902800.htm
+  Multiply(RegRef, RegRef, RegRef, RegRef), // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289902800.htm
 }
 
 impl<Op, D, S, O> From<(Op, D, S, O)> for Instr
 where
   Op: Into<BinaryInstr>,
-  D: Into<Reg>,
-  S: Into<Reg>,
+  D: Into<RegRef>,
+  S: Into<RegRef>,
   O: Into<Op2>,
 {
   fn from((op, dst, src, op2): (Op, D, S, O)) -> Self {
@@ -388,8 +437,14 @@ where
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum LoadArg {
   Imm(Imm),
-  MemAddress(Reg, Offset),
+  MemAddress(RegRef, Offset),
   Label(Label),
+}
+
+impl From<Reg> for LoadArg {
+  fn from(reg: Reg) -> Self {
+    LoadArg::MemAddress(reg.into(), 0)
+  }
 }
 
 impl From<Label> for LoadArg {
@@ -404,14 +459,14 @@ impl From<i32> for LoadArg {
   }
 }
 
-impl From<Reg> for LoadArg {
-  fn from(r: Reg) -> Self {
+impl From<RegRef> for LoadArg {
+  fn from(r: RegRef) -> Self {
     LoadArg::MemAddress(r, 0)
   }
 }
 
-impl From<(Reg, Offset)> for LoadArg {
-  fn from((r, offset): (Reg, Offset)) -> Self {
+impl From<(RegRef, Offset)> for LoadArg {
+  fn from((r, offset): (RegRef, Offset)) -> Self {
     LoadArg::MemAddress(r, offset)
   }
 }
@@ -463,12 +518,36 @@ pub enum Op2 {
   Imm(Imm),
   Char(char),
   /* Register shifted right {Shift} times. */
-  Reg(Reg, Shift),
+  Reg(RegRef, Shift),
 }
 
 impl From<Imm> for Op2 {
   fn from(i: Imm) -> Self {
     Op2::Imm(i)
+  }
+}
+
+impl From<Reg> for Op2 {
+  fn from(reg: Reg) -> Self {
+    Op2::Reg(reg.into(), 0)
+  }
+}
+
+impl From<RegRef> for Op2 {
+  fn from(reg: RegRef) -> Self {
+    Op2::Reg(reg, 0)
+  }
+}
+
+impl From<ArgReg> for Op2 {
+  fn from(ar: ArgReg) -> Self {
+    Op2::Reg(ar.into(), 0)
+  }
+}
+
+impl From<GenReg> for Op2 {
+  fn from(ar: GenReg) -> Self {
+    Op2::Reg(ar.into(), 0)
   }
 }
 
@@ -482,6 +561,32 @@ pub enum Reg {
   /* Represents a value which has not yet been given a register. */
   Virtual(usize),
 }
+
+impl From<ArgReg> for Reg {
+  fn from(ar: ArgReg) -> Self {
+    Reg::Arg(ar)
+  }
+}
+
+impl From<ArgReg> for RegRef {
+  fn from(ar: ArgReg) -> Self {
+    Reg::Arg(ar).into()
+  }
+}
+
+impl From<GenReg> for Reg {
+  fn from(ar: GenReg) -> Self {
+    Reg::General(ar)
+  }
+}
+
+impl From<GenReg> for RegRef {
+  fn from(ar: GenReg) -> Self {
+    Reg::General(ar).into()
+  }
+}
+
+pub type RegRef = RefCell<Reg>;
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
 pub enum ArgReg {

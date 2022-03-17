@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 use super::{
   predef::{ReadFmt, PREDEF_FREE, PREDEF_FREE_PAIR},
   predef::{RequiredPredefs, PREDEF_SYS_MALLOC},
@@ -9,47 +11,47 @@ use Instr::*;
 pub fn generate_malloc<'a, 'cfg>(
   bytes: i32,
   cfg: &'a mut CFG<'cfg>,
-  reg: Reg,
+  reg: RegRef,
 ) -> Flow<'cfg> {
   /* LDR r0, ={bytes} */
-  let mut flow = cfg.flow(Asm::ldr(Reg::Arg(ArgReg::R0), bytes))
+  let mut flow = cfg.flow(Asm::ldr(ArgReg::R0, bytes))
 
   /* BL malloc */
   + cfg.flow(Asm::b(PREDEF_SYS_MALLOC).link());
 
   /* MOV {regs[0]}, r0 */
-  if reg != Reg::Arg(ArgReg::R0) {
-    flow += cfg.flow(Asm::mov(reg, Op2::Reg(Reg::Arg(ArgReg::R0), 0)));
+  if *reg.borrow() != Reg::Arg(ArgReg::R0) {
+    flow += cfg.flow(Asm::mov(reg, ArgReg::R0));
   }
 
   flow
 }
 
 pub fn generate_malloc_with_reg<'a, 'cfg>(
-  type_size: Reg,
-  exprs_size: Reg,
+  type_size: RegRef,
+  exprs_size: RegRef,
   cfg: &'a mut CFG<'cfg>,
-  reg: Reg,
+  reg: RegRef,
 ) -> Flow<'cfg> {
   /* Mallocs {bytes} bytes and leaves the address in {reg}. */
   /* MOV r1, {bytes} */
-  let mut flow = cfg.flow(Asm::mov(Reg::Arg(ArgReg::R1), Op2::Reg(type_size, 0)))
+  let mut flow = cfg.flow(Asm::mov(ArgReg::R1, Op2::Reg(type_size, 0)))
 
   /* MOV r0, {reg} */
-  + cfg.flow(Asm::mov(Reg::Arg(ArgReg::R0), Op2::Reg(exprs_size, 0)))
+  + cfg.flow(Asm::mov(ArgReg::R0, Op2::Reg(exprs_size, 0)))
 
   /* SMULL r0, r1, r0, r1 */
   + cfg.flow(Asm::smull(
-    Reg::Arg(ArgReg::R0),
-    Reg::Arg(ArgReg::R1),
-    Reg::Arg(ArgReg::R0),
-    Reg::Arg(ArgReg::R1),
+    ArgReg::R0,
+    ArgReg::R1,
+    ArgReg::R0,
+    ArgReg::R1,
   ))
 
   /* ADD r0, r0, #4 */
   + cfg.flow(Asm::add(
-    Reg::Arg(ArgReg::R0),
-    Reg::Arg(ArgReg::R0),
+    ArgReg::R0,
+    ArgReg::R0,
     Op2::Imm(ARM_DSIZE_WORD),
   ))
 
@@ -57,8 +59,8 @@ pub fn generate_malloc_with_reg<'a, 'cfg>(
   + cfg.flow(Asm::b(PREDEF_SYS_MALLOC).link());
 
   /* MOV {regs[0]}, r0 */
-  if reg != Reg::Arg(ArgReg::R0) {
-    flow += cfg.flow(Asm::mov(reg, Op2::Reg(Reg::Arg(ArgReg::R0), 0)));
+  if *reg.borrow() != Reg::Arg(ArgReg::R0) {
+    flow += cfg.flow(Asm::mov(reg, ArgReg::R0));
   }
 
   flow
@@ -108,7 +110,7 @@ fn generate_stat_assignment<'a, 'cfg>(
   rhs.cfg_generate(scope, cfg, regs, None)
 
   /* stores value of regs[0] into lhs */
-  + lhs.cfg_generate(scope, cfg, &regs[1..], Some(Reg::General(regs[0])))
+  + lhs.cfg_generate(scope, cfg, &regs[1..], Some(Reg::General(regs[0]).into()))
 }
 
 fn generate_stat_read<'a, 'cfg>(
@@ -122,8 +124,8 @@ fn generate_stat_read<'a, 'cfg>(
 
   /* Store stack pointer to r0 to pass to p_read_{} */
   + cfg.flow(Asm::mov(
-    Reg::Arg(ArgReg::R0),
-    Op2::Reg(Reg::StackPointer, 0),
+    ArgReg::R0,
+    Reg::StackPointer,
   ))
 
   /* Determine if we need p_read_char or p_read_int, and mark it. */
@@ -152,10 +154,10 @@ fn generate_stat_read<'a, 'cfg>(
     cfg.flow(Asm::ldr(value_reg, Reg::StackPointer))
 
     /* Deallocate space for this value. */
-    + cfg.flow(Asm::add(Reg::StackPointer, Reg::StackPointer, Op2::Imm(4)))
+    + cfg.flow(Asm::add(Reg::StackPointer, Reg::StackPointer, 4))
 
     /* Write this value to the destination expression. */
-    + dst_expr.cfg_generate(scope, cfg, regs, Some(value_reg))
+    + dst_expr.cfg_generate(scope, cfg, regs, Some(value_reg.into()))
   }
 }
 
@@ -170,8 +172,8 @@ fn generate_stat_free<'a, 'cfg>(
 
   /* MOV r0, {min_reg}        //move heap address into r0 */
   + cfg.flow(Asm::mov(
-    Reg::Arg(ArgReg::R0),
-    Op2::Reg(Reg::General(regs[0]), 0),
+    ArgReg::R0,
+    regs[0],
   ))
 
   + match *t {
@@ -209,8 +211,8 @@ fn generate_stat_return<'a, 'cfg>(
 
   /* r0 = regs[0] */
   + cfg.flow(Asm::mov(
-    Reg::Arg(ArgReg::R0),
-    Op2::Reg(Reg::General(regs[0]), 0),
+    ArgReg::R0,
+    regs[0],
   ))
 
   + {
@@ -238,8 +240,8 @@ fn generate_stat_exit<'a, 'cfg>(
 
   /* r0 = regs[0] */
   + cfg.flow(Asm::mov(
-    Reg::Arg(ArgReg::R0),
-    Op2::Reg(Reg::General(regs[0]), 0),
+    ArgReg::R0,
+    regs[0]
   ))
 
   /* BL exit */
@@ -254,10 +256,7 @@ fn generate_stat_print<'a, 'cfg>(
   expr: &Expr,
 ) -> Flow<'cfg> {
   expr.cfg_generate(scope, cfg, regs, None)
-    + cfg.flow(Asm::mov(
-      Reg::Arg(ArgReg::R0),
-      Op2::Reg(Reg::General(regs[0]), 0),
-    ))
+    + cfg.flow(Asm::mov(ArgReg::R0, regs[0]))
     + {
       match t {
         Type::Int => RequiredPredefs::PrintInt.mark(cfg.code),
@@ -452,8 +451,8 @@ mod tests {
       expr.cfg_generate(scope, &mut expected_cfg, regs, None)
       /* MOV r0, r4 */
       + expected_cfg.flow(Asm::mov(
-        Reg::Arg(ArgReg::R0),
-        Op2::Reg(Reg::General(GenReg::R4), 0),
+        ArgReg::R0,
+        GenReg::R4,
       ))
       /* BL exit */
       + expected_cfg.flow(Asm::b(predef::PREDEF_SYS_EXIT).link());

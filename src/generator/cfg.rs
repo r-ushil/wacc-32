@@ -80,8 +80,8 @@ pub struct Block<'cfg> {
   /* Stored assembly. */
   asm: Option<Asm>,
   /* This blocks relationship to the rest of the graph. */
-  uses: Vec<Reg>,
-  defines: Vec<Reg>,
+  uses: Vec<RegRef>,
+  defines: Vec<RegRef>,
   // live_in: Vec<Reg>,
   // live_out: Vec<Reg>,
   /* This blocks successors. */
@@ -126,9 +126,14 @@ impl<'cfg> Block<'cfg> {
 
 /* Represents an entire control flow graph. */
 pub struct CFG<'cfg> {
+  /* The GeneratedCode we are generating into. */
   pub code: &'cfg mut GeneratedCode,
+  /* Arena to allocate blocks into. */
   arena: &'cfg Arena<BlockRef<'cfg>>,
+  /* Ordered list of the blocks. */
   ordering: Vec<&'cfg BlockRef<'cfg>>,
+  /* How many vegs have been used so far. */
+  vegs: usize,
 }
 
 impl<'cfg> CFG<'cfg> {
@@ -140,6 +145,7 @@ impl<'cfg> CFG<'cfg> {
       code,
       arena,
       ordering: Vec::new(),
+      vegs: 0,
     }
   }
 
@@ -174,6 +180,11 @@ impl<'cfg> CFG<'cfg> {
       first: block_ref,
       last: block_ref,
     }
+  }
+
+  pub fn get_veg(&mut self) -> RegRef {
+    self.vegs += 1;
+    RefCell::new(Reg::Virtual(self.vegs))
   }
 
   #[must_use]

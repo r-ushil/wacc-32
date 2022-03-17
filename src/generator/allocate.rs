@@ -10,7 +10,7 @@ pub fn calculate_liveness<'cfg>(_cfg: &mut CFG<'_>) {
 
 /* ======== INTERFERENCE CALCULATION ======== */
 
-pub type Interference = Vec<(Reg, HashSet<Reg>)>;
+pub type Interference = Vec<(RegRef, HashSet<RegRef>)>;
 
 pub fn calculate_interference(_cfg: &mut CFG<'_>) -> Interference {
   println!("Calculating interferences!");

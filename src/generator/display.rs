@@ -41,27 +41,28 @@ impl Display for Asm {
       Asm::Instr(cond, i) => {
         write!(f, "\t")?;
         match i {
-          Push(reg) => write!(f, "PUSH{} {{{}}}", cond, reg),
+          Push(reg) => write!(f, "PUSH{} {{{}}}", cond, reg.borrow()),
 
-          Pop(reg) => write!(f, "POP{} {{{}}}", cond, reg),
+          Pop(reg) => write!(f, "POP{} {{{}}}", cond, reg.borrow()),
 
           Branch(link, label) => {
             write!(f, "B{}{} {}", if *link { "L" } else { "" }, cond, label)
           }
 
           Store(size, dst, (src, off), addr_mode) => {
-            write!(f, "STR{}{} {}, ", cond, size, dst)?;
+            write!(f, "STR{}{} {}, ", cond, size, dst.borrow())?;
 
             match addr_mode {
               AddressingMode::Default => {
                 if *off == 0 {
-                  write!(f, "[{}]", src)
+                  write!(f, "[{}]", src.borrow())
                 } else {
-                  write!(f, "[{}, #{}]", src, off)
+                  write!(f, "[{}, #{}]", src.borrow(), off)
                 }
               }
-              AddressingMode::PreIndexed => write!(f, "[{}, #{}]!", src, off),
-              // AddressingMode::PostIndexed => write!(f, "[{}], #{}", src, off),   unused
+              AddressingMode::PreIndexed => {
+                write!(f, "[{}, #{}]!", src.borrow(), off)
+              } // AddressingMode::PostIndexed => write!(f, "[{}], #{}", src, off),   unused
             }
           }
 
@@ -74,7 +75,11 @@ impl Display for Asm {
             write!(
               f,
               "LDR{}{}{} {}, {}",
-              ldr_sign_extend, size, cond, dst, load_arg
+              ldr_sign_extend,
+              size,
+              cond,
+              dst.borrow(),
+              load_arg
             )
           }
 
@@ -85,8 +90,8 @@ impl Display for Asm {
               instr,
               if *flags { "S" } else { "" },
               cond,
-              dst,
-              src,
+              dst.borrow(),
+              src.borrow(),
               op2
             )
           }
@@ -98,16 +103,30 @@ impl Display for Asm {
               instr,
               if *flags { "S" } else { "" },
               cond,
-              dst,
+              dst.borrow(),
               op2
             )
           }
 
           Multiply(r1, r2, r3, r4) => {
-            write!(f, "SMULL{} {}, {}, {}, {}", cond, r1, r2, r3, r4)
+            write!(
+              f,
+              "SMULL{} {}, {}, {}, {}",
+              cond,
+              r1.borrow(),
+              r2.borrow(),
+              r3.borrow(),
+              r4.borrow()
+            )
           }
           BranchReg(link, reg) => {
-            write!(f, "B{}X{} {}", if *link { "L" } else { "" }, cond, reg)
+            write!(
+              f,
+              "B{}X{} {}",
+              if *link { "L" } else { "" },
+              cond,
+              reg.borrow()
+            )
           }
         }
       }
@@ -135,9 +154,9 @@ impl Display for LoadArg {
       LoadArg::Imm(val) => write!(f, "={}", val),
       LoadArg::MemAddress(reg, offset) => {
         if *offset == 0 {
-          write!(f, "[{}]", reg)
+          write!(f, "[{}]", reg.borrow())
         } else {
-          write!(f, "[{}, #{}]", reg, offset)
+          write!(f, "[{}, #{}]", reg.borrow(), offset)
         }
       }
       LoadArg::Label(msg) => write!(f, "={}", msg),
@@ -189,7 +208,7 @@ impl Display for Op2 {
     match self {
       Imm(val) => write!(f, "#{}", val),
       Reg(reg, shift) => {
-        write!(f, "{}", reg)?;
+        write!(f, "{}", reg.borrow())?;
         if *shift > 0 {
           write!(f, ", ASR #{}", shift)?;
         } else if *shift < 0 {

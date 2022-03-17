@@ -31,7 +31,7 @@ impl CFGable for StructLiter {
       .expect("Analyser should ensure all struct usages are valid.");
 
     /* Malloc for the struct. */
-    let mut flow = generate_malloc(struct_def.size, cfg, Reg::General(regs[0]));
+    let mut flow = generate_malloc(struct_def.size, cfg, regs[0].into());
 
     /* Expression evaluation can't use register malloc */
     let expr_regs = &regs[1..];
@@ -70,14 +70,14 @@ impl CFGable for StructLiter {
 // }
 
 impl CFGable for Expr {
-  type Input = Option<Reg>;
+  type Input = Option<RegRef>;
 
   fn cfg_generate<'a, 'cfg>(
     &self,
     scope: &ScopeReader,
     cfg: &'a mut CFG<'cfg>,
     regs: &[GenReg],
-    src: Option<Reg>,
+    src: Option<RegRef>,
   ) -> Flow<'cfg> {
     match self {
       /* Identifiers, at this point only local variables and labels. */
@@ -139,10 +139,10 @@ fn generate_blank_arr<'a, 'cfg>(
 
   /* Malloc space for array. */
   flow += generate_malloc_with_reg(
-    Reg::General(regs[0]),
-    Reg::General(regs[1]),
+    regs[0].into(),
+    regs[1].into(),
     cfg,
-    Reg::General(regs[0]),
+    regs[0].into(),
   );
 
   /* Write length to first byte.
@@ -263,10 +263,7 @@ fn generate_call<'a, 'cfg>(
       |offset| Asm::add(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset)),
       args_offset,
     )
-    + cfg.flow(Asm::mov(
-      Reg::General(regs[0]),
-      Op2::Reg(Reg::Arg(ArgReg::R0), 0),
-    ))
+    + cfg.flow(Asm::mov(Reg::General(regs[0]), ArgReg::R0))
 }
 
 fn generate_pair_liter<'a, 'cfg>(
@@ -281,7 +278,7 @@ fn generate_pair_liter<'a, 'cfg>(
 
   /* Malloc for the pair.
   regs[0] = malloc(8) */
-  generate_malloc(8, cfg, Reg::General(regs[0]))
+  generate_malloc(8, cfg, regs[0].into())
 
   /* Evaluate e1.
   regs[1] = eval(e1) */
@@ -289,7 +286,7 @@ fn generate_pair_liter<'a, 'cfg>(
 
   /* Malloc for e1.
   r0 = malloc(e1_size) */
-  + generate_malloc(e1_size, cfg, Reg::Arg(ArgReg::R0))
+  + generate_malloc(e1_size, cfg, ArgReg::R0.into())
 
   /* Write e1 to malloced space. */
   + cfg.flow(
@@ -306,7 +303,7 @@ fn generate_pair_liter<'a, 'cfg>(
 
   /* Malloc for e2.
   r0 = malloc(e2_size) */
-  + generate_malloc(e2_size, cfg, Reg::Arg(ArgReg::R0))
+  + generate_malloc(e2_size, cfg, ArgReg::R0.into())
 
   /* Write e2 to malloced space. */
   + cfg.flow(
@@ -336,7 +333,7 @@ fn generate_array_liter<'a, 'cfg>(
     let mut flow = generate_malloc(
       ARM_DSIZE_WORD + elem_size * exprs.len() as i32,
       cfg,
-      Reg::General(regs[0]),
+      regs[0].into(),
     );
 
     /* Write each expression to the array. */
@@ -360,7 +357,7 @@ fn generate_array_liter<'a, 'cfg>(
     flow
   } else {
     /* Malloc space for array. */
-    generate_malloc(ARM_DSIZE_WORD, cfg, Reg::General(regs[0]))
+    generate_malloc(ARM_DSIZE_WORD, cfg, regs[0].into())
   })
 
   /* Write length to first byte.
@@ -375,7 +372,7 @@ fn generate_pair_elem<'a, 'cfg>(
   cfg: &'a mut CFG<'cfg>,
   regs: &[GenReg],
   elem: &PairElem,
-  src: Option<Reg>,
+  src: Option<RegRef>,
 ) -> Flow<'cfg> {
   /*  */
   let (t, pair, offset) = match elem {
@@ -390,22 +387,22 @@ fn generate_pair_elem<'a, 'cfg>(
 
   /* CHECK: regs[0] != NULL */
   + cfg.flow(Asm::mov(
-    Reg::Arg(ArgReg::R0),
-    Op2::Reg(Reg::General(regs[0]), 0),
+    ArgReg::R0,
+    regs[0],
   ))
   + cfg.flow(Asm::b(PREDEF_CHECK_NULL_POINTER).link())
 
   /* Dereference. */
   + cfg.flow(Asm::ldr(
     Reg::General(regs[0]),
-    (Reg::General(regs[0]), offset),
+    (regs[0].into(), offset),
   ))
 
   /* Dereference. */
   + {
     let instr = match src {
       Some(reg) => Asm::str(reg, (Reg::General(regs[0]), 0)),
-      None => Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), 0)),
+      None => Asm::ldr(Reg::General(regs[0]), (regs[0].into(), 0)),
     };
 
     cfg.flow(instr.size(t.size().into()))
@@ -417,7 +414,7 @@ fn generate_struct_elem<'a, 'cfg>(
   cfg: &'a mut CFG<'cfg>,
   regs: &[GenReg],
   elem: &StructElem,
-  src: Option<Reg>,
+  src: Option<RegRef>,
 ) -> Flow<'cfg> {
   let StructElem(struct_name, expr, field_name) = elem;
 
@@ -434,7 +431,7 @@ fn generate_struct_elem<'a, 'cfg>(
   + {
     let instr = match src {
       Some(reg) => Asm::str(reg, (Reg::General(regs[0]), *offset)),
-      None => Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), *offset)),
+      None => Asm::ldr(Reg::General(regs[0]), (regs[0].into(), *offset)),
     };
 
   cfg.flow(instr.size(type_.size().into()))}
@@ -447,7 +444,7 @@ fn generate_array_elem<'a, 'cfg>(
   elem_type: &Type,
   arr_expr: &Expr,
   idx_expr: &Expr,
-  src: Option<Reg>,
+  src: Option<RegRef>,
 ) -> Flow<'cfg> {
   let elem_size = elem_type.size();
   let arr_ptr_reg = Reg::General(regs[0]);
@@ -463,9 +460,9 @@ fn generate_array_elem<'a, 'cfg>(
 
   /* Array bounds check. */
   + cfg // RO = index
-    .flow(Asm::mov(Reg::Arg(ArgReg::R0), Op2::Reg(idx_reg, 0)))
+    .flow(Asm::mov(Reg::Arg(ArgReg::R0), idx_reg))
   + cfg // R1 = array ptr
-    .flow(Asm::mov(Reg::Arg(ArgReg::R1), Op2::Reg(arr_ptr_reg, 0)))
+    .flow(Asm::mov(Reg::Arg(ArgReg::R1), arr_ptr_reg))
   + cfg.flow(Asm::b(PREDEF_CHECK_ARRAY_BOUNDS).link())
 
   /* Move pointer to array to correct element. */
@@ -484,13 +481,13 @@ fn generate_array_elem<'a, 'cfg>(
   cfg.flow(Asm::add(
     arr_ptr_reg,
     arr_ptr_reg,
-    Op2::Reg(idx_reg, -shift),
+    Op2::Reg(idx_reg.into(), -shift),
   ))}
 
   /* Either write to or read from that location. */
   + {let instr = match src {
     Some(reg) => Asm::str(reg, (Reg::General(regs[0]), 0)),
-    None => Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), 0)),
+    None => Asm::ldr(Reg::General(regs[0]), (regs[0].into(), 0)),
   };
 
   /*  */
@@ -506,7 +503,7 @@ fn generate_ident<'cfg, 'a>(
   cfg: &'a mut CFG<'cfg>,
   regs: &[GenReg],
   id: &Ident,
-  src: Option<Reg>,
+  src: Option<RegRef>,
 ) -> Flow<'cfg> {
   use IdentInfo::*;
 
@@ -516,7 +513,9 @@ fn generate_ident<'cfg, 'a>(
         /* STR {reg}, [sp, #{offset}] */
         Some(reg) => Asm::str(reg, (Reg::StackPointer, offset)),
         /* LDR {regs[0]}, [sp, #{offset}] */
-        None => Asm::ldr(Reg::General(regs[0]), (Reg::StackPointer, offset)),
+        None => {
+          Asm::ldr(Reg::General(regs[0]), (Reg::StackPointer.into(), offset))
+        }
       };
 
       cfg.flow(instr.size(type_.size().into()))
@@ -572,7 +571,7 @@ fn generate_unary_app<'a, 'cfg>(
   expr.cfg_generate(scope, cfg, regs, None)
 
   /* Applies unary operator to regs[0]. */
-  + generate_unary_op(cfg, Reg::General(regs[0]), op)
+  + generate_unary_op(cfg, regs[0].into(), op)
 }
 
 fn generate_binary_app<'a, 'cfg>(
@@ -614,7 +613,7 @@ fn generate_binary_app<'a, 'cfg>(
 
 fn generate_unary_op<'a, 'cfg>(
   cfg: &'a mut CFG<'cfg>,
-  reg: Reg,
+  reg: RegRef,
   unary_op: &UnaryOper,
 ) -> Flow<'cfg> {
   // TODO: Briefly explain the pre-condition that you created in the caller
@@ -629,20 +628,20 @@ fn generate_unary_op<'a, 'cfg>(
 
 fn generate_unary_bang<'a, 'cfg>(
   cfg: &'a mut CFG<'cfg>,
-  reg: Reg,
+  reg: RegRef,
 ) -> Flow<'cfg> {
   /* EOR reg, reg, #1 */
-  cfg.flow(Asm::eor(reg, reg, Op2::Imm(1)))
+  cfg.flow(Asm::eor(reg.clone(), reg, Op2::Imm(1)))
 }
 
 fn generate_unary_negation<'a, 'cfg>(
   cfg: &'a mut CFG<'cfg>,
-  reg: Reg,
+  reg: RegRef,
 ) -> Flow<'cfg> {
   RequiredPredefs::OverflowError.mark(cfg.code);
 
   /* RSBS reg, reg, #0 */
-  cfg.flow(Asm::rev_sub(reg, reg, Op2::Imm(0)).flags())
+  cfg.flow(Asm::rev_sub(reg.clone(), reg, Op2::Imm(0)).flags())
 
   /* BLVS p_throw_overflow_error */
     + cfg.flow(Asm::b(PREDEF_THROW_OVERFLOW_ERR.to_string()).link().vs())
@@ -650,10 +649,10 @@ fn generate_unary_negation<'a, 'cfg>(
 
 fn generate_unary_length<'a, 'cfg>(
   cfg: &'a mut CFG<'cfg>,
-  reg: Reg,
+  reg: RegRef,
 ) -> Flow<'cfg> {
   /* LDR reg, [reg]             //derefence value in reg */
-  cfg.flow(Asm::ldr(reg, reg))
+  cfg.flow(Asm::ldr(reg.clone(), reg))
 }
 
 fn generate_binary_op<'a, 'cfg>(
@@ -675,7 +674,7 @@ fn generate_binary_op<'a, 'cfg>(
       cfg.flow(Asm::smull(reg1, reg2, reg1, reg2))
 
       /* CMP r5, r4, ASR #31 */
-      + cfg.flow(Asm::cmp(reg2, Op2::Reg(reg1, 31)))
+      + cfg.flow(Asm::cmp(reg2, Op2::Reg(reg1.into(), 31)))
 
       /* BLNE p_throw_overflow_error */
       + cfg.flow(Asm::b(PREDEF_THROW_OVERFLOW_ERR).link().ne())
@@ -687,7 +686,7 @@ fn generate_binary_op<'a, 'cfg>(
       RequiredPredefs::OverflowError.mark(cfg.code);
 
       /* ADDS r4, r4, r5 */
-      cfg.flow(Asm::add(dst, reg1, Op2::Reg(reg2, 0)).flags())
+      cfg.flow(Asm::add(dst, reg1, Op2::Reg(reg2.into(), 0)).flags())
 
       /* BLVS p_throw_overflow_error */
       + cfg.flow(Asm::b(PREDEF_THROW_OVERFLOW_ERR).link().vs())
@@ -697,24 +696,24 @@ fn generate_binary_op<'a, 'cfg>(
       RequiredPredefs::OverflowError.mark(cfg.code);
 
       /* SUBS r4, r4, r5 */
-      cfg.flow(Asm::sub(dst, reg1, Op2::Reg(reg2, 0)).flags())
+      cfg.flow(Asm::sub(dst, reg1, Op2::Reg(reg2.into(), 0)).flags())
 
       /* BLVS p_throw_overflow_error */
       + cfg.flow(Asm::b(PREDEF_THROW_OVERFLOW_ERR).link().vs())
     }
-    BinaryOper::Gt => binary_comp_ops(GT, LE, cfg, reg1, reg2),
-    BinaryOper::Gte => binary_comp_ops(GE, LT, cfg, reg1, reg2),
-    BinaryOper::Lt => binary_comp_ops(LT, GE, cfg, reg1, reg2),
-    BinaryOper::Lte => binary_comp_ops(LE, GT, cfg, reg1, reg2),
-    BinaryOper::Eq => binary_comp_ops(EQ, NE, cfg, reg1, reg2),
-    BinaryOper::Neq => binary_comp_ops(NE, EQ, cfg, reg1, reg2),
+    BinaryOper::Gt => binary_comp_ops(GT, LE, cfg, reg1.into(), reg2.into()),
+    BinaryOper::Gte => binary_comp_ops(GE, LT, cfg, reg1.into(), reg2.into()),
+    BinaryOper::Lt => binary_comp_ops(LT, GE, cfg, reg1.into(), reg2.into()),
+    BinaryOper::Lte => binary_comp_ops(LE, GT, cfg, reg1.into(), reg2.into()),
+    BinaryOper::Eq => binary_comp_ops(EQ, NE, cfg, reg1.into(), reg2.into()),
+    BinaryOper::Neq => binary_comp_ops(NE, EQ, cfg, reg1.into(), reg2.into()),
     BinaryOper::And => {
       /* AND r4, r4, r5 */
-      cfg.flow(Asm::and(dst, reg1, Op2::Reg(reg2, 0)))
+      cfg.flow(Asm::and(dst, reg1, reg2))
     }
     BinaryOper::Or => {
       /* ORR r4, r4, r5 */
-      cfg.flow(Asm::or(dst, reg1, Op2::Reg(reg2, 0)))
+      cfg.flow(Asm::or(dst, reg1, reg2))
     }
   }
 }
@@ -729,9 +728,9 @@ fn binary_div<'a, 'cfg>(
 
   RequiredPredefs::DivideByZeroError.mark(cfg.code);
 
-  cfg.flow(Asm::mov(Reg::Arg(ArgReg::R0), Op2::Reg(reg1, 0)))
+  cfg.flow(Asm::mov(Reg::Arg(ArgReg::R0), reg1))
   /* MOV r1, reg2 */
-  + cfg.flow(Asm::mov(Reg::Arg(ArgReg::R1), Op2::Reg(reg2, 0)))
+  + cfg.flow(Asm::mov(Reg::Arg(ArgReg::R1), reg2))
 
   /* BL p_check_divide_by_zero */
   + cfg.flow(Asm::b(PREDEF_CHECK_DIVIDE_BY_ZERO).link())
@@ -740,7 +739,7 @@ fn binary_div<'a, 'cfg>(
   + cfg.flow(Asm::b(PREDEF_AEABI_IDIV).link())
 
   /* MOV reg1, r0 */
-  + cfg.flow(Asm::mov(reg1, Op2::Reg(Reg::Arg(ArgReg::R0), 0)))
+  + cfg.flow(Asm::mov(reg1, ArgReg::R0))
 }
 
 fn binary_mod<'a, 'cfg>(
@@ -754,9 +753,9 @@ fn binary_mod<'a, 'cfg>(
   RequiredPredefs::DivideByZeroError.mark(cfg.code);
 
   /* MOV r0, reg1 */
-  cfg.flow(Asm::mov(Reg::Arg(ArgReg::R0), Op2::Reg(reg1, 0)))
+  cfg.flow(Asm::mov(Reg::Arg(ArgReg::R0), reg1))
   /* MOV r1, reg2 */
-  + cfg.flow(Asm::mov(Reg::Arg(ArgReg::R1), Op2::Reg(reg2, 0)))
+  + cfg.flow(Asm::mov(Reg::Arg(ArgReg::R1), reg2))
 
   /* BL p_check_divide_by_zero */
   + cfg.flow(Asm::b(PREDEF_CHECK_DIVIDE_BY_ZERO).link())
@@ -765,21 +764,21 @@ fn binary_mod<'a, 'cfg>(
   + cfg.flow(Asm::b(PREDEF_AEABI_IDIVMOD).link())
 
   /* MOV reg1, r1 */
-  + cfg.flow(Asm::mov(reg1, Op2::Reg(Reg::Arg(ArgReg::R1), 0)))
+  + cfg.flow(Asm::mov(reg1, ArgReg::R1))
 }
 
 fn binary_comp_ops<'a, 'cfg>(
   cond1: CondCode,
   cond2: CondCode,
   cfg: &'a mut CFG<'cfg>,
-  reg1: Reg,
-  reg2: Reg,
+  reg1: RegRef,
+  reg2: RegRef,
 ) -> Flow<'cfg> {
   /* CMP r4, r5 */
-  cfg.flow(Asm::cmp(reg1, Op2::Reg(reg2, 0)))
+  cfg.flow(Asm::cmp(reg1.clone(), Op2::Reg(reg2, 0)))
 
   /* MOV{cond1} reg1, #1 */
-  + cfg.flow(Asm::mov(reg1, Op2::Imm(1)).cond(cond1))
+  + cfg.flow(Asm::mov(reg1.clone(), Op2::Imm(1)).cond(cond1))
   /* MOV{cond2} reg1, #0 */
-  + cfg.flow(Asm::mov(reg1, Op2::Imm(0)).cond(cond2))
+  + cfg.flow(Asm::mov(reg1.clone(), Op2::Imm(0)).cond(cond2))
 }
