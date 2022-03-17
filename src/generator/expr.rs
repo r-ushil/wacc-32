@@ -28,41 +28,58 @@ impl Generatable for Expr {
     regs: &[GenReg],
     src: Option<Reg>,
   ) {
+    let arena = Arena::new();
+    let mut cfg = CFG::new(code, &arena);
+
     match self {
-      Expr::IntLiter(val) => generate_int_liter(code, regs, val),
-      Expr::BoolLiter(val) => generate_bool_liter(code, regs, val),
-      Expr::CharLiter(val) => generate_char_liter(code, regs, val),
-      Expr::StrLiter(val) => generate_string_liter(code, regs, val),
-      Expr::ArrayLiter(ArrayLiter(t, exprs)) => {
-        generate_array_liter(scope, code, regs, t, exprs)
+      Expr::IntLiter(val) => cfg.flow(Asm::ldr(Reg::General(regs[0]), *val)),
+      other => {
+        match other {
+          Expr::BoolLiter(val) => generate_bool_liter(code, regs, val),
+          Expr::CharLiter(val) => generate_char_liter(code, regs, val),
+          Expr::StrLiter(val) => generate_string_liter(code, regs, val),
+          Expr::ArrayLiter(ArrayLiter(t, exprs)) => {
+            generate_array_liter(scope, code, regs, t, exprs)
+          }
+          Expr::StructLiter(liter) => liter.generate(scope, code, regs, ()),
+          Expr::UnaryApp(op, expr) => {
+            generate_unary_app(code, regs, scope, op, expr)
+          }
+          Expr::BinaryApp(expr1, op, expr2) => {
+            generate_binary_app(code, regs, scope, expr1, op, expr2)
+          }
+          Expr::NullPairLiter => generate_null_pair_liter(code, regs),
+          Expr::PairLiter(e1, e2) => {
+            generate_pair_liter(scope, code, regs, e1, e2)
+          }
+          Expr::Ident(id) => generate_ident(scope, code, regs, id, src),
+          Expr::ArrayElem(elem_type, arr_expr, idx_expr) => {
+            generate_array_elem(
+              scope, code, regs, elem_type, arr_expr, idx_expr, src,
+            )
+          }
+          Expr::StructElem(elem) => {
+            generate_struct_elem(scope, code, regs, elem, src)
+          }
+          Expr::PairElem(elem) => {
+            generate_pair_elem(scope, code, regs, elem, src)
+          }
+          Expr::Call(func_type, ident, exprs) => {
+            generate_call(scope, code, regs, func_type.clone(), ident, exprs)
+          }
+          Expr::AnonFunc(func) => {
+            generate_anon_func(scope, code, regs, (**func).clone())
+          }
+          Expr::BlankArrayLiter(t, size) => {
+            generate_blank_arr(scope, code, regs, t, size)
+          }
+          _ => panic!("expression not caught!"),
+        }
+        return;
       }
-      Expr::StructLiter(liter) => liter.generate(scope, code, regs, ()),
-      Expr::UnaryApp(op, expr) => {
-        generate_unary_app(code, regs, scope, op, expr)
-      }
-      Expr::BinaryApp(expr1, op, expr2) => {
-        generate_binary_app(code, regs, scope, expr1, op, expr2)
-      }
-      Expr::NullPairLiter => generate_null_pair_liter(code, regs),
-      Expr::PairLiter(e1, e2) => generate_pair_liter(scope, code, regs, e1, e2),
-      Expr::Ident(id) => generate_ident(scope, code, regs, id, src),
-      Expr::ArrayElem(elem_type, arr_expr, idx_expr) => generate_array_elem(
-        scope, code, regs, elem_type, arr_expr, idx_expr, src,
-      ),
-      Expr::StructElem(elem) => {
-        generate_struct_elem(scope, code, regs, elem, src)
-      }
-      Expr::PairElem(elem) => generate_pair_elem(scope, code, regs, elem, src),
-      Expr::Call(func_type, ident, exprs) => {
-        generate_call(scope, code, regs, func_type.clone(), ident, exprs)
-      }
-      Expr::AnonFunc(func) => {
-        generate_anon_func(scope, code, regs, (**func).clone())
-      }
-      Expr::BlankArrayLiter(t, size) => {
-        generate_blank_arr(scope, code, regs, t, size)
-      }
-    }
+    };
+
+    cfg.linearise();
   }
 }
 
