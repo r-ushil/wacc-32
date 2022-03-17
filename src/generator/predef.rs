@@ -19,7 +19,7 @@ pub const PREDEF_PRINT_REFS: &str = "p_print_reference";
 
 pub const PREDEF_PRINTLN: &str = "p_print_ln";
 pub const PREDEF_FREE_PAIR: &str = "p_free_pair";
-pub const PREDEF_FREE_ARRAY: &str = "p_free_array";
+pub const PREDEF_FREE: &str = "p_free";
 
 pub const PREDEF_THROW_RUNTIME_ERR: &str = "p_throw_runtime_error";
 pub const PREDEF_THROW_OVERFLOW_ERR: &str = "p_throw_overflow_error";
@@ -76,8 +76,7 @@ impl Generatable for RequiredPredefs {
       RequiredPredefs::ReadChar => read(code, ReadFmt::Char),
       RequiredPredefs::ReadInt => read(code, ReadFmt::Int),
       RequiredPredefs::FreePair => free_pair(code),
-      RequiredPredefs::FreeArray => free_array(code),
-      RequiredPredefs::FreeCustom => free_array(code),
+      RequiredPredefs::FreeArray | RequiredPredefs::FreeCustom => free(code),
       RequiredPredefs::RuntimeError => throw_runtime_error(code),
       RequiredPredefs::OverflowError => throw_overflow_error(code),
       RequiredPredefs::DivideByZeroError => check_divide_by_zero(code),
@@ -369,7 +368,7 @@ fn throw_overflow_error(code: &mut GeneratedCode) {
   ));
 }
 
-fn free_array(code: &mut GeneratedCode) {
+fn free(code: &mut GeneratedCode) {
   use self::CondCode::*;
   use self::Directive::*;
   use self::Instr::*;
@@ -379,9 +378,7 @@ fn free_array(code: &mut GeneratedCode) {
     code.get_msg("NullReferenceError: dereference a null reference\n\0");
 
   /* p_free_pair: */
-  code
-    .text
-    .push(Directive(Label(PREDEF_FREE_ARRAY.to_string())));
+  code.text.push(Directive(Label(PREDEF_FREE.to_string())));
   /*  PUSH {lr}            //push link reg */
   code.text.push(Asm::push(Reg::Link));
   /*  CMP r0, #0           //compare the contents of r0 to 0 and set flags */
