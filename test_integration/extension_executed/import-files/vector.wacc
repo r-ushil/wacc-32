@@ -55,6 +55,19 @@ begin
         return true
     end
 
+    int get_vec(Vector vec, int index) is
+        int res = 0;
+        if index < vec.size then
+            int[] vec_arr = vec.arr;
+            res = vec_arr[index]
+        else
+            print "ARRAY OUT OF BOUNDS!";
+            exit -1
+        fi ;
+
+        return res
+    end
+
     # # Vector free_vec(Vector vec) is
     # #    free dyn.arr;
     # #    free vec;
