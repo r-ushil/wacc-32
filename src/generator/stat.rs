@@ -9,144 +9,144 @@ use Directive::*;
 use Instr::*;
 
 /* Mallocs {bytes} bytes and leaves the address in {reg}. */
-pub fn generate_malloc(bytes: i32, code: &mut GeneratedCode, reg: Reg) {
+pub fn generate_malloc<'a, 'cfg>(
+  bytes: i32,
+  cfg: &'a mut CFG<'cfg>,
+  reg: Reg,
+) -> Flow<'cfg> {
   /* LDR r0, ={bytes} */
-  code.text.push(Asm::ldr(Reg::Arg(ArgReg::R0), bytes));
+  let mut flow = cfg.flow(Asm::ldr(Reg::Arg(ArgReg::R0), bytes))
 
   /* BL malloc */
-  code.text.push(Asm::b(PREDEF_SYS_MALLOC).link());
+  + cfg.flow(Asm::b(PREDEF_SYS_MALLOC).link());
 
   /* MOV {regs[0]}, r0 */
   if reg != Reg::Arg(ArgReg::R0) {
-    code
-      .text
-      .push(Asm::mov(reg, Op2::Reg(Reg::Arg(ArgReg::R0), 0)));
+    flow += cfg.flow(Asm::mov(reg, Op2::Reg(Reg::Arg(ArgReg::R0), 0)));
   }
+
+  flow
 }
 
-pub fn generate_malloc_with_reg(
+pub fn generate_malloc_with_reg<'a, 'cfg>(
   type_size: Reg,
   exprs_size: Reg,
-  code: &mut GeneratedCode,
+  cfg: &'a mut CFG<'cfg>,
   reg: Reg,
-) {
+) -> Flow<'cfg> {
   /* Mallocs {bytes} bytes and leaves the address in {reg}. */
   /* MOV r1, {bytes} */
-  code
-    .text
-    .push(Asm::mov(Reg::Arg(ArgReg::R1), Op2::Reg(type_size, 0)));
+  let mut flow = cfg.flow(Asm::mov(Reg::Arg(ArgReg::R1), Op2::Reg(type_size, 0)))
 
   /* MOV r0, {reg} */
-  code
-    .text
-    .push(Asm::mov(Reg::Arg(ArgReg::R0), Op2::Reg(exprs_size, 0)));
+  + cfg.flow(Asm::mov(Reg::Arg(ArgReg::R0), Op2::Reg(exprs_size, 0)))
 
   /* SMULL r0, r1, r0, r1 */
-  code.text.push(Asm::smull(
+  + cfg.flow(Asm::smull(
     Reg::Arg(ArgReg::R0),
     Reg::Arg(ArgReg::R1),
     Reg::Arg(ArgReg::R0),
     Reg::Arg(ArgReg::R1),
-  ));
+  ))
 
   /* ADD r0, r0, #4 */
-  code.text.push(Asm::add(
+  + cfg.flow(Asm::add(
     Reg::Arg(ArgReg::R0),
     Reg::Arg(ArgReg::R0),
     Op2::Imm(ARM_DSIZE_WORD),
-  ));
+  ))
 
   /* BL malloc */
-  code.text.push(Asm::b(PREDEF_SYS_MALLOC).link());
+  + cfg.flow(Asm::b(PREDEF_SYS_MALLOC).link());
 
   /* MOV {regs[0]}, r0 */
   if reg != Reg::Arg(ArgReg::R0) {
-    code
-      .text
-      .push(Asm::mov(reg, Op2::Reg(Reg::Arg(ArgReg::R0), 0)));
+    flow += cfg.flow(Asm::mov(reg, Op2::Reg(Reg::Arg(ArgReg::R0), 0)));
   }
+
+  flow
 }
 
-impl Generatable for StructLiter {
-  type Input = ();
-  type Output = ();
+// impl Generatable for StructLiter {
+//   type Input = ();
+//   type Output = ();
 
-  fn generate(
-    &self,
-    scope: &ScopeReader,
-    code: &mut GeneratedCode,
-    regs: &[GenReg],
-    _: (),
-  ) -> Self::Output {
-    let StructLiter { id, fields } = self;
+//   fn generate(
+//     &self,
+//     scope: &ScopeReader,
+//     code: &mut GeneratedCode,
+//     regs: &[GenReg],
+//     _: (),
+//   ) -> Self::Output {
+//     let StructLiter { id, fields } = self;
 
-    /* Get size of struct. */
-    let struct_def = scope
-      .get_def(id)
-      .expect("Analyser should ensure all struct usages are valid.");
+//     /* Get size of struct. */
+//     let struct_def = scope
+//       .get_def(id)
+//       .expect("Analyser should ensure all struct usages are valid.");
 
-    /* Malloc for the struct. */
-    generate_malloc(struct_def.size, code, Reg::General(regs[0]));
+//     /* Malloc for the struct. */
+//     generate_malloc(struct_def.size, code, Reg::General(regs[0]));
 
-    /* Expression evaluation can't use register malloc */
-    let expr_regs = &regs[1..];
+//     /* Expression evaluation can't use register malloc */
+//     let expr_regs = &regs[1..];
 
-    /* For each field: */
-    for (field_name, expr) in fields.iter() {
-      /* Evaluate expression. */
-      expr.generate(scope, code, expr_regs, None);
+//     /* For each field: */
+//     for (field_name, expr) in fields.iter() {
+//       /* Evaluate expression. */
+//       expr.generate(scope, code, expr_regs, None);
 
-      /* Calculate offset. */
-      let offset = struct_def.fields.get(field_name).unwrap().1;
+//       /* Calculate offset. */
+//       let offset = struct_def.fields.get(field_name).unwrap().1;
 
-      /* Write to struct. */
-      code.text.push(Asm::str(
-        Reg::General(expr_regs[0]),
-        (Reg::General(regs[0]), offset),
-      ));
-    }
-  }
-}
+//       /* Write to struct. */
+//       code.text.push(Asm::str(
+//         Reg::General(expr_regs[0]),
+//         (Reg::General(regs[0]), offset),
+//       ));
+//     }
+//   }
+// }
 
-impl Generatable for PairElem {
-  type Input = ();
-  type Output = DataSize;
+// impl Generatable for PairElem {
+//   type Input = ();
+//   type Output = DataSize;
 
-  /* Puts the address of the element in regs[0], returns size pointed to. */
-  fn generate(
-    &self,
-    scope: &ScopeReader,
-    code: &mut GeneratedCode,
-    regs: &[GenReg],
-    _aux: (),
-  ) -> DataSize {
-    /*  */
-    let (t, pair, offset) = match self {
-      PairElem::Fst(TypedExpr(t, pair)) => (t, pair, 0),
-      PairElem::Snd(TypedExpr(t, pair)) => (t, pair, ARM_DSIZE_WORD),
-    };
+//   /* Puts the address of the element in regs[0], returns size pointed to. */
+//   fn generate(
+//     &self,
+//     scope: &ScopeReader,
+//     code: &mut GeneratedCode,
+//     regs: &[GenReg],
+//     _aux: (),
+//   ) -> DataSize {
+//     /*  */
+//     let (t, pair, offset) = match self {
+//       PairElem::Fst(TypedExpr(t, pair)) => (t, pair, 0),
+//       PairElem::Snd(TypedExpr(t, pair)) => (t, pair, ARM_DSIZE_WORD),
+//     };
 
-    /* Store address of pair in regs[0]. */
-    pair.generate(scope, code, regs, None);
+//     /* Store address of pair in regs[0]. */
+//     pair.generate(scope, code, regs, None);
 
-    /* CHECK: regs[0] != NULL */
-    code.text.push(Asm::mov(
-      Reg::Arg(ArgReg::R0),
-      Op2::Reg(Reg::General(regs[0]), 0),
-    ));
-    code.text.push(Asm::b(PREDEF_CHECK_NULL_POINTER).link());
-    RequiredPredefs::CheckNullPointer.mark(code);
+//     /* CHECK: regs[0] != NULL */
+//     code.text.push(Asm::mov(
+//       Reg::Arg(ArgReg::R0),
+//       Op2::Reg(Reg::General(regs[0]), 0),
+//     ));
+//     code.text.push(Asm::b(PREDEF_CHECK_NULL_POINTER).link());
+//     RequiredPredefs::CheckNullPointer.mark(code);
 
-    /* Dereference. */
-    code.text.push(Asm::ldr(
-      Reg::General(regs[0]),
-      (Reg::General(regs[0]), offset),
-    ));
+//     /* Dereference. */
+//     code.text.push(Asm::ldr(
+//       Reg::General(regs[0]),
+//       (Reg::General(regs[0]), offset),
+//     ));
 
-    /* Return how much data needs to be read from regs[0]. */
-    t.size().into()
-  }
-}
+//     /* Return how much data needs to be read from regs[0]. */
+//     t.size().into()
+//   }
+// }
 
 impl Generatable for ScopedStat {
   type Input = ();

@@ -57,7 +57,7 @@ pub struct Block<'cfg> {
   /* Auto-increment id. */
   id: usize,
   /* Stored assembly. */
-  asm: Asm,
+  asm: Option<Asm>,
   /* This blocks relationship to the rest of the graph. */
   // uses: Vec<Reg>,
   // defines: Vec<Reg>,
@@ -87,7 +87,7 @@ impl<'cfg> CFG<'cfg> {
   }
 
   /* Creates a flow which starts and ends on a given instruction. */
-  pub fn flow<'a>(&'a mut self, asm: Asm) -> Flow<'cfg> {
+  fn option_flow<'a>(&'a mut self, asm: Option<Asm>) -> Flow<'cfg> {
     /* Create new block out of asm. */
     let block = Block {
       id: self.ordering.len(),
@@ -108,11 +108,44 @@ impl<'cfg> CFG<'cfg> {
     }
   }
 
+  #[must_use]
+  pub fn flow<'a>(&'a mut self, asm: Asm) -> Flow<'cfg> {
+    self.option_flow(Some(asm))
+  }
+
+  #[must_use]
+  pub fn dummy_flow<'a>(&'a mut self) -> Flow<'cfg> {
+    self.option_flow(None)
+  }
+
+  pub fn imm_unroll<'a, F>(
+    &'a mut self,
+    mut instr_builder: F,
+    imm: Imm,
+  ) -> Flow<'cfg>
+  where
+    F: FnMut(Imm) -> Asm,
+  {
+    let mut flow = self.dummy_flow();
+
+    let imm_sign = imm.signum();
+    let mut imm_abs = imm;
+
+    while imm_abs > 0 {
+      flow += self.flow(instr_builder(imm_sign * OP2_MAX_VALUE.min(imm_abs)));
+      imm_abs -= OP2_MAX_VALUE;
+    }
+
+    flow
+  }
+
   /* Consumes this cfg, linearising all instructions into the text segment. */
   pub fn linearise(&mut self) {
-    self
-      .code
-      .text
-      .extend(self.ordering.iter().map(|r| r.borrow().asm.clone()))
+    self.code.text.extend(
+      self
+        .ordering
+        .iter()
+        .filter_map(|r| Some(r.borrow().asm.as_ref()?.clone())),
+    )
   }
 }

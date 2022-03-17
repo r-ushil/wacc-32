@@ -59,6 +59,21 @@ impl Generatable for Program {
   }
 }
 
+// impl CFGable for NamedFunc {
+//   type Input = LabelPrefix;
+
+//   #[must_use]
+//   fn cfg_generate<'a, 'cfg>(
+//     &self,
+//     scope: &ScopeReader,
+//     cfg: &'a mut CFG<'cfg>,
+//     regs: &[GenReg],
+//     aux: Self::Input,
+//   ) -> Flow<'cfg> {
+//     todo!()
+//   }
+// }
+
 impl Generatable for NamedFunc {
   type Input = LabelPrefix;
   type Output = ();
@@ -83,7 +98,6 @@ impl Generatable for NamedFunc {
       int y = 5;
       return x
     end */
-
     /* Function label.
     foo: */
     code.text.push(Asm::Directive(Directive::Label(if main {

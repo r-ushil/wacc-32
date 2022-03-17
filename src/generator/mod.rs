@@ -12,10 +12,11 @@ mod stat;
 use asm::*;
 use cfg::*;
 use scope::*;
+use typed_arena::Arena;
 
 pub const WACC_PROGRAM_MAIN_LABEL: &str = "main";
 
-trait Generatable: std::fmt::Debug {
+trait Generatable {
   type Input;
   type Output;
 
@@ -28,17 +29,37 @@ trait Generatable: std::fmt::Debug {
   ) -> Self::Output;
 }
 
-trait CFGable {
-  type Input;
-  type Output;
+impl<T: CFGable> Generatable for T {
+  type Input = T::Input;
+
+  type Output = ();
 
   fn generate(
     &self,
     scope: &ScopeReader,
-    cfg: &mut CFG,
+    code: &mut GeneratedCode,
     regs: &[GenReg],
     aux: Self::Input,
-  ) -> Self::Output;
+  ) -> Self::Output {
+    let arena = Arena::new();
+    let cfg = &mut CFG::new(code, &arena);
+
+    self.cfg_generate(scope, cfg, regs, aux);
+
+    cfg.linearise();
+  }
+}
+
+trait CFGable {
+  type Input;
+
+  fn cfg_generate<'a, 'cfg>(
+    &self,
+    scope: &ScopeReader,
+    cfg: &'a mut CFG<'cfg>,
+    regs: &[GenReg],
+    aux: Self::Input,
+  ) -> Flow<'cfg>;
 }
 
 pub fn generate(ast: &Program) -> GeneratedCode {
