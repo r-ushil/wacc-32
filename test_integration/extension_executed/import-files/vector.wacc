@@ -83,11 +83,10 @@ begin
         return res
     end
 
-    # # Vector free_vec(Vector vec) is
-    # #    free dyn.arr;
-    # #    free vec;
-    # #    return true
-    # # end
+    bool free_vec(Vector vec) is
+       free vec.arr;
+       return true
+    end
 
-    skip
+    exit 0
 end

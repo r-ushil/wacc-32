@@ -1,0 +1,8 @@
+import import-files/vector.wacc
+begin
+    Vector vec = call create_vec();
+
+    bool freed = call free_vec(vec);
+
+    exit 0
+end

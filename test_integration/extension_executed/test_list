@@ -35,3 +35,4 @@
 ./tests/vectors/insert-vec.wacc,./tests/vectors/insert-vec.output.observed,./tests/vectors/insert-vec.output.expected,pass
 ./tests/vectors/get-vec.wacc,./tests/vectors/get-vec.output.observed,./tests/vectors/get-vec.output.expected,pass
 ./tests/vectors/pop-vec.wacc,./tests/vectors/pop-vec.output.observed,./tests/vectors/pop-vec.output.expected,pass
+./tests/vectors/free.wacc,./tests/vectors/free.output.observed,./tests/vectors/free.output.expected,pass
