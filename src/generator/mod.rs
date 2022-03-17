@@ -4,6 +4,7 @@ pub mod asm;
 mod cfg;
 mod display;
 mod expr;
+mod local_vec;
 mod predef;
 mod program;
 mod scope;
@@ -12,7 +13,6 @@ mod stat;
 use asm::*;
 use cfg::*;
 use scope::*;
-use typed_arena::Arena;
 
 pub const WACC_PROGRAM_MAIN_LABEL: &str = "main";
 
@@ -27,27 +27,6 @@ trait Generatable {
     regs: &[GenReg],
     aux: Self::Input,
   ) -> Self::Output;
-}
-
-impl<T: CFGable> Generatable for T {
-  type Input = T::Input;
-
-  type Output = ();
-
-  fn generate(
-    &self,
-    scope: &ScopeReader,
-    code: &mut GeneratedCode,
-    regs: &[GenReg],
-    aux: Self::Input,
-  ) -> Self::Output {
-    let arena = Arena::new();
-    let cfg = &mut CFG::new(code, &arena);
-
-    self.cfg_generate(scope, cfg, regs, aux);
-
-    cfg.linearise();
-  }
 }
 
 trait CFGable {
