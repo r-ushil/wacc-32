@@ -25,17 +25,23 @@ fn file_name(input: &str) -> IResult<&str, &str, ErrorTree<&str>> {
   alt((alphanumeric1, tag("/"), tag("-"), tag("_"), tag("../")))(input)
 }
 
-fn import_file(input: &str) -> IResult<&str, Vec<NamedFunc>, ErrorTree<&str>> {
+fn import_file(
+  input: &str,
+) -> IResult<&str, (Vec<NamedFunc>, SymbolTable), ErrorTree<&str>> {
   map(terminated(many1(file_name), tok(".wacc")), |filename| {
     let program_string =
       read_file(fs::File::open(format!("{}.wacc", filename.join(""))).unwrap());
     let program_str = program_string.as_str();
 
-    parse(program_str).funcs
+    let parsed = parse(program_str);
+
+    (parsed.funcs, parsed.symbol_table)
   })(input)
 }
 
-fn import_stat(input: &str) -> IResult<&str, Vec<NamedFunc>, ErrorTree<&str>> {
+fn import_stat(
+  input: &str,
+) -> IResult<&str, (Vec<NamedFunc>, SymbolTable), ErrorTree<&str>> {
   preceded(tok("import"), import_file)(input)
 }
 
@@ -46,16 +52,13 @@ pub fn final_program_parser(input: &str) -> Result<Program, ErrorTree<&str>> {
 /* program ::= 'begin' <func>* <stat> 'end' */
 pub fn program(input: &str) -> IResult<&str, Program, ErrorTree<&str>> {
   let (input, _) = comment_or_ws(input)?;
-  let (input, funcs) = many0(import_stat)(input)?;
-  let mut funcs = funcs.into_iter().flatten().collect::<Vec<NamedFunc>>();
+  let (input, imports) = many0(import_stat)(input)?;
 
   let (input, (type_defs_vec, mut prog_funcs, statement)) = delimited(
     preceded(comment_or_ws, tok("begin")),
     tuple((many0(type_def), many0(named_func), stat)),
     tok("end"),
   )(input)?;
-
-  funcs.append(&mut prog_funcs);
 
   /* Convert from vector of type defs to hashmap of typedefs. */
   let mut symbol_table = SymbolTable::default();
@@ -64,6 +67,15 @@ pub fn program(input: &str) -> IResult<&str, Program, ErrorTree<&str>> {
       .table
       .insert(struct_name, IdentInfo::TypeDef(struct_def));
   }
+
+  let mut funcs = vec![];
+
+  for (mut fs, import_st) in imports.into_iter() {
+    funcs.append(&mut fs);
+    symbol_table.table.extend(import_st.table);
+  }
+
+  funcs.append(&mut prog_funcs);
 
   Ok((
     input,
