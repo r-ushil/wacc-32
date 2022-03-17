@@ -32,3 +32,4 @@
 ./tests/higher-order-funcs/concatMap.wacc,./tests/higher-order-funcs/concatMap.output.observed,./tests/higher-order-funcs/concatMap.output.expected,pass
 ./tests/vectors/create-vec.wacc,./tests/vectors/create-vec.output.observed,./tests/vectors/create-vec.output.expected,pass
 ./tests/vectors/is_empty.wacc,./tests/vectors/is_empty.output.observed,./tests/vectors/is_empty.output.expected,pass
+./tests/vectors/insert-vec.wacc,./tests/vectors/insert-vec.output.observed,./tests/vectors/insert-vec.output.expected,pass

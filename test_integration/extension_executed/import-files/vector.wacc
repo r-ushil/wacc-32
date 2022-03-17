@@ -21,25 +21,39 @@ begin
         return vec.size == 0
     end
 
-    # bool realloc_vec(Vector vec, int new_capacity) is
+    bool realloc_vec(Vector vec) is
+        int new_capacity = vec.capacity * 2;
+        vec.capacity = new_capacity;
 
-    # end
+        int[] new_arr = new int[new_capacity];
 
-    # bool insert_vec(Vector vec, int elem) is
-    #     if vec.size == vec.capacity then
-    #         vec.capacity = vec.capacity * 2;
+        int[] vec_arr = vec.arr;
 
-    #         free vec.arr;
-    #         int[] arr = new int[capacity];
-    #         vec.
+        for int i = 0; i < vec.size; i = i + 1 do
+            new_arr[i] = vec_arr[i]
+        done ;
 
-    #         vec.arr[size] = elem;
-    #         size = size + 1        
-    #     else
-    #         vec.arr[size] = elem;
-    #         size = size + 1
-    #     fi
-    # end
+
+        free vec.arr;
+        vec.arr = new_arr;
+        
+        return true
+    end
+
+    bool insert_vec(Vector vec, int elem) is
+        if vec.size == vec.capacity then
+            bool res = call realloc_vec(vec);
+            int[] vec_arr = vec.arr;
+            vec_arr[vec.size] = elem;
+            vec.size = vec.size + 1        
+        else
+            int[] vec_arr = vec.arr;
+            vec_arr[vec.size] = elem;
+            vec.size = vec.size + 1
+        fi ;
+
+        return true
+    end
 
     # # Vector free_vec(Vector vec) is
     # #    free dyn.arr;
