@@ -163,10 +163,11 @@ fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
       let elem_decl = Stat::Declaration(
         Type::default(),
         Expr::Ident(elem),
-        Expr::ArrayElem(ArrayElem(
-          array,
-          vec![Expr::Ident("__reserved_for_array__".to_string())],
-        )),
+        Expr::ArrayElem(
+          Type::default(),
+          Box::new(Expr::Ident(array)),
+          Box::new(Expr::Ident("__reserved_for_array__".to_string())),
+        ),
       );
 
       let body_with_decl =

@@ -158,7 +158,7 @@ fn analyse_array_elem(
   /* Index must be int and array must be array. */
   let (arr_type, _) = arr
     .analyse(scope, ExprPerms::Nothing)
-    .join(expected_type(scope, &Type::Int, idx))?;
+    .join(expected_type(scope, &mut Type::Int, idx))?;
 
   /* Type checking of array. */
   if let Type::Array(et) = arr_type {
