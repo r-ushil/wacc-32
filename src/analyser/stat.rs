@@ -225,7 +225,7 @@ impl Analysable for Stat {
         }
       }
       Stat::Free(expr) => match expr.analyse(scope, ())? {
-        Type::Pair(_, _) | Type::Array(_) => Ok(Never), /* Frees never return. */
+        Type::Pair(_, _) | Type::Array(_) | Type::Custom(_) => Ok(Never), /* Frees never return. */
         actual_type => Err(SemanticError::Normal(format!(
           "TYPE ERROR: Expected Type\n\tExpected: Pair or Array\n\tActual:{:?}",
           actual_type
