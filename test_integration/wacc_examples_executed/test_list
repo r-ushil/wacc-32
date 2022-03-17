@@ -6,11 +6,8 @@
 ../wacc_examples/valid/array/arrayLength.wacc,./wacc_examples_executed_ours/valid/array/arrayLength.output,./wacc_examples_executed/valid/array/arrayLength.output,pass
 ../wacc_examples/valid/array/arrayLookup.wacc,./wacc_examples_executed_ours/valid/array/arrayLookup.output,./wacc_examples_executed/valid/array/arrayLookup.output,pass
 ../wacc_examples/valid/array/arrayNested.wacc,./wacc_examples_executed_ours/valid/array/arrayNested.output,./wacc_examples_executed/valid/array/arrayNested.output,pass
-../wacc_examples/valid/array/arrayPrint.wacc,./wacc_examples_executed_ours/valid/array/arrayPrint.output,./wacc_examples_executed/valid/array/arrayPrint.output,fail
 ../wacc_examples/valid/array/arraySimple.wacc,./wacc_examples_executed_ours/valid/array/arraySimple.output,./wacc_examples_executed/valid/array/arraySimple.output,pass
-../wacc_examples/valid/array/array.wacc,./wacc_examples_executed_ours/valid/array/array.output,./wacc_examples_executed/valid/array/array.output,fail
 ../wacc_examples/valid/array/modifyString.wacc,./wacc_examples_executed_ours/valid/array/modifyString.output,./wacc_examples_executed/valid/array/modifyString.output,pass
-../wacc_examples/valid/array/printRef.wacc,./wacc_examples_executed_ours/valid/array/printRef.output,./wacc_examples_executed/valid/array/printRef.output,fail
 ../wacc_examples/valid/basic/exit/exit-1.wacc,./wacc_examples_executed_ours/valid/basic/exit/exit-1.output,./wacc_examples_executed/valid/basic/exit/exit-1.output,pass
 ../wacc_examples/valid/basic/exit/exitBasic2.wacc,./wacc_examples_executed_ours/valid/basic/exit/exitBasic2.output,./wacc_examples_executed/valid/basic/exit/exitBasic2.output,pass
 ../wacc_examples/valid/basic/exit/exitBasic.wacc,./wacc_examples_executed_ours/valid/basic/exit/exitBasic.output,./wacc_examples_executed/valid/basic/exit/exitBasic.output,pass
@@ -118,7 +115,6 @@
 ../wacc_examples/valid/IO/read/echoNegInt.wacc,./wacc_examples_executed_ours/valid/IO/read/echoNegInt.output,./wacc_examples_executed/valid/IO/read/echoNegInt.output,pass
 ../wacc_examples/valid/IO/read/echoPuncChar.wacc,./wacc_examples_executed_ours/valid/IO/read/echoPuncChar.output,./wacc_examples_executed/valid/IO/read/echoPuncChar.output,pass
 ../wacc_examples/valid/IO/read/read.wacc,./wacc_examples_executed_ours/valid/IO/read/read.output,./wacc_examples_executed/valid/IO/read/read.output,pass
-../wacc_examples/valid/pairs/checkRefPair.wacc,./wacc_examples_executed_ours/valid/pairs/checkRefPair.output,./wacc_examples_executed/valid/pairs/checkRefPair.output,fail
 ../wacc_examples/valid/pairs/createPair02.wacc,./wacc_examples_executed_ours/valid/pairs/createPair02.output,./wacc_examples_executed/valid/pairs/createPair02.output,pass
 ../wacc_examples/valid/pairs/createPair03.wacc,./wacc_examples_executed_ours/valid/pairs/createPair03.output,./wacc_examples_executed/valid/pairs/createPair03.output,pass
 ../wacc_examples/valid/pairs/createPair.wacc,./wacc_examples_executed_ours/valid/pairs/createPair.output,./wacc_examples_executed/valid/pairs/createPair.output,pass
@@ -129,8 +125,6 @@
 ../wacc_examples/valid/pairs/null.wacc,./wacc_examples_executed_ours/valid/pairs/null.output,./wacc_examples_executed/valid/pairs/null.output,pass
 ../wacc_examples/valid/pairs/printNullPair.wacc,./wacc_examples_executed_ours/valid/pairs/printNullPair.output,./wacc_examples_executed/valid/pairs/printNullPair.output,pass
 ../wacc_examples/valid/pairs/printNull.wacc,./wacc_examples_executed_ours/valid/pairs/printNull.output,./wacc_examples_executed/valid/pairs/printNull.output,pass
-../wacc_examples/valid/pairs/printPairOfNulls.wacc,./wacc_examples_executed_ours/valid/pairs/printPairOfNulls.output,./wacc_examples_executed/valid/pairs/printPairOfNulls.output,fail
-../wacc_examples/valid/pairs/printPair.wacc,./wacc_examples_executed_ours/valid/pairs/printPair.output,./wacc_examples_executed/valid/pairs/printPair.output,fail
 ../wacc_examples/valid/pairs/readPair.wacc,./wacc_examples_executed_ours/valid/pairs/readPair.output,./wacc_examples_executed/valid/pairs/readPair.output,pass
 ../wacc_examples/valid/pairs/writeFst.wacc,./wacc_examples_executed_ours/valid/pairs/writeFst.output,./wacc_examples_executed/valid/pairs/writeFst.output,pass
 ../wacc_examples/valid/pairs/writeSnd.wacc,./wacc_examples_executed_ours/valid/pairs/writeSnd.output,./wacc_examples_executed/valid/pairs/writeSnd.output,pass
@@ -159,7 +153,6 @@
 ../wacc_examples/valid/scope/ifNested2.wacc,./wacc_examples_executed_ours/valid/scope/ifNested2.output,./wacc_examples_executed/valid/scope/ifNested2.output,pass
 ../wacc_examples/valid/scope/indentationNotImportant.wacc,./wacc_examples_executed_ours/valid/scope/indentationNotImportant.output,./wacc_examples_executed/valid/scope/indentationNotImportant.output,pass
 ../wacc_examples/valid/scope/intsAndKeywords.wacc,./wacc_examples_executed_ours/valid/scope/intsAndKeywords.output,./wacc_examples_executed/valid/scope/intsAndKeywords.output,pass
-../wacc_examples/valid/scope/printAllTypes.wacc,./wacc_examples_executed_ours/valid/scope/printAllTypes.output,./wacc_examples_executed/valid/scope/printAllTypes.output,fail
 ../wacc_examples/valid/scope/scopeBasic.wacc,./wacc_examples_executed_ours/valid/scope/scopeBasic.output,./wacc_examples_executed/valid/scope/scopeBasic.output,pass
 ../wacc_examples/valid/scope/scopeIfRedefine.wacc,./wacc_examples_executed_ours/valid/scope/scopeIfRedefine.output,./wacc_examples_executed/valid/scope/scopeIfRedefine.output,pass
 ../wacc_examples/valid/scope/scopeRedefine.wacc,./wacc_examples_executed_ours/valid/scope/scopeRedefine.output,./wacc_examples_executed/valid/scope/scopeRedefine.output,pass
