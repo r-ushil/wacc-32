@@ -12,6 +12,7 @@ use crate::generator::asm::*;
 use crate::generator::program::LabelPrefix;
 use crate::generator::stat::generate_malloc_with_reg;
 use stat::generate_malloc;
+use typed_arena::Arena;
 
 impl Generatable for Expr {
   /* If specified, this specifies the source register
@@ -462,8 +463,13 @@ fn generate_ident(
 }
 
 fn generate_int_liter(code: &mut GeneratedCode, regs: &[GenReg], val: &i32) {
+  let arena = Arena::new();
+  let mut cfg = CFG::new(code, &arena);
+
   /* LDR r{min_reg}, val */
-  code.text.push(Asm::ldr(Reg::General(regs[0]), *val))
+  cfg.flow(Asm::ldr(Reg::General(regs[0]), *val));
+
+  cfg.linearise();
 }
 
 fn generate_bool_liter(code: &mut GeneratedCode, regs: &[GenReg], val: &bool) {

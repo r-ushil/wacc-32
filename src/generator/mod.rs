@@ -1,6 +1,7 @@
 use crate::ast::*;
 
 pub mod asm;
+mod cfg;
 mod display;
 mod expr;
 mod predef;
@@ -9,6 +10,7 @@ mod scope;
 mod stat;
 
 use asm::*;
+use cfg::*;
 use scope::*;
 
 pub const WACC_PROGRAM_MAIN_LABEL: &str = "main";
@@ -21,6 +23,19 @@ trait Generatable: std::fmt::Debug {
     &self,
     _scope: &ScopeReader,
     code: &mut GeneratedCode,
+    regs: &[GenReg],
+    aux: Self::Input,
+  ) -> Self::Output;
+}
+
+trait CFGable {
+  type Input;
+  type Output;
+
+  fn generate(
+    &self,
+    scope: &ScopeReader,
+    cfg: &mut CFG,
     regs: &[GenReg],
     aux: Self::Input,
   ) -> Self::Output;
