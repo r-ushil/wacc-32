@@ -1,5 +1,6 @@
 use crate::ast::*;
 
+mod allocate;
 pub mod asm;
 mod cfg;
 mod display;

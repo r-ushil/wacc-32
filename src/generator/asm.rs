@@ -480,7 +480,7 @@ pub enum Reg {
   Link,
   PC,
   /* Represents a value which has not yet been given a register. */
-  Virtual(u32),
+  Virtual(usize),
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]

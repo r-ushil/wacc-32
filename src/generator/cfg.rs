@@ -210,12 +210,26 @@ impl<'cfg> CFG<'cfg> {
   /* This takes ownership of the cfg so this is guarenteed to be the last
   operation on the cfg. */
   pub fn save(mut self) {
-    self.linearise();
+    /* Populate live ins and live outs. */
+    allocate::calculate_liveness(&mut self);
+
+    /* Create interference graph. */
+    let interference = allocate::calculate_interference(&mut self);
+
+    /* Colour interference graph. */
+    let _colouring = allocate::colour(interference);
+
+    /* Linearise while colouring. */
+    self.linearise(Vec::push);
   }
 
-  /* Writes the cfg to code, transforming
-  it from a graph to a linear structure. */
-  fn linearise(&mut self) {
+  /* Writes the cfg to code, transforming it from a graph to a linear
+  structure. Call must add the a given assembly instruction to the vector,
+  expanding into multiple instructions if nessecary. */
+  fn linearise<F>(&mut self, mut push: F)
+  where
+    F: FnMut(&mut Vec<Asm>, Asm),
+  {
     for block in self.ordering.iter() {
       let mut block = block.borrow_mut();
 
@@ -227,7 +241,7 @@ impl<'cfg> CFG<'cfg> {
 
       /* Generate block body. */
       if let Some(asm) = &block.asm {
-        self.code.text.push(asm.clone());
+        push(&mut self.code.text, asm.clone());
       }
 
       /* Generate a branch to each successor, if one is required. */
