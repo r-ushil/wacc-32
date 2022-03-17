@@ -1,0 +1,56 @@
+begin
+  # ASSIGNMENT
+
+  # single layer destructure.
+  pair(int, int) x = newpair(42, 43);
+
+  int a = 1;
+  int b = 1;
+
+  newpair(a, b) = x;
+
+  println "single layer pair assignment";
+  println a; # 42
+  println b; # 43
+
+  # reset a and b
+  a = 2;
+  b = 3;
+
+  # multiple layer destructure.
+  pair(pair, int) y = newpair(x, 44);
+
+  int c = 1;
+
+  # (y = newpair(newpair(42, 43), 44))
+  newpair(newpair(c, b), a) = y;
+
+  println "nested pairs assignment";
+  println a; # 44
+  println b; # 43
+  println c; # 42
+
+  # DECLARATION
+
+  # single layer destructure.
+  pair(int, int) newpair(a2, b2) = x;
+  # pair(int, int) @_4 = x
+  # int a2 = fst x
+  # int b2 = snd x
+
+  println "single layer pair declaration";
+  println a2; # 42
+  println b2; # 43
+
+  # multiple layer destructure declaration.
+
+  # # (y = newpair(newpair(42, 43), 44))
+  pair(pair(int, int), int) newpair(newpair(c3, b3), a3) = y;
+
+  println "nested pairs declaration";
+  println a3; # 44
+  println b3; # 43
+  println c3; # 42
+
+  skip
+end

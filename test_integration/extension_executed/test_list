@@ -16,6 +16,9 @@
 ./tests/imports/import.wacc,./tests/imports/import.output.observed,./tests/imports/import.output.expected,pass
 ./tests/imports/typedef.wacc,./tests/imports/typedef.output.observed,./tests/imports/typedef.output.expected,pass
 ./tests/imports/importWithFuncPtrs.wacc,./tests/imports/importWithFuncPtrs.output.observed,./tests/imports/importWithFuncPtrs.output.expected,pass
+./tests/assign-lhs/basicDeclaration.wacc,./tests/assign-lhs/basicDeclaration.output.observed,./tests/assign-lhs/basicDeclaration.output.expected,pass
+./tests/assign-lhs/basicAssignment.wacc,./tests/assign-lhs/basicAssignment.output.observed,./tests/assign-lhs/basicAssignment.output.expected,pass
+./tests/assign-lhs/assignments.wacc,./tests/assign-lhs/assignments.output.observed,./tests/assign-lhs/assignments.output.expected,pass
 ./tests/for-loops/for.wacc,./tests/for-loops/for.output.observed,./tests/for-loops/for.output.expected,pass
 ./tests/for-loops/for_scope.wacc,./tests/for-loops/for_scope.output.observed,./tests/for-loops/for_scope.output.expected,pass
 ./tests/for-loops/for_no_decl.wacc,./tests/for-loops/for_no_decl.output.observed,./tests/for-loops/for_no_decl.output.expected,pass
@@ -36,3 +39,8 @@
 ./tests/vectors/get-vec.wacc,./tests/vectors/get-vec.output.observed,./tests/vectors/get-vec.output.expected,pass
 ./tests/vectors/pop-vec.wacc,./tests/vectors/pop-vec.output.observed,./tests/vectors/pop-vec.output.expected,pass
 ./tests/vectors/free.wacc,./tests/vectors/free.output.observed,./tests/vectors/free.output.expected,pass
+./tests/assign-lhs/destructuring.wacc,./tests/assign-lhs/destructuring.output.observed,./tests/assign-lhs/destructuring.output.expected,fail
+./tests/assign-lhs/pairDestructure.wacc,./tests/assign-lhs/pairDestructure.output.observed,./tests/assign-lhs/pairDestructure.output.expected,pass
+./tests/assign-lhs/arrayDestructure.wacc,./tests/assign-lhs/arrayDestructure.output.observed,./tests/assign-lhs/arrayDestructure.output.expected,pass
+./tests/assign-lhs/structDestructure.wacc,./tests/assign-lhs/structDestructure.output.observed,./tests/assign-lhs/structDestructure.output.expected,pass
+./tests/assign-lhs/mixedDestructure.wacc,./tests/assign-lhs/mixedDestructure.output.observed,./tests/assign-lhs/mixedDestructure.output.expected,pass

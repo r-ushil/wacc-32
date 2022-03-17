@@ -1,0 +1,58 @@
+begin
+  # ASSIGNMENT
+
+  # single layer destructure.
+  int a = 1;
+  int b = 1;
+
+  [a, b] = [42, 43];
+  # int[] @_1 = [42, 43];
+  # a = @_1[0]
+  # b = @_1[1]
+
+  println "single layer array assignment";
+  println a; # 42
+  println b; # 43
+
+  # reset a and b
+  a = 2;
+  b = 3;
+
+  # multiple layer destructure.
+  int c = 1;
+  int d = 1;
+
+  # (y = newpair(newpair(42, 43), 44))
+  [[a, b], [c, d]] = [[4, 5], [6, 7]];
+
+  println "nested array assignment";
+  println a; # 4
+  println b; # 5
+  println c; # 6
+  println d; # 7
+
+  # DECLARATION
+
+  # single layer destructure.
+  int[] [a2, b2] = [8, 9];
+  # pair(int, int) @_4 = x
+  # int a2 = @_4[0]
+  # int b2 = @_4[1]
+
+  println "single layer array declaration";
+  println a2; # 8
+  println b2; # 9
+
+  # multiple layer destructure declaration.
+
+  # # (y = newpair(newpair(42, 43), 44))
+  int[][] [[a3, b3], [c3, d3]] = [[1,2],[3,4]];
+
+  println "nested arrays declaration";
+  println a3; # 1
+  println b3; # 2
+  println c3; # 3
+  println d3; # 4
+
+  skip
+end

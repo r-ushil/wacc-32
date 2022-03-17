@@ -1,0 +1,56 @@
+
+begin
+  struct IntBox {
+    int i
+  }
+  struct IntsBox {
+    int[] ns
+  }
+
+  # Array to modify.
+  int[] x = [1,2,3,4];
+
+  # Struct to destructure.
+  IntBox ib = IntBox { i: 42 };
+
+  # Destructure into array.
+  IntBox { i: x[2] } = ib;
+
+  println "x:";
+  println x[0];
+  println x[1];
+  println x[2];
+  println x[3];
+
+  IntsBox IntsBox { ns: [a, b, c, d] } = IntsBox { ns: x };
+
+  println "x destructured via ints box:";
+  println a;
+  println b;
+  println c;
+  println d; 
+
+  pair(IntBox, pair(int, char[])) newpair(
+    IntBox { i: a1 },
+    newpair(
+      b1,
+      [l1, l2, l3, l4]
+    )
+  ) = newpair(
+    IntBox { i: 1 },
+    newpair(
+      5,
+      ['a', 'b', 'c', 'd']
+    )
+  );
+
+  println "complex destructure declare:";
+  println a1; # 1
+  println b1; # 5
+  println l1; # a
+  println l2; # b
+  println l3; # c
+  println l4; # d
+
+  skip
+end

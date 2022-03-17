@@ -6,7 +6,10 @@ use nom::{
   sequence::{delimited, pair, tuple},
   IResult,
 };
-use nom_supreme::{error::ErrorTree, ParserExt};
+use nom_supreme::{
+  error::{ErrorTree, Expectation},
+  ParserExt,
+};
 
 use super::shared::*;
 use crate::ast::*;
@@ -33,7 +36,7 @@ pub fn type_(input: &str) -> IResult<&str, Type, ErrorTree<&str>> {
       )),
       |(_, _, l, _, r, _)| Type::Pair(Box::new(l), Box::new(r)),
     ),
-    map(ident, Type::Custom),
+    map(upper_ident, Type::Custom),
   ))(input)?;
 
   loop {
@@ -71,6 +74,22 @@ pub fn type_(input: &str) -> IResult<&str, Type, ErrorTree<&str>> {
   Ok((input, t))
 }
 
+/* upper-ident ::= ident but first character is upper case. */
+fn upper_ident(input: &str) -> IResult<&str, Ident, ErrorTree<&str>> {
+  let (input, id) = ident(input)?;
+
+  if !id.chars().nth(0).unwrap().is_uppercase() {
+    return Err(nom::Err::Error(nom_supreme::error::ErrorTree::Base {
+      location: input,
+      kind: nom_supreme::error::BaseErrorKind::Expected(Expectation::Tag(
+        "Upper case ident",
+      )),
+    }));
+  }
+
+  Ok((input, id))
+}
+
 /* base-type ::= 'int' | 'bool' | 'char' | 'string' */
 pub fn base_type(input: &str) -> IResult<&str, Type, ErrorTree<&str>> {
   alt((
@@ -83,21 +102,9 @@ pub fn base_type(input: &str) -> IResult<&str, Type, ErrorTree<&str>> {
 
 /* pair-elem-type ::= <base-type> | <array-type> | 'pair' */
 fn pair_elem_type(input: &str) -> IResult<&str, Type, ErrorTree<&str>> {
-  use nom_supreme::error::Expectation;
-
   /* Type logic reused for base types and arrays, because pairs
   are different we have to handle that edge case. */
   match type_(input) {
-    /* pair(int, int) is allowed as a regular type, but not as a pair_elem_type */
-    Ok((input, Type::Pair(_, _))) => {
-      Err(nom::Err::Error(nom_supreme::error::ErrorTree::Base {
-        location: input,
-        kind: nom_supreme::error::BaseErrorKind::Expected(Expectation::Tag(
-          "cannot have strongly defined nested pair types.",
-        )),
-      }))
-    }
-
     /* Everything else the regular type parser can deal with is also a pair_elem_type */
     Ok(result) => Ok(result),
     /* But pair_elem_type can also 'pair' */
@@ -113,8 +120,13 @@ mod tests {
   use super::*;
 
   #[test]
+  fn test_upper_ident() {
+    assert!(type_("y").is_err());
+  }
+
+  #[test]
   fn test_custom() {
-    assert_eq!(type_("foobar").unwrap().1, Type::Custom(format!("foobar")));
+    assert_eq!(type_("Foobar").unwrap().1, Type::Custom(format!("Foobar")));
   }
 
   #[test]
@@ -147,8 +159,6 @@ mod tests {
           Box::new(Type::Int),
         )))
     ));
-    println!("{:?}", type_("pair(pair(int, int), string)"));
-    assert!(type_("pair(pair(int, int), string)").is_err());
   }
 
   #[test]

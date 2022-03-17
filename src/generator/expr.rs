@@ -14,14 +14,18 @@ use crate::generator::stat::generate_malloc_with_reg;
 use stat::generate_malloc;
 
 impl Generatable for Expr {
-  type Input = ();
+  /* If specified, this specifies the source register
+  which should be written to this expression. */
+  type Input = Option<Reg>;
+
   type Output = ();
+
   fn generate(
     &self,
     scope: &ScopeReader,
     code: &mut GeneratedCode,
     regs: &[GenReg],
-    _aux: (),
+    src: Option<Reg>,
   ) {
     match self {
       Expr::IntLiter(val) => generate_int_liter(code, regs, val),
@@ -40,10 +44,14 @@ impl Generatable for Expr {
       }
       Expr::NullPairLiter => generate_null_pair_liter(code, regs),
       Expr::PairLiter(e1, e2) => generate_pair_liter(scope, code, regs, e1, e2),
-      Expr::Ident(id) => generate_ident(scope, code, regs, id),
-      Expr::ArrayElem(elem) => generate_array_elem(scope, code, regs, elem),
-      Expr::StructElem(elem) => generate_struct_elem(scope, code, regs, elem),
-      Expr::PairElem(elem) => generate_pair_elem(scope, code, regs, elem),
+      Expr::Ident(id) => generate_ident(scope, code, regs, id, src),
+      Expr::ArrayElem(elem_type, arr_expr, idx_expr) => generate_array_elem(
+        scope, code, regs, elem_type, arr_expr, idx_expr, src,
+      ),
+      Expr::StructElem(elem) => {
+        generate_struct_elem(scope, code, regs, elem, src)
+      }
+      Expr::PairElem(elem) => generate_pair_elem(scope, code, regs, elem, src),
       Expr::Call(func_type, ident, exprs) => {
         generate_call(scope, code, regs, func_type.clone(), ident, exprs)
       }
@@ -67,7 +75,7 @@ fn generate_blank_arr(
   /* LDR {regs[0]}, =type_size */
   code.text.push(Asm::ldr(Reg::General(regs[0]), t.size()));
 
-  size.generate(scope, code, &regs[1..], ());
+  size.generate(scope, code, &regs[1..], None);
 
   /* Malloc space for array. */
   generate_malloc_with_reg(
@@ -80,7 +88,7 @@ fn generate_blank_arr(
   /* Write length to first byte.
   LDR r5, =3
   STR r5, [r4] */
-  size.generate(scope, code, &regs[1..], ());
+  size.generate(scope, code, &regs[1..], None);
   code
     .text
     .push(Asm::str(Reg::General(regs[1]), (Reg::General(regs[0]), 0)));
@@ -154,7 +162,7 @@ fn generate_call(
 
     let arg_offset_scope = scope.new_scope(&symbol_table);
 
-    expr.generate(&arg_offset_scope, code, safe_regs, ());
+    expr.generate(&arg_offset_scope, code, safe_regs, None);
 
     code.text.push(
       Asm::str(
@@ -175,7 +183,7 @@ fn generate_call(
     &scope.new_scope(&SymbolTable::empty(args_offset)),
     code,
     regs,
-    (),
+    None,
   );
 
   /* Jump to function pointer. */
@@ -216,7 +224,7 @@ fn generate_pair_liter(
 
   /* Evaluate e1.
   regs[1] = eval(e1) */
-  e1.generate(scope, code, &regs[1..], ());
+  e1.generate(scope, code, &regs[1..], None);
 
   /* Malloc for e1.
   r0 = malloc(e1_size) */
@@ -235,7 +243,7 @@ fn generate_pair_liter(
 
   /* Evaluate e2.
   regs[1] = eval(e2) */
-  e2.generate(scope, code, &regs[1..], ());
+  e2.generate(scope, code, &regs[1..], None);
 
   /* Malloc for e2.
   r0 = malloc(e2_size) */
@@ -275,7 +283,7 @@ fn generate_array_liter(
     /* Write each expression to the array. */
     for (i, expr) in exprs.iter().enumerate() {
       /* Evaluate expr to r5. */
-      expr.generate(scope, code, &regs[1..], ());
+      expr.generate(scope, code, &regs[1..], None);
 
       /* Write r5 array. */
       code.text.push(
@@ -310,14 +318,18 @@ fn generate_pair_elem(
   code: &mut GeneratedCode,
   regs: &[GenReg],
   elem: &PairElem,
+  src: Option<Reg>,
 ) {
   /* Puts element address in regs[0]. */
   let elem_size = elem.generate(scope, code, regs, ());
 
   /* Dereference. */
-  code.text.push(
-    Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), 0)).size(elem_size),
-  );
+  let instr = match src {
+    Some(reg) => Asm::str(reg, (Reg::General(regs[0]), 0)),
+    None => Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), 0)),
+  };
+
+  code.text.push(instr.size(elem_size));
 }
 
 fn generate_struct_elem(
@@ -325,6 +337,7 @@ fn generate_struct_elem(
   code: &mut GeneratedCode,
   regs: &[GenReg],
   elem: &StructElem,
+  src: Option<Reg>,
 ) {
   let StructElem(struct_name, expr, field_name) = elem;
 
@@ -335,13 +348,15 @@ fn generate_struct_elem(
   let (type_, offset) = def.fields.get(field_name).unwrap();
 
   /* Evaluate expression. */
-  expr.generate(scope, code, regs, ());
+  expr.generate(scope, code, regs, None);
 
   /* Dereference with offset. */
-  code.text.push(
-    Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), *offset))
-      .size(type_.size().into()),
-  );
+  let instr = match src {
+    Some(reg) => Asm::str(reg, (Reg::General(regs[0]), *offset)),
+    None => Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), *offset)),
+  };
+
+  code.text.push(instr.size(type_.size().into()));
 }
 
 fn generate_null_pair_liter(code: &mut GeneratedCode, regs: &[GenReg]) {
@@ -355,36 +370,90 @@ fn generate_array_elem(
   scope: &ScopeReader,
   code: &mut GeneratedCode,
   regs: &[GenReg],
-  elem: &ArrayElem,
+  elem_type: &Type,
+  arr_expr: &Expr,
+  idx_expr: &Expr,
+  src: Option<Reg>,
 ) {
-  /* Get address of array elem and store in regs[0]. */
-  let array_elem_size = elem.generate(scope, code, regs, ());
+  let elem_size = elem_type.size();
+  let arr_ptr_reg = Reg::General(regs[0]);
+  let idx_reg = Reg::General(regs[1]);
 
-  /* Read from that address into regs[0]. */
-  code.text.push(
-    Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), 0))
-      .size(array_elem_size),
-  );
+  /* Evaluate array. */
+  arr_expr.generate(scope, code, regs, None);
+
+  /* Evaluate index. */
+  idx_expr.generate(scope, code, &regs[1..], None);
+
+  /* Array bounds check. */
+  code // RO = index
+    .text
+    .push(Asm::mov(Reg::Arg(ArgReg::R0), Op2::Reg(idx_reg, 0)));
+  code // R1 = array ptr
+    .text
+    .push(Asm::mov(Reg::Arg(ArgReg::R1), Op2::Reg(arr_ptr_reg, 0)));
+  code.text.push(Asm::b(PREDEF_CHECK_ARRAY_BOUNDS).link());
+  RequiredPredefs::ArrayBoundsError.mark(code);
+
+  /* Move pointer to array to correct element. */
+  /* Move pointer over array length field. */
+  code
+    .text
+    .push(Asm::add(arr_ptr_reg, arr_ptr_reg, Op2::Imm(ARM_DSIZE_WORD)));
+
+  /* Calculate how big each element is. */
+  let shift = match elem_size {
+    ARM_DSIZE_WORD => 2, /* Hardcoded log_2(current_type.size()) :) */
+    ARM_DSIZE_BYTE => 0,
+    /* Elements of sizes not equal to 4 or 1 not implemented. */
+    _ => unimplemented!(),
+  };
+
+  /* Move pointer over elements. */
+  code.text.push(Asm::add(
+    arr_ptr_reg,
+    arr_ptr_reg,
+    Op2::Reg(idx_reg, -shift),
+  ));
+
+  /* Either write to or read from that location. */
+  let instr = match src {
+    Some(reg) => Asm::str(reg, (Reg::General(regs[0]), 0)),
+    None => Asm::ldr(Reg::General(regs[0]), (Reg::General(regs[0]), 0)),
+  };
+
+  /*  */
+  code.text.push(instr.size(elem_size.into()));
 }
 
-/* Stores value of local variable specified by ident to regs[0]. */
+/* match src {
+  Some(reg) => writes value at reg to this identifier,
+  None => Evaluates this identifier into regs[0]
+} */
 fn generate_ident(
   scope: &ScopeReader,
   code: &mut GeneratedCode,
   regs: &[GenReg],
   id: &Ident,
+  src: Option<Reg>,
 ) {
   use IdentInfo::*;
 
   match scope.get(id) {
-    Some(LocalVar(_, offset)) => {
-      /* LDR {regs[0]}, [sp, #{offset}] */
-      code.text.push(
-        Asm::ldr(Reg::General(regs[0]), (Reg::StackPointer, offset))
-          .size(scope.get_type(id).unwrap().size().into()),
-      );
+    Some(LocalVar(type_, offset)) => {
+      let instr = match src {
+        /* STR {reg}, [sp, #{offset}] */
+        Some(reg) => Asm::str(reg, (Reg::StackPointer, offset)),
+        /* LDR {regs[0]}, [sp, #{offset}] */
+        None => Asm::ldr(Reg::General(regs[0]), (Reg::StackPointer, offset)),
+      };
+
+      code.text.push(instr.size(type_.size().into()))
     }
     Some(Label(_, label)) => {
+      /* Cannot write to labels. */
+      assert!(src.is_none());
+
       /* LDR {regs[0]}, ={label} */
       code.text.push(Asm::ldr(Reg::General(regs[0]), label));
     }
@@ -435,7 +504,7 @@ fn generate_unary_app(
   expr: &Expr,
 ) {
   /* Stores expression's value in regs[0]. */
-  expr.generate(scope, code, regs, ());
+  expr.generate(scope, code, regs, None);
 
   /* Applies unary operator to regs[0]. */
   generate_unary_op(code, Reg::General(regs[0]), op);
@@ -452,11 +521,11 @@ fn generate_binary_app(
   assert!(regs.len() >= 2);
 
   /* regs[0] = eval(expr1) */
-  expr1.generate(scope, code, regs, ());
+  expr1.generate(scope, code, regs, None);
 
   if regs.len() > MIN_STACK_MACHINE_REGS {
     /* Haven't run out of registers, evaluate normally. */
-    expr2.generate(scope, code, &regs[1..], ());
+    expr2.generate(scope, code, &regs[1..], None);
 
     /* regs[0] = regs[0] <op> regs[1] */
     generate_binary_op(code, regs[0], regs[0], regs[1], op);
@@ -469,7 +538,7 @@ fn generate_binary_app(
     let st = SymbolTable::empty(ARM_DSIZE_WORD);
 
     /* Evaluate LHS using all registers. */
-    expr2.generate(&scope.new_scope(&st), code, regs, ());
+    expr2.generate(&scope.new_scope(&st), code, regs, None);
 
     /* Restore RHS into next available register. */
     code.text.push(Asm::pop(Reg::General(regs[1])));
@@ -647,103 +716,4 @@ fn binary_comp_ops(
   code.text.push(Asm::mov(reg1, Op2::Imm(1)).cond(cond1));
   /* MOV{cond2} reg1, #0 */
   code.text.push(Asm::mov(reg1, Op2::Imm(0)).cond(cond2));
-}
-
-impl Generatable for ArrayElem {
-  type Input = ();
-  type Output = DataSize;
-
-  /* Stores the address of the element in regs[0],
-  returns size of element. */
-  fn generate(
-    &self,
-    scope: &ScopeReader,
-    code: &mut GeneratedCode,
-    regs: &[GenReg],
-    _aux: (),
-  ) -> DataSize {
-    use IdentInfo::*;
-
-    let ArrayElem(id, indexes) = self;
-    let mut current_type = scope.get_type(id).unwrap();
-    let array_ptr_reg = Reg::General(regs[0]);
-    let index_regs = &regs[1..];
-
-    /* Get reference to {id}.
-    Put address of array in regs[0].
-    ADD {regs[0]}, sp, #{offset} */
-
-    match scope.get(id) {
-      Some(LocalVar(_, offset)) => {
-        code.text.push(Asm::add(
-          array_ptr_reg,
-          Reg::StackPointer,
-          Op2::Imm(offset),
-        ));
-      }
-      _ => unreachable!("ident must be a local variable"),
-    };
-
-    /* For each index. */
-    for index in indexes {
-      /* Each index unwraps the type by one.
-      Type::Array(t) => t */
-      current_type = match current_type {
-        Type::Array(t) => t,
-        /* Semantic analysis ensures array lookups
-        only happen on arrays. */
-        _ => unreachable!(),
-      };
-
-      /* index_regs[0] = eval(index)
-      LDR {index_regs[0]} {index}     //load index into first index reg */
-      index.generate(scope, code, index_regs, ());
-
-      /* Dereference. */
-      /* LDR {array_ptr_reg} [{array_ptr_reg}] */
-      code.text.push(Asm::ldr(array_ptr_reg, (array_ptr_reg, 0)));
-
-      /* Move index_reg into r0 */
-      /* MOV r0, {index_reg[0]} */
-      code.text.push(Asm::mov(
-        Reg::Arg(ArgReg::R0),
-        Op2::Reg(Reg::General(index_regs[0]), 0),
-      ));
-
-      /* Move array_ptr_reg into r1 */
-      /* MOV r1, {array_ptr_reg} */
-      code
-        .text
-        .push(Asm::mov(Reg::Arg(ArgReg::R1), Op2::Reg(array_ptr_reg, 0)));
-
-      /* Branch to check array bounds */
-      /* BL p_check_array_bounds */
-      code.text.push(Asm::b(PREDEF_CHECK_ARRAY_BOUNDS).link());
-
-      /* Move over size field.
-      ADD {array_ptr_reg} {array_ptr_reg} #4 */
-      code.text.push(Asm::add(
-        array_ptr_reg,
-        array_ptr_reg,
-        Op2::Imm(ARM_DSIZE_WORD),
-      ));
-
-      /* Move to correct element. */
-      let shift = match current_type.size() {
-        ARM_DSIZE_WORD => 2, /* Hardcoded log_2(current_type.size()) :) */
-        ARM_DSIZE_BYTE => 0,
-        /* Elements of sizes not equal to 4 or 1 not implemented. */
-        _ => unimplemented!(),
-      };
-      code.text.push(Asm::add(
-        array_ptr_reg,
-        array_ptr_reg,
-        Op2::Reg(Reg::General(index_regs[0]), -shift),
-      ))
-    }
-
-    RequiredPredefs::ArrayBoundsError.mark(code);
-
-    current_type.size().into()
-  }
 }

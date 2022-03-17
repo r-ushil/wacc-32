@@ -2,6 +2,7 @@ pub mod context;
 mod expr;
 mod program;
 mod stat;
+mod sugar;
 mod unify;
 
 use std::fmt::Display;
@@ -11,7 +12,7 @@ use unify::Unifiable;
 
 use crate::ast::*;
 
-use self::context::*;
+use self::{context::*, expr::ExprPerms};
 
 /* Represents the result of a semantic analyse. */
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -110,16 +111,19 @@ check things, and when an AST represents a value, returns their type. */
 
 /* If types are the same, return that type.
 Otherwise, error. */
-fn equal_types<
-  L: Analysable<Input = (), Output = Type>,
-  R: Analysable<Input = (), Output = Type>,
+fn equal_types_with_inputs<
+  L: Analysable<Output = Type>,
+  R: Analysable<Output = Type>,
 >(
   scope: &mut ScopeBuilder,
   lhs: &mut L,
+  lhs_input: L::Input,
   rhs: &mut R,
+  rhs_input: R::Input,
 ) -> AResult<Type> {
-  let (lhs_type, rhs_type) =
-    lhs.analyse(scope, ()).join(rhs.analyse(scope, ()))?;
+  let (lhs_type, rhs_type) = lhs
+    .analyse(scope, lhs_input)
+    .join(rhs.analyse(scope, rhs_input))?;
 
   if let Some(t) = lhs_type.clone().unify(rhs_type.clone()) {
     Ok(t)
@@ -131,13 +135,27 @@ fn equal_types<
   }
 }
 
+fn equal_types<L: Analysable<Output = Type>, R: Analysable<Output = Type>>(
+  scope: &mut ScopeBuilder,
+  lhs: &mut L,
+  rhs: &mut R,
+) -> AResult<Type> {
+  equal_types_with_inputs(
+    scope,
+    lhs,
+    L::Input::default(),
+    rhs,
+    R::Input::default(),
+  )
+}
+
 /* Errors if AST node does not have expected type. */
-fn expected_type<A: Analysable<Input = (), Output = Type>>(
+fn expected_type<'a, A: Analysable<Output = Type>>(
   scope: &mut ScopeBuilder,
   expected_type: &mut Type,
   actual: &mut A,
 ) -> AResult<Type> {
-  let actual_type = actual.analyse(scope, ())?;
+  let actual_type = actual.analyse(scope, A::Input::default())?;
 
   let unified_expected = expected_type.clone().unify(actual_type.clone());
 
@@ -163,7 +181,7 @@ retrieve it without worrying what AST node it is. */
 
 /* ======== MAIN ANALYSABLE TRAIT ======= */
 trait Analysable {
-  type Input;
+  type Input: Default;
   type Output;
 
   fn analyse(
@@ -200,63 +218,49 @@ impl<T: Analysable<Output = Type>> Analysable for Box<T> {
 }
 
 impl Analysable for Ident {
-  type Input = ();
+  type Input = ExprPerms;
   type Output = Type;
 
-  fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
+  fn analyse(
+    &mut self,
+    scope: &mut ScopeBuilder,
+    perms: ExprPerms,
+  ) -> AResult<Type> {
     use IdentInfo::*;
 
-    match scope.get(self) {
-      Some(LocalVar(t, _) | Label(t, _)) => Ok(t.clone()),
-      _ => Err(SemanticError::Normal(format!(
-        "Use of undeclared variable: {:#?}",
-        self
-      ))),
+    match perms {
+      /* We have permission to delcare this identifier as a new variable. */
+      ExprPerms::Declare(type_) => {
+        scope.insert_var(self, type_.clone())?;
+        Ok(type_)
+      }
+      /* We can't modify scope, so we must just hope it's the right type. */
+      _ => match scope.get(self) {
+        Some(LocalVar(t, _) | Label(t, _)) => Ok(t.clone()),
+        _ => Err(SemanticError::Normal(format!(
+          "Use of undeclared variable: {:#?}",
+          self
+        ))),
+      },
     }
-  }
-}
-
-impl Analysable for ArrayElem {
-  type Input = ();
-  type Output = Type;
-  fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
-    let ArrayElem(id, indexes) = self;
-
-    /* If any indexes aren't Int, return errors. */
-    SemanticError::join_iter(
-      indexes
-        .iter_mut()
-        .map(|index| expected_type(scope, &mut Type::Int, index)),
-    )?;
-
-    /* Gets type of the array being looked up. */
-    let mut curr_type = id.analyse(scope, ())?;
-
-    /* For each index, unwrap the type by one array. */
-    for _ in indexes {
-      curr_type = match curr_type {
-        Type::Array(t) => *t,
-        t => {
-          return Err(SemanticError::Normal(format!(
-            "Expected array, found {:?}",
-            t
-          )))
-        }
-      };
-    }
-
-    Ok(curr_type)
   }
 }
 
 impl Analysable for StructElem {
-  type Input = ();
+  type Input = ExprPerms;
   type Output = Type;
-  fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<Type> {
+  fn analyse(
+    &mut self,
+    scope: &mut ScopeBuilder,
+    perms: ExprPerms,
+  ) -> AResult<Type> {
     let StructElem(struct_elem_id, expr, field_name) = self;
 
+    /* Struct elements cannot be declared, only assigned. */
+    perms.break_declare()?;
+
     /* Expression should have this type. */
-    let expr_type = expr.analyse(scope, ())?;
+    let expr_type = expr.analyse(scope, ExprPerms::Nothing)?;
 
     /* Get the struct's identifier. */
     let mut struct_id = match expr_type {
@@ -340,7 +344,7 @@ mod tests {
       format!("y"),
     );
 
-    assert_eq!(elem.analyse(&mut scope, ()), Ok(Type::Bool));
+    assert_eq!(elem.analyse(&mut scope, ExprPerms::Nothing), Ok(Type::Bool));
   }
 
   #[test]
@@ -359,11 +363,16 @@ mod tests {
       .unwrap();
 
     /* x[5]['a'] is error */
-    assert!(ArrayElem(
-      id.clone(),
-      vec![Expr::IntLiter(5), Expr::CharLiter('a')]
+    assert!(Expr::ArrayElem(
+      Type::default(),
+      Box::new(Expr::ArrayElem(
+        Type::default(),
+        Box::new(Expr::Ident(id.clone())),
+        Box::new(Expr::IntLiter(5))
+      )),
+      Box::new(Expr::CharLiter('a'))
     )
-    .analyse(&mut scope, ())
+    .analyse(&mut scope, ExprPerms::Nothing)
     .is_err());
   }
 
@@ -377,8 +386,13 @@ mod tests {
     /* x: BaseType(Int) */
     scope.insert_var(&mut x.clone(), x_type.clone()).unwrap();
 
-    assert_eq!(x.clone().analyse(&mut scope, ()), Ok(x_type));
-    assert!(String::from("hello").analyse(&mut scope, ()).is_err());
+    assert_eq!(
+      x.clone().analyse(&mut scope, ExprPerms::Nothing),
+      Ok(x_type)
+    );
+    assert!(String::from("hello")
+      .analyse(&mut scope, ExprPerms::Nothing)
+      .is_err());
   }
 
   #[test]
@@ -398,31 +412,58 @@ mod tests {
 
     /* x[5][2]: Int */
     assert_eq!(
-      ArrayElem(id.clone(), vec![Expr::IntLiter(5), Expr::IntLiter(2)])
-        .analyse(&mut scope, ()),
+      Expr::ArrayElem(
+        Type::default(),
+        Box::new(Expr::ArrayElem(
+          Type::default(),
+          Box::new(Expr::Ident(id.clone())),
+          Box::new(Expr::IntLiter(5))
+        )),
+        Box::new(Expr::IntLiter(2))
+      )
+      .analyse(&mut scope, ExprPerms::Nothing),
       Ok(Type::Int),
     );
 
     /* x[5]['a'] is error */
-    assert!(ArrayElem(
-      id.clone(),
-      vec![Expr::IntLiter(5), Expr::CharLiter('a')]
+    assert!(Expr::ArrayElem(
+      Type::default(),
+      Box::new(Expr::ArrayElem(
+        Type::default(),
+        Box::new(Expr::Ident(id.clone())),
+        Box::new(Expr::IntLiter(5))
+      )),
+      Box::new(Expr::CharLiter('a'))
     )
-    .analyse(&mut scope, ())
+    .analyse(&mut scope, ExprPerms::Nothing)
     .is_err());
 
     /* x[5]: Array(Int) */
     assert_eq!(
-      ArrayElem(id.clone(), vec![Expr::IntLiter(5)]).analyse(&mut scope, ()),
+      Expr::ArrayElem(
+        Type::default(),
+        Box::new(Expr::Ident(id.clone())),
+        Box::new(Expr::IntLiter(5))
+      )
+      .analyse(&mut scope, ExprPerms::Nothing),
       Ok(Type::Array(Box::new(Type::Int))),
     );
 
     /* x[5][2][1] is error */
-    assert!(ArrayElem(
-      id.clone(),
-      vec![Expr::IntLiter(5), Expr::IntLiter(2), Expr::IntLiter(1)]
+    assert!(Expr::ArrayElem(
+      Type::default(),
+      Box::new(Expr::ArrayElem(
+        Type::default(),
+        Box::new(Expr::ArrayElem(
+          Type::default(),
+          Box::new(Expr::Ident(id.clone())),
+          Box::new(Expr::IntLiter(5))
+        )),
+        Box::new(Expr::IntLiter(2))
+      )),
+      Box::new(Expr::IntLiter(1))
     )
-    .analyse(&mut scope, ())
+    .analyse(&mut scope, ExprPerms::Nothing)
     .is_err());
   }
 }

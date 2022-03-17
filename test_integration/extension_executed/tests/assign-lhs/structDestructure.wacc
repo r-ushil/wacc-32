@@ -1,0 +1,80 @@
+begin
+  struct IntChar {
+    int x,
+    char y
+  }
+  struct IntChars {
+    IntChar first,
+    IntChar second
+  }
+  # ASSIGNMENT
+
+  # single layer destructure.
+  int a = 1;
+  char b = 'b';
+
+  IntChar { x: a, y: b} = IntChar {
+    x: 42,
+    y: 'a'
+  };
+  # int[] @_1 = [42, 43];
+  # a = @_1[0]
+  # b = @_1[1]
+
+  println "single layer struct assignment";
+  println a; # 42
+  println b; # 'a'
+
+  # reset a and b
+  a = 2;
+  b = 'a';
+
+  # multiple layer destructure.
+  int c = 1;
+  char d = 'a';
+
+  IntChars {
+    first: IntChar { x: a, y: b },
+    second: IntChar { x: c, y: d }
+  } = IntChars {
+    first: IntChar { x: 5, y: 'd' },
+    second: IntChar { x: 7, y: 'e' }
+  };
+
+  println "nested struct assignment";
+  println a; # 5
+  println b; # d
+  println c; # 7
+  println d; # e
+
+  # DECLARATION
+
+  # single layer destructure.
+  IntChar IntChar { x: a2, y: b2 } = IntChar { x: 5, y: 'd' };
+  # pair(int, int) @_4 = x
+  # int a2 = @_4[0]
+  # int b2 = @_4[1]
+
+  println "single layer struct declaration";
+  println a2; # 5
+  println b2; # d
+
+  # multiple layer destructure declaration.
+
+  # # (y = newpair(newpair(42, 43), 44))
+  IntChars IntChars {
+    first: IntChar { x: a3, y: b3 },
+    second: IntChar { x: c3, y: d3 }
+  } = IntChars {
+    first: IntChar { x: 55, y: '@' },
+    second: IntChar { x: 75, y: '!' }
+  };
+
+  println "nested arrays declaration";
+  println a3; # 55
+  println b3; # @
+  println c3; # 75
+  println d3; # !
+
+  skip
+end

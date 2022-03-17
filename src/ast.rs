@@ -33,9 +33,9 @@ pub struct FuncSig {
 #[derive(PartialEq, Debug, Clone)]
 pub enum Stat {
   Skip,
-  Declaration(Type, Ident, Expr),
-  Assignment(AssignLhs, Type, Expr),
-  Read(Type, AssignLhs),
+  Declaration(Type, Expr, Expr),
+  Assignment(Expr, Type, Expr),
+  Read(TypedExpr),
   Free(TypedExpr),
   Return(Expr),
   Exit(Expr),
@@ -58,14 +58,6 @@ impl ScopedStat {
   pub fn new(statement: Stat) -> ScopedStat {
     ScopedStat(SymbolTable::default(), Box::new(statement))
   }
-}
-
-#[derive(PartialEq, Debug, Clone)]
-pub enum AssignLhs {
-  Ident(Ident),
-  ArrayElem(ArrayElem),
-  PairElem(PairElem),
-  StructElem(StructElem),
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -169,7 +161,8 @@ pub enum Expr {
   /* Identifiers. */
   Ident(Ident),
   /* Element access. */
-  ArrayElem(ArrayElem),
+  /* Type stored on array elem is the type of the elements of the array. */
+  ArrayElem(Type, Box<Expr>, Box<Expr>), /* a[b] where a, b are 1st and 2nd expression. */
   StructElem(StructElem),
   PairElem(Box<PairElem>),
   /* Operator application. */
@@ -217,8 +210,6 @@ pub enum BinaryOper {
 pub type Ident = String;
 // pub struct Ident(pub String);
 
-#[derive(PartialEq, Debug, Clone)]
-pub struct ArrayElem(pub Ident, pub Vec<Expr>);
-
+/* Stores the type of the elements. */
 #[derive(PartialEq, Debug, Clone)]
 pub struct ArrayLiter(pub Type, pub Vec<Expr>);
