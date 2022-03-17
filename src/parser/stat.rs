@@ -33,8 +33,10 @@ fn stat_unit(input: &str) -> IResult<&str, Stat, ErrorTree<&str>> {
   let skip = value(Stat::Skip, tok("skip"));
 
   let declaration = |input| {
+    let let_or_type = alt((map(tok("let"), |_| Type::Any), type_));
+
     let (input, (t, lhs_expr, _, ass)) =
-      tuple((type_, expr, tok("="), assign_rhs))(input)?;
+      tuple((let_or_type, expr, tok("="), assign_rhs))(input)?;
 
     /* RULE: local variables must not start with an upper case. */
     if let Expr::Ident(id) = &lhs_expr {

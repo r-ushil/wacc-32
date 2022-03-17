@@ -4,7 +4,6 @@ pub mod asm;
 mod cfg;
 mod display;
 mod expr;
-mod local_vec;
 mod predef;
 mod program;
 mod scope;

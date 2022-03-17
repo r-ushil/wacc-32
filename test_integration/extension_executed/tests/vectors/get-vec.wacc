@@ -1,0 +1,15 @@
+import import-files/vector.wacc
+begin
+    Vector vec = call create_vec(); #size = 0, capacity = 2
+
+    bool res = call insert_vec(vec, 1); #size = 1, capacity = 2
+    res = call insert_vec(vec, 3); #size = 2, capacity = 2
+    res = call insert_vec(vec, 17); #size = 3, capacity = 4
+
+
+    int val = call get_vec(vec, 2);
+
+    bool freed = free_vec(vec);
+    
+    exit val # vec[2] = 17
+end

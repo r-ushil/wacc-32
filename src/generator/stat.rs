@@ -1,5 +1,5 @@
 use super::{
-  predef::{ReadFmt, PREDEF_FREE_ARRAY, PREDEF_FREE_PAIR},
+  predef::{ReadFmt, PREDEF_FREE, PREDEF_FREE_PAIR},
   predef::{RequiredPredefs, PREDEF_SYS_MALLOC},
   *,
 };
@@ -179,13 +179,20 @@ fn generate_stat_free<'a, 'cfg>(
       RequiredPredefs::FreeArray.mark(cfg.code);
 
       /* BL p_free_array */
-      cfg.flow(Asm::b(PREDEF_FREE_ARRAY).link())
+      cfg.flow(Asm::b(PREDEF_FREE).link())
     }
     Type::Pair(_, _) => {
       RequiredPredefs::FreePair.mark(cfg.code);
 
       /* BL p_free_pair */
       cfg.flow(Asm::b(PREDEF_FREE_PAIR).link())
+    }
+    Type::Custom(_) => {
+      //mark freecustom predef as true
+      RequiredPredefs::FreeCustom.mark(cfg.code);
+
+      /* BL p_free_array */
+      cfg.flow(Asm::b(PREDEF_FREE).link())
     }
     _ => unreachable!("Can't free this type!"),
   }
