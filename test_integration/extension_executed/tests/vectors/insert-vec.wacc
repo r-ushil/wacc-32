@@ -16,5 +16,5 @@ begin
         total = total + vec_arr[i]
     done ;
     
-    exit vec.capacity + (vec.capacity + total) # 5 + 8 + (1 + 2 + 3 + 4 + 5) = 28
+    exit vec.size + (vec.capacity + total) # 5 + 8 + (1 + 2 + 3 + 4 + 5) = 28
 end
