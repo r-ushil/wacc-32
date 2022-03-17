@@ -55,20 +55,6 @@ impl CFGable for StructLiter {
   }
 }
 
-// impl CFGable for PairElem {
-//   type Input = ();
-
-//   fn cfg_generate<'a, 'cfg>(
-//     &self,
-//     scope: &ScopeReader,
-//     cfg: &'a mut CFG<'cfg>,
-//     regs: &[GenReg],
-//     aux: Self::Input,
-//   ) -> Flow<'cfg> {
-//     todo!()
-//   }
-// }
-
 impl CFGable for Expr {
   type Input = Option<RegRef>;
 
@@ -386,23 +372,17 @@ fn generate_pair_elem<'a, 'cfg>(
   pair.cfg_generate(scope, cfg, regs, None)
 
   /* CHECK: regs[0] != NULL */
-  + cfg.flow(Asm::mov(
-    ArgReg::R0,
-    regs[0],
-  ))
+  + cfg.flow(Asm::mov(ArgReg::R0, regs[0]))
   + cfg.flow(Asm::b(PREDEF_CHECK_NULL_POINTER).link())
 
   /* Dereference. */
-  + cfg.flow(Asm::ldr(
-    Reg::General(regs[0]),
-    (regs[0].into(), offset),
-  ))
+  + cfg.flow(Asm::ldr(regs[0], (regs[0].into(), offset)))
 
   /* Dereference. */
   + {
     let instr = match src {
-      Some(reg) => Asm::str(reg, (Reg::General(regs[0]), 0)),
-      None => Asm::ldr(Reg::General(regs[0]), (regs[0].into(), 0)),
+      Some(reg) => Asm::str(reg, (regs[0], 0)),
+      None => Asm::ldr(regs[0], (regs[0].into(), 0)),
     };
 
     cfg.flow(instr.size(t.size().into()))
