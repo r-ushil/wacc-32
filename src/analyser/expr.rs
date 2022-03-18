@@ -307,7 +307,8 @@ mod tests {
   #[test]
   fn pair_elems() {
     let mut symbol_table = SymbolTable::default();
-    let scope = &mut ScopeBuilder::new(&mut symbol_table);
+    let cell = Cell::new(0);
+    let scope = &mut ScopeBuilder::new(&mut symbol_table, &cell);
 
     assert!(Expr::PairElem(Box::new(PairElem::Fst(TypedExpr::new(
       Expr::NullPairLiter
@@ -325,7 +326,8 @@ mod tests {
   #[test]
   fn literals() {
     let mut symbol_table = SymbolTable::default();
-    let scope = &mut ScopeBuilder::new(&mut symbol_table);
+    let cell = Cell::new(0);
+    let scope = &mut ScopeBuilder::new(&mut symbol_table, &cell);
 
     assert_eq!(
       IntLiter(5).analyse(scope, ExprPerms::Nothing),
@@ -348,7 +350,8 @@ mod tests {
   #[test]
   fn idents() {
     let mut symbol_table = SymbolTable::default();
-    let mut scope = ScopeBuilder::new(&mut symbol_table);
+    let cell = Cell::new(0);
+    let mut scope = ScopeBuilder::new(&mut symbol_table, &cell);
     populate_scope(&mut scope, "var");
 
     assert_eq!(
@@ -363,7 +366,8 @@ mod tests {
     let x_type = Type::Array(Box::new(Type::Int));
 
     let mut symbol_table = SymbolTable::default();
-    let mut scope = ScopeBuilder::new(&mut symbol_table);
+    let cell = Cell::new(0);
+    let mut scope = ScopeBuilder::new(&mut symbol_table, &cell);
     scope.insert_var(&mut x.clone(), x_type).unwrap();
 
     assert_eq!(
@@ -381,7 +385,8 @@ mod tests {
   fn unary_apps() {
     /* Symbol Table */
     let mut symbol_table = SymbolTable::default();
-    let scope = &mut ScopeBuilder::new(&mut symbol_table);
+    let cell = Cell::new(0);
+    let scope = &mut ScopeBuilder::new(&mut symbol_table, &cell);
 
     /* BANG */
     /* !false: Bool */
@@ -455,7 +460,8 @@ mod tests {
   #[test]
   fn binary_apps() {
     let mut symbol_table = SymbolTable::default();
-    let scope = &mut ScopeBuilder::new(&mut symbol_table);
+    let cell = Cell::new(0);
+    let scope = &mut ScopeBuilder::new(&mut symbol_table, &cell);
 
     /* 5 + false: ERROR */
     assert!(BinaryApp(

@@ -77,23 +77,22 @@ impl CFGable for ScopedStat {
     let ScopedStat(st, statement) = self;
 
     /* Allocate space on stack for variables declared in this scope. */
-    let flow = cfg.imm_unroll(
-      |offset| Asm::sub(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset)),
-      st.size,
-    );
+    // let flow = cfg.imm_unroll(
+    //   |offset| Asm::sub(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset)),
+    //   st.size,
+    // );
 
     /* Enter new scope. */
     let scope = scope.new_scope(st);
 
-    flow
-      /* Generated statement. */
-      + statement.cfg_generate(&scope, cfg, ())
+    /* Generated statement. */
+    statement.cfg_generate(&scope, cfg, ())
 
-      /* Increment stack pointer to old position. */
-      + cfg.imm_unroll(
-        |offset| Asm::add(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset)),
-        st.size,
-      )
+    /* Increment stack pointer to old position. */
+    // + cfg.imm_unroll(
+    //   |offset| Asm::add(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset)),
+    //   st.size,
+    // )
   }
 }
 
@@ -209,18 +208,18 @@ fn generate_stat_return<'a, 'cfg>(
   /* r0 = regs[0] */
   + cfg.flow(Asm::mov(ArgReg::R0, reg))
 
-  + {
-    let total_offset = scope.get_total_offset();
+  // + {
+  //   let total_offset = scope.get_total_offset();
 
-    /* ADD sp, sp, #{total_offset} */
-    cfg.imm_unroll(
-      |offset| Asm::add(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset)),
-      total_offset,
-    )
-  }
+  //   /* ADD sp, sp, #{total_offset} */
+  //   cfg.imm_unroll(
+  //     |offset| Asm::add(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset)),
+  //     total_offset,
+  //   )
+  // }
 
   /* POP {pc} */
-  + cfg.flow(Asm::pop(Reg::PC))
+  // + cfg.flow(Asm::pop(Reg::PC))
 }
 
 fn generate_stat_exit<'a, 'cfg>(
@@ -426,13 +425,14 @@ mod tests {
 
     /* Actual output. */
     let mut actual_code = GeneratedCode::default();
-    let mut actual_cfg = CFG::new(&mut actual_code, &arena);
+    let mut actual_cfg = CFG::new(&mut actual_code, &arena, format!("f_foo"));
     let _ = stat.cfg_generate(scope, &mut actual_cfg, ());
     actual_cfg.save();
 
     /* Expected output. */
     let mut expected_code = GeneratedCode::default();
-    let mut expected_cfg = CFG::new(&mut expected_code, &arena);
+    let mut expected_cfg =
+      CFG::new(&mut expected_code, &arena, format!("f_foo"));
     let exit_code_reg = expected_cfg.get_veg();
     let _ =
       /* Evaluate exit code. */

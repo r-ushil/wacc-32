@@ -6,7 +6,7 @@ use crate::ast::*;
 
 pub use context::SymbolTable;
 
-use super::asm::{Label, Offset, ARM_DSIZE_WORD};
+use super::asm::{Label, Offset, Reg, ARM_DSIZE_WORD};
 
 #[derive(Debug)]
 pub struct ScopeReader<'a> {
@@ -29,7 +29,7 @@ impl ScopeReader<'_> {
     by these new values. */
 
     /* Make new symbol table from fresh to copy the renamed values into. */
-    let mut new_st = SymbolTable::empty(st.size);
+    let mut new_st = SymbolTable::default();
     new_st.prefix = st.prefix.clone();
 
     for (id, entry) in st.table.iter() {
@@ -62,23 +62,23 @@ impl ScopeReader<'_> {
     match self.current.table.get(ident) {
       /* Identifier declared in this scope, return. */
       Some(info) => {
-        if let LocalVar(type_, offset) = info {
-          Some(LocalVar(type_.clone(), self.current.size - offset))
+        if let LocalVar(type_, reg) = info {
+          Some(LocalVar(type_.clone(), *reg))
         } else {
           Some(info.clone())
         }
       }
       /* Look for identifier in parent scope, recurse. */
       None => match self.parents?.get(ident)? {
-        LocalVar(t, offset) => Some(LocalVar(t, offset + self.current.size)),
+        LocalVar(t, reg) => Some(LocalVar(t, reg)),
         info => Some(info),
       },
     }
   }
 
-  pub fn _get_var(&self, ident: &Ident) -> Option<(Type, Offset)> {
+  pub fn _get_var(&self, ident: &Ident) -> Option<(Type, Reg)> {
     match self.get(ident)? {
-      IdentInfo::LocalVar(t, offset) => Some((t, offset)),
+      IdentInfo::LocalVar(t, reg) => Some((t, reg)),
       _ => None,
     }
   }
@@ -107,16 +107,16 @@ impl ScopeReader<'_> {
     }
   }
 
-  pub fn get_total_offset(&self) -> Offset {
-    if self.current.table.is_empty() && self.current.size == ARM_DSIZE_WORD {
-      /* When there are no symbols but the scope is 4 bytes long, we're at the
-      scope used to reserve space for the lr register. */
-      0
-    } else {
-      /* Otherwise, add the size of this scope and all the above scopes. */
-      self.current.size + self.parents.unwrap().get_total_offset()
-    }
-  }
+  // pub fn get_total_offset(&self) -> Offset {
+  //   if self.current.table.is_empty() && self.current.size == ARM_DSIZE_WORD {
+  //     /* When there are no symbols but the scope is 4 bytes long, we're at the
+  //     scope used to reserve space for the lr register. */
+  //     0
+  //   } else {
+  //     /* Otherwise, add the size of this scope and all the above scopes. */
+  //     self.current.size + self.parents.unwrap().get_total_offset()
+  //   }
+  // }
 
   pub fn new_scope<'a>(
     &'a self,

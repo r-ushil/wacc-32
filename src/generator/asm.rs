@@ -102,6 +102,7 @@ impl Default for GeneratedCode {
 pub enum Asm {
   Directive(Directive),
   Instr(CondCode, Instr),
+  Call(Reg, Reg, Vec<Reg>),
 }
 
 /* ======= SHORTCUTS ======== */
@@ -110,6 +111,20 @@ pub enum Asm {
 so we're allowing unused functions in this case. */
 #[allow(dead_code)]
 impl Asm {
+  pub fn is_useless(&self) -> bool {
+    use Instr::*;
+
+    let instr = match self {
+      Asm::Instr(_, instr) => instr,
+      _ => return false,
+    };
+
+    match instr {
+      Unary(UnaryInstr::Mov, r1, Op2::Reg(r2, 0), _) if r1 == r2 => true,
+      _ => false,
+    }
+  }
+
   /* Returns vector of registers this instruction reads. */
   pub fn uses(&mut self) -> HashSet<VegNum> {
     let mut v = HashSet::new();
@@ -127,10 +142,9 @@ impl Asm {
   pub fn map_uses(&mut self, mut f: impl FnMut(&mut Reg)) {
     use Instr::*;
 
-    let mut g = |reg: &mut Reg| {
-      if let Reg::Virtual(_) = reg {
-        f(reg)
-      }
+    let mut g = |reg: &mut Reg| match reg {
+      Reg::Virtual(_) | Reg::FuncArg(_) => f(reg),
+      _ => (),
     };
 
     match self {
@@ -153,11 +167,17 @@ impl Asm {
         /* Binary uses one register if it's second operand isn't
         a register, which we know to be the case at this pointer because
         otherwise we would've hit above branch and returned. */
-        Binary(_, r, _, _, _) => g(r),
+        Binary(_, _, r, _, _) => g(r),
         /* Load uses a register if the memory address is specified
         by a register. */
         Load(_, _, LoadArg::MemAddress(r, _)) => g(r),
         _ => (),
+      }
+      Asm::Call(_, func_reg, arg_regs) => {
+        for arg_reg in arg_regs.iter_mut() {
+          g(arg_reg);
+        }
+        g(func_reg);
       }
       _ => ()
     }
@@ -179,10 +199,9 @@ impl Asm {
   pub fn map_defines(&mut self, mut f: impl FnMut(&mut Reg)) {
     use Instr::*;
 
-    let mut g = |reg: &mut Reg| {
-      if let Reg::Virtual(_) = reg {
-        f(reg)
-      }
+    let mut g = |reg: &mut Reg| match reg {
+      Reg::Virtual(_) | Reg::FuncArg(_) => f(reg),
+      _ => (),
     };
 
     match self {
@@ -197,6 +216,7 @@ impl Asm {
         g(r1);
         g(r2)
       }
+      Asm::Call(return_reg, _, _) => g(return_reg),
       _ => (),
     };
   }
@@ -586,9 +606,11 @@ pub enum Reg {
   PC,
   /* Represents a value which has not yet been given a register. */
   Virtual(VegNum),
+  FuncArg(ArgNum),
 }
 
 pub type VegNum = usize;
+pub type ArgNum = usize;
 
 impl From<ArgReg> for Reg {
   fn from(ar: ArgReg) -> Self {
@@ -623,9 +645,9 @@ pub enum GenReg {
 }
 
 /* General purpose registers usable for expression evaluation. */
-pub const GENERAL_REGS: [GenReg; 8] = [
-  GenReg::R4,
-  GenReg::R5,
+pub const GENERAL_REGS: [GenReg; 6] = [
+  // GenReg::R4,
+  // GenReg::R5,
   GenReg::R6,
   GenReg::R7,
   GenReg::R8,

@@ -180,17 +180,35 @@ fn generate_call<'a, 'cfg>(
   exprs: &[Expr],
   dst: Reg,
 ) -> Flow<'cfg> {
+  let func_reg = cfg.get_veg();
+  let mut arg_regs = vec![];
+
+  /* Put function pointer in func_reg. */
+  let mut flow = func.cfg_generate(scope, cfg, Dst(func_reg));
+
+  /*  */
+  for expr in exprs {
+    let expr_reg = cfg.get_veg();
+
+    flow += expr.cfg_generate(scope, cfg, Dst(expr_reg));
+
+    arg_regs.push(expr_reg);
+  }
+
+  /* Make into call instruction. */
+  flow + cfg.flow(Asm::Call(dst, func_reg, arg_regs))
+
   /* Get arg types. */
 
-  let arg_types = match func_type {
-    Type::Func(sig) => sig.param_types,
-    _ => unreachable!("Analyser guarentees this is a function."),
-  };
+  // let arg_types = match func_type {
+  //   Type::Func(sig) => sig.param_types,
+  //   _ => unreachable!("Analyser guarentees this is a function."),
+  // };
 
   /* Save all registers we haven't been allowed to mangle. */
   /* Figure out which registers aren't safe to overwrite and therefore need
   saving. */
-  let mut unsafe_regs_set = GENERAL_REGS.iter().collect::<HashSet<_>>();
+  // let mut unsafe_regs_set = GENERAL_REGS.iter().collect::<HashSet<_>>();
   /* TODO: only save the regs we need to. */
   // for reg in regs.iter() {
   //   unsafe_regs_set.remove(reg);
@@ -198,65 +216,62 @@ fn generate_call<'a, 'cfg>(
 
   /* Must put in some deterministic order so registers are popped in the
   same order as they are pushed. */
-  let unsafe_regs_vec = unsafe_regs_set.into_iter().collect::<Vec<_>>();
+  // let unsafe_regs_vec = unsafe_regs_set.into_iter().collect::<Vec<_>>();
 
   /* Push all to stack. */
   /* TODO: Change Push instruction to do this with one instruction. */
-  let mut flow = cfg.dummy_flow();
-  for reg in unsafe_regs_vec.iter() {
-    flow += cfg.flow(Asm::push(Reg::General(*reg.clone())));
-  }
+  // let mut flow = cfg.dummy_flow();
+  // for reg in unsafe_regs_vec.iter() {
+  //   flow += cfg.flow(Asm::push(Reg::General(*reg.clone())));
+  // }
 
   /* Now all registers are saved, we can use all registers! */
-  let safe_regs = &GENERAL_REGS;
+  // let safe_regs = &GENERAL_REGS;
 
-  let mut args_offset = 0;
+  // let mut args_offset = 0;
 
-  for (expr, arg_type) in exprs.iter().zip(arg_types).rev() {
-    let symbol_table = SymbolTable {
-      size: args_offset,
-      ..Default::default()
-    };
+  // for (expr, arg_type) in exprs.iter().zip(arg_types).rev() {
+  //   let symbol_table = SymbolTable::default();
 
-    let arg_offset_scope = scope.new_scope(&symbol_table);
+  //   let arg_offset_scope = scope.new_scope(&symbol_table);
 
-    flow += expr.cfg_generate(&arg_offset_scope, cfg, Dst(safe_regs[0].into()));
+  //   flow += expr.cfg_generate(&arg_offset_scope, cfg, Dst(safe_regs[0].into()));
 
-    flow += cfg.flow(
-      Asm::str(safe_regs[0], (Reg::StackPointer, -arg_type.size()))
-        .size(arg_type.size().into())
-        .pre_indexed(),
-    );
+  //   flow += cfg.flow(
+  //     Asm::str(safe_regs[0], (Reg::StackPointer, -arg_type.size()))
+  //       .size(arg_type.size().into())
+  //       .pre_indexed(),
+  //   );
 
-    /* Make symbol table bigger. */
-    args_offset += arg_type.size();
-  }
+  //   /* Make symbol table bigger. */
+  //   args_offset += arg_type.size();
+  // }
 
   /* Generate function pointer. */
-  flow += func.cfg_generate(
-    /* Offset all stack accesses by the size the args take up. */
-    &scope.new_scope(&SymbolTable::empty(args_offset)),
-    cfg,
-    Dst(safe_regs[0].into()),
-  );
+  // flow += func.cfg_generate(
+  //   /* Offset all stack accesses by the size the args take up. */
+  //   &scope.new_scope(&SymbolTable::default()),
+  //   cfg,
+  //   Dst(safe_regs[0].into()),
+  // );
 
   /* Jump to function pointer. */
-  flow += cfg.flow(Asm::bx(safe_regs[0]).link());
+  // flow += cfg.flow(Asm::bx(safe_regs[0]).link());
 
   /* Pop preserved register back from the stack. */
   /* TODO: Change Pop instruction to do this with one instruction. */
-  for reg in unsafe_regs_vec.iter().rev() {
-    flow += cfg.flow(Asm::pop(Reg::General(*reg.clone())));
-  }
+  // for reg in unsafe_regs_vec.iter().rev() {
+  //   flow += cfg.flow(Asm::pop(Reg::General(*reg.clone())));
+  // }
 
   /* Stack space was given to parameter to call function.
   We've finished calling so we can deallocate this space now. */
-  flow
-    + cfg.imm_unroll(
-      |offset| Asm::add(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset)),
-      args_offset,
-    )
-    + cfg.flow(Asm::mov(dst, ArgReg::R0))
+  // flow
+  //   + cfg.imm_unroll(
+  //     |offset| Asm::add(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset)),
+  //     args_offset,
+  //   )
+  //   + cfg.flow(Asm::mov(dst, ArgReg::R0))
 }
 
 fn generate_pair_liter<'a, 'cfg>(
@@ -499,15 +514,17 @@ fn generate_ident<'cfg, 'a>(
   use IdentInfo::*;
 
   match scope.get(id) {
-    Some(LocalVar(type_, offset)) => {
+    Some(LocalVar(type_, var_reg)) => {
       let instr = match arg {
         /* STR {reg}, [sp, #{offset}] */
-        Src(reg) => Asm::str(reg, (Reg::StackPointer, offset)),
+        Src(reg) => Asm::mov(var_reg, reg),
         /* LDR {regs[0]}, [sp, #{offset}] */
-        Dst(reg) => Asm::ldr(reg, (Reg::StackPointer.into(), offset)),
+        Dst(reg) => Asm::mov(reg, var_reg),
       };
 
-      cfg.flow(instr.size(type_.size().into()))
+      cfg.flow(instr)
+
+      // cfg.flow(instr.size(type_.size().into()))
     }
     Some(Label(_, label)) => {
       /* Cannot write to labels. */

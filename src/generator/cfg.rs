@@ -8,6 +8,7 @@ use std::{
 use typed_arena::Arena;
 
 use super::*;
+use allocate::*;
 
 /* The type passed around by everyone to refer to a block. */
 pub type BlockRef<'cfg> = RefCell<Block<'cfg>>;
@@ -184,18 +185,22 @@ pub struct CFG<'cfg> {
   pub ordering: Vec<&'cfg BlockRef<'cfg>>,
   /* How many vegs have been used so far. */
   pub vegs: usize,
+  /* The label used to jump to this CFG. */
+  label: Label,
 }
 
 impl<'cfg> CFG<'cfg> {
   pub fn new(
     code: &'cfg mut GeneratedCode,
     arena: &'cfg Arena<BlockRef<'cfg>>,
+    label: Label,
   ) -> CFG<'cfg> {
     CFG {
       code,
       arena,
       ordering: Vec::new(),
       vegs: 0,
+      label,
     }
   }
 
@@ -273,8 +278,6 @@ impl<'cfg> CFG<'cfg> {
   /* This takes ownership of the cfg so this is guarenteed to be the last
   operation on the cfg. */
   pub fn save(mut self) {
-    println!("cfg = {}", self);
-
     /* Populate live ins and live outs. */
     allocate::calculate_liveness(&mut self);
 
@@ -283,31 +286,127 @@ impl<'cfg> CFG<'cfg> {
 
     /* Colour interference graph. */
     let colouring = allocate::colour(interference, GENERAL_REGS.len());
-    println!("colouring = {:#?}", colouring);
+
+    /* Calculate stack size for local variables. */
+    let stack_size = (colouring.num_slots() * 4) as i32;
 
     /* Define functions which use colouring to load and save values. */
-    let mut load_reg =
-      |_: &mut Vec<Asm>, n: usize| colouring.get(&n).unwrap().reg();
-    let mut save_reg =
-      |_: &mut Vec<Asm>, n: usize| colouring.get(&n).unwrap().reg();
+    let mut load_reg = |text: &mut Vec<Asm>, reg: Reg, offset: i32| match reg {
+      Reg::Virtual(vn) => {
+        let loc = colouring.0.get(&vn).unwrap().clone();
+        match loc {
+          Location::Reg(grn) => Reg::General(GENERAL_REGS[grn]),
+          Location::Spill(slot) => {
+            // todo
+            let tmp_reg = Reg::General(GenReg::R4);
+            text.push(Asm::ldr(
+              tmp_reg,
+              LoadArg::MemAddress(
+                Reg::StackPointer,
+                (slot as i32) * 4 + offset,
+              ),
+            ));
+            tmp_reg
+          }
+        }
+      }
+      Reg::FuncArg(arg_num) => {
+        let tmp_reg = Reg::General(GenReg::R4);
+        text.push(Asm::ldr(
+          tmp_reg,
+          LoadArg::MemAddress(
+            Reg::StackPointer,
+            stack_size + 4 + (arg_num as i32) * 4,
+          ),
+        ));
+        tmp_reg
+      }
+      _ => unimplemented!(),
+    };
+
+    let mut save_reg = |text: &mut Vec<Asm>, reg: Reg, offset: i32| match reg {
+      Reg::Virtual(vn) => {
+        let loc = colouring.0.get(&vn).unwrap().clone();
+        match loc {
+          Location::Reg(grn) => Reg::General(GENERAL_REGS[grn]),
+          Location::Spill(slot) => {
+            // todo
+            let tmp_reg = Reg::General(GenReg::R4);
+            text.push(Asm::str(
+              tmp_reg,
+              (Reg::StackPointer, slot as i32 * 4 + offset),
+            ));
+            tmp_reg
+          }
+        }
+      }
+      Reg::FuncArg(arg_num) => {
+        let tmp_reg = Reg::General(GenReg::R4);
+        text.push(Asm::str(
+          tmp_reg,
+          (Reg::StackPointer, stack_size + 4 + (arg_num as i32) * 4),
+        ));
+        tmp_reg
+      }
+      _ => unimplemented!(),
+    };
+
+    let mut dealloc_stack = |text: &mut Vec<Asm>| {
+      if stack_size != 0 {
+        text.push(Asm::add(
+          Reg::StackPointer,
+          Reg::StackPointer,
+          stack_size as i32,
+        ));
+      }
+    };
+
+    /* Label */
+    self
+      .code
+      .text
+      .push(Asm::Directive(Directive::Label(self.label.clone())));
+
+    /* Save link register. */
+    self.code.text.push(Asm::push(Reg::Link));
+
+    /* Allocate space for stack. */
+    /* TODO: make this an unroll. */
+    if stack_size != 0 {
+      self.code.text.push(Asm::sub(
+        Reg::StackPointer,
+        Reg::StackPointer,
+        stack_size as i32,
+      ));
+    }
 
     /* Linearise while colouring. */
-    self.linearise(&mut load_reg, &mut save_reg);
+    self.linearise(&mut load_reg, &mut save_reg, &mut dealloc_stack);
+
+    /* Mark block for compilations.
+    .ltorg */
+    self.code.text.push(Asm::Directive(Directive::Assemble));
   }
 
   /* Writes the cfg to code, transforming it from a graph to a linear
   structure. Call must add the a given assembly instruction to the vector,
   expanding into multiple instructions if nessecary. */
-  fn linearise<F, G>(&mut self, mut load_reg: F, mut save_reg: G)
-  where
-    F: FnMut(&mut Vec<Asm>, usize) -> Reg,
-    G: FnMut(&mut Vec<Asm>, usize) -> Reg,
+  fn linearise<F, G, H>(
+    &mut self,
+    mut load_reg: F,
+    mut save_reg: G,
+    mut dealloc_stack: H,
+  ) where
+    F: FnMut(&mut Vec<Asm>, Reg, i32) -> Reg,
+    G: FnMut(&mut Vec<Asm>, Reg, i32) -> Reg,
+    H: FnMut(&mut Vec<Asm>),
   {
     let Self {
       code,
       arena,
       ordering,
       vegs,
+      label,
     } = self;
 
     for block in ordering.iter() {
@@ -321,32 +420,84 @@ impl<'cfg> CFG<'cfg> {
 
       /* Generate block body. */
       if let Some(asm) = &block.asm {
-        /* Take a copy so we can mutate it. */
-        let mut asm: Asm = asm.clone();
+        if let Asm::Call(return_reg, func_reg, arg_regs) = asm {
+          let mut save_offset = 0;
 
-        /* Load the used registers. */
-        {
-          asm.map_uses(|reg: &mut Reg| {
-            if let Reg::Virtual(id) = reg {
-              // *reg = load_reg(false, *id);
-              *reg = load_reg(&mut code.text, *id);
-            }
-          });
-        }
-
-        /* Add register to code block. */
-        code.text.push(asm);
-        let asm = code.text.last_mut().unwrap();
-
-        /* Save the defined registers. */
-        let mut added = Vec::new();
-        asm.map_defines(|reg| {
-          if let Reg::Virtual(id) = reg {
-            // *reg = save_reg(false, *id);
-            *reg = save_reg(&mut added, *id);
+          /* 1. Save all registers. */
+          for gen_reg in GENERAL_REGS.iter() {
+            code.text.push(Asm::push(Reg::General(*gen_reg)));
+            save_offset += 4;
           }
-        });
-        code.text.extend(added);
+
+          let mut total_offset = save_offset;
+
+          /* 2. Put arguments on stack. */
+          for arg_reg in arg_regs {
+            let actual_reg = load_reg(&mut code.text, *arg_reg, total_offset);
+
+            code.text.push(Asm::push(actual_reg));
+
+            total_offset += 4;
+          }
+
+          /* 3. Branch. */
+          /* 3.1. Load function register. */
+          let actual_reg = load_reg(&mut code.text, *func_reg, total_offset);
+
+          /* 3.2. BLX to function register. */
+          code.text.push(Asm::bx(actual_reg).link());
+
+          /* Get rid of argument that were pushed onto stack. */
+          code.text.push(Asm::add(
+            Reg::StackPointer,
+            Reg::StackPointer,
+            total_offset - save_offset,
+          ));
+
+          /* 4. Restore registers. */
+          for gen_reg in GENERAL_REGS.iter().rev() {
+            code.text.push(Asm::pop(Reg::General(*gen_reg)));
+          }
+
+          /* 5. Put r0 into return_reg. */
+          let mut added = Vec::new();
+          let actual_reg = save_reg(&mut added, *return_reg, 0);
+          code.text.push(Asm::mov(actual_reg, ArgReg::R0));
+          code.text.extend(added);
+        } else if !asm.is_useless() {
+          /* Take a copy so we can mutate it. */
+          let mut asm: Asm = asm.clone();
+
+          /* Load the used registers. */
+          {
+            asm.map_uses(|reg: &mut Reg| {
+              *reg = load_reg(&mut code.text, *reg, 0);
+            });
+          }
+
+          /* Add register to code block. */
+          code.text.push(asm);
+          let asm = code.text.last_mut().unwrap();
+
+          /* Save the defined registers. */
+          let mut added = Vec::new();
+          asm.map_defines(|reg| {
+            *reg = save_reg(&mut added, *reg, 0);
+          });
+          code.text.extend(added);
+        }
+      }
+
+      /* If block has no succs, return. */
+      if block.succs.len() == 0 {
+        /* De-allocate stack. */
+        dealloc_stack(&mut code.text);
+
+        /* LDR r0 #0 */
+        // code.text.push(Asm::ldr(Reg::Arg(ArgReg::R0), 0));
+
+        /* Jump to caller. */
+        code.text.push(Asm::pop(Reg::PC));
       }
 
       /* Generate a branch to each successor, if one is required. */

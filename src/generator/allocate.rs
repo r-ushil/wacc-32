@@ -127,7 +127,41 @@ impl Location {
   }
 }
 
+pub struct Colouring<T>(pub HashMap<T, Location>);
+
+impl<T> Colouring<T> {
+  pub fn num_slots(&self) -> usize {
+    let max_slot_n = self
+      .0
+      .values()
+      .filter_map(|loc| {
+        if let Location::Spill(n) = loc {
+          Some(*n)
+        } else {
+          None
+        }
+      })
+      .max();
+
+    if let Some(n) = max_slot_n {
+      n + 1
+    } else {
+      0
+    }
+  }
+}
+
 pub fn colour<T>(
+  interference: Vec<(T, HashSet<T>)>,
+  colours: usize,
+) -> Colouring<T>
+where
+  T: Eq + Clone + Hash + Debug,
+{
+  Colouring(colour_inner(interference, colours))
+}
+
+pub fn colour_inner<T>(
   interference: Vec<(T, HashSet<T>)>,
   colours: usize,
 ) -> HashMap<T, Location>
@@ -182,7 +216,7 @@ where
     }
 
     println!("Next attempt. ");
-    let result = colour(interference_copy, colours);
+    let result = colour_inner(interference_copy, colours);
     allocation.extend(result);
   } else {
     assert!(interference_copy.is_empty());

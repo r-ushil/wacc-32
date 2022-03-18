@@ -37,6 +37,7 @@ impl Display for Asm {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     use Instr::*;
     match self {
+      Asm::Call(_, _, _) => unimplemented!(),
       Asm::Directive(d) => write!(f, "{}", d),
       Asm::Instr(cond, i) => {
         write!(f, "\t")?;
@@ -240,6 +241,7 @@ impl Display for Reg {
       General(gen_reg) => write!(f, "{}", gen_reg),
       // Virtual(_) => panic!("A virtual register made it to assembly!"),
       Virtual(v) => write!(f, "v{}", v),
+      FuncArg(v) => write!(f, "a{}", v),
     }
   }
 }

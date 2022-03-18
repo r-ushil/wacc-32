@@ -1,5 +1,5 @@
 use super::*;
-use crate::ast::*;
+use crate::{ast::*, generator::asm::Reg};
 use stat::*;
 use ReturnBehaviour::*;
 
@@ -10,12 +10,16 @@ impl Analysable for Func {
   fn analyse(&mut self, scope: &mut ScopeBuilder, _: ()) -> AResult<()> {
     let scope = &mut scope.new_scope(&mut self.params_st);
 
+    /* Makee scope.get_veg() */
+    scope.vegs = &mut self.vegs;
+
     let pts = self.signature.param_types.iter().rev();
     let pis = self.param_ids.iter_mut().rev();
 
     /* Add parameters to parameter scope. */
-    for (pt, pi) in pts.zip(pis) {
-      scope.insert_var(pi, pt.clone())?;
+    for (arg_num, (pt, pi)) in pts.zip(pis).enumerate() {
+      scope.insert(pi, IdentInfo::LocalVar(pt.clone(), Reg::FuncArg(arg_num)));
+      // scope.insert_var(pi, pt.clone())?;
     }
 
     /* Enter body scope. */
@@ -47,7 +51,8 @@ impl Analysable for Program {
 
   fn analyse(&mut self, _: &mut ScopeBuilder, _: ()) -> AResult<()> {
     /* root, global scope. */
-    let mut scope = ScopeBuilder::new(&mut self.symbol_table);
+    let vegs = Cell::new(0);
+    let mut scope = ScopeBuilder::new(&mut self.symbol_table, &vegs);
 
     /* Add all function signatures to global before analysing. (hoisting) */
     for func_tuple in self.funcs.iter() {
@@ -67,6 +72,7 @@ impl Analysable for Program {
     }
 
     /* Program body must never return, but it can exit. */
+    scope.vegs = &mut self.statement_vegs;
     match self.statement.analyse(&mut scope, ())? {
       MidWay(t) | AtEnd(t) if t != Type::Any => Err(SemanticError::Normal(
         "Cannot have 'return' statement in main".to_string(),
@@ -85,7 +91,8 @@ mod tests {
   #[test]
   fn func_parameters_checked() {
     let mut symbol_table = SymbolTable::default();
-    let scope = &mut ScopeBuilder::new(&mut symbol_table);
+    let cell = Cell::new(0);
+    let scope = &mut ScopeBuilder::new(&mut symbol_table, &cell);
 
     /* Function */
     /* int double(int x) is return x * 2 end */
@@ -102,6 +109,7 @@ mod tests {
       params_st: SymbolTable::default(),
       body_st: SymbolTable::default(),
       param_ids: vec![String::from("x")],
+      vegs: Cell::new(0),
     };
 
     /* Works in it's default form. */
@@ -138,6 +146,7 @@ mod tests {
       params_st: SymbolTable::default(),
       body_st: SymbolTable::default(),
       param_ids: vec![String::from("x")],
+      vegs: Cell::new(0),
     };
 
     /* Both branches of if statements must return correct type. */
@@ -151,7 +160,10 @@ mod tests {
       ScopedStat::new(Stat::Return(Expr::IntLiter(2))),
     );
     assert!(f3
-      .analyse(&mut ScopeBuilder::new(&mut SymbolTable::default()), ())
+      .analyse(
+        &mut ScopeBuilder::new(&mut SymbolTable::default(), &Cell::new(0)),
+        ()
+      )
       .is_ok());
 
     /* int double(int x) is
@@ -165,7 +177,10 @@ mod tests {
     );
 
     assert!(f4
-      .analyse(&mut ScopeBuilder::new(&mut SymbolTable::default()), ())
+      .analyse(
+        &mut ScopeBuilder::new(&mut SymbolTable::default(), &Cell::new(0)),
+        ()
+      )
       .is_err());
 
     /* Only one statement has to return. */
@@ -179,7 +194,10 @@ mod tests {
       ))))),
       Box::new(Stat::Return(Expr::IntLiter(5))),
     );
-    let x = f5.analyse(&mut ScopeBuilder::new(&mut SymbolTable::default()), ());
+    let x = f5.analyse(
+      &mut ScopeBuilder::new(&mut SymbolTable::default(), &Cell::new(0)),
+      (),
+    );
     assert!(x.is_ok());
 
     /* Spots erroneous returns. */
@@ -199,7 +217,10 @@ mod tests {
       ))))),
     );
     assert!(f6
-      .analyse(&mut ScopeBuilder::new(&mut SymbolTable::default()), ())
+      .analyse(
+        &mut ScopeBuilder::new(&mut SymbolTable::default(), &Cell::new(0)),
+        ()
+      )
       .is_err());
   }
 }
