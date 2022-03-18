@@ -1,5 +1,5 @@
 use std::{
-  cell::RefCell,
+  cell::{Cell, RefCell},
   ops::{Add, AddAssign},
 };
 
@@ -184,7 +184,7 @@ impl<'cfg> CFG<'cfg> {
 
   pub fn get_veg(&mut self) -> RegRef {
     self.vegs += 1;
-    RefCell::new(Reg::Virtual(self.vegs))
+    Cell::new(Reg::Virtual(self.vegs))
   }
 
   #[must_use]

@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 
 use super::{display::unescape_char, predef::RequiredPredefs};
 
@@ -137,7 +137,7 @@ impl Asm {
 
     uses
       .into_iter()
-      .filter(|reg| matches!(*reg.borrow(), Reg::Virtual(_)))
+      .filter(|reg| matches!(reg.get(), Reg::Virtual(_)))
       .collect()
   }
 
@@ -159,7 +159,7 @@ impl Asm {
 
     defines
       .into_iter()
-      .filter(|reg| matches!(*reg.borrow(), Reg::Virtual(_)))
+      .filter(|reg| matches!(reg.get(), Reg::Virtual(_)))
       .collect()
   }
 
@@ -586,7 +586,7 @@ impl From<GenReg> for RegRef {
   }
 }
 
-pub type RegRef = RefCell<Reg>;
+pub type RegRef = Cell<Reg>;
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
 pub enum ArgReg {

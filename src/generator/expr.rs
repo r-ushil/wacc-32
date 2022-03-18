@@ -13,15 +13,37 @@ use crate::generator::program::LabelPrefix;
 use crate::generator::stat::generate_malloc_with_reg;
 use stat::generate_malloc;
 
+pub enum ExprArg {
+  /* Write to this register from the expression. */
+  Src(RegRef),
+  /* Read from this register into the expression. */
+  Dst(RegRef),
+}
+use ExprArg::*;
+
+impl ExprArg {
+  fn dst(self) -> RegRef {
+    match self {
+      Dst(reg) => reg,
+      Src(_) => panic!("Cannot write to this expression."),
+    }
+  }
+
+  fn reg(&self) -> RegRef {
+    match self {
+      Dst(reg) | Src(reg) => reg.clone(),
+    }
+  }
+}
+
 impl CFGable for StructLiter {
-  type Input = ();
+  type Input = RegRef;
 
   fn cfg_generate<'a, 'cfg>(
     &self,
     scope: &ScopeReader,
     cfg: &'a mut CFG<'cfg>,
-    regs: &[GenReg],
-    _: (),
+    dst: RegRef,
   ) -> Flow<'cfg> {
     let StructLiter { id, fields } = self;
 
@@ -31,10 +53,10 @@ impl CFGable for StructLiter {
       .expect("Analyser should ensure all struct usages are valid.");
 
     /* Malloc for the struct. */
-    let mut flow = generate_malloc(struct_def.size, cfg, regs[0].into());
+    let mut flow = generate_malloc(struct_def.size, cfg, dst.clone().into());
 
     /* Expression evaluation can't use register malloc */
-    let expr_regs = &regs[1..];
+    let expr_reg = cfg.get_veg();
 
     /* For each field: */
     for (field_name, expr) in fields.iter() {
@@ -42,13 +64,10 @@ impl CFGable for StructLiter {
       let offset = struct_def.fields.get(field_name).unwrap().1;
 
       /* Evaluate expression. */
-      flow += expr.cfg_generate(scope, cfg, expr_regs, None)
+      flow += expr.cfg_generate(scope, cfg, Dst(expr_reg.clone()))
 
       /* Write to struct. */
-      + cfg.flow(Asm::str(
-        Reg::General(expr_regs[0]),
-        (Reg::General(regs[0]), offset),
-      ));
+      + cfg.flow(Asm::str(expr_reg.clone(), (dst.clone(), offset)));
     }
 
     flow
@@ -56,56 +75,52 @@ impl CFGable for StructLiter {
 }
 
 impl CFGable for Expr {
-  type Input = Option<RegRef>;
+  type Input = ExprArg;
 
   fn cfg_generate<'a, 'cfg>(
     &self,
     scope: &ScopeReader,
     cfg: &'a mut CFG<'cfg>,
-    regs: &[GenReg],
-    src: Option<RegRef>,
+    arg: ExprArg,
   ) -> Flow<'cfg> {
     match self {
       /* Identifiers, at this point only local variables and labels. */
-      Expr::Ident(id) => generate_ident(scope, cfg, regs, id, src),
+      Expr::Ident(id) => generate_ident(scope, cfg, id, arg),
       /* Literal values. */
-      Expr::IntLiter(val) => cfg.flow(Asm::ldr(Reg::General(regs[0]), *val)),
-      Expr::BoolLiter(val) => cfg.flow(Asm::mov(
-        Reg::General(regs[0]),
-        Op2::Imm(if *val { 1 } else { 0 }),
-      )),
-      Expr::CharLiter(val) => generate_char_liter(cfg, regs, val),
-      Expr::StrLiter(val) => generate_string_liter(cfg, regs, val),
-      Expr::NullPairLiter => {
-        cfg.flow(Asm::ldr(Reg::General(regs[0]), LoadArg::Imm(0)))
+      Expr::IntLiter(val) => cfg.flow(Asm::ldr(arg.dst(), *val)),
+      Expr::BoolLiter(val) => {
+        cfg.flow(Asm::mov(arg.dst(), if *val { 1 } else { 0 }))
       }
+      Expr::CharLiter(val) => generate_char_liter(cfg, val, arg.dst()),
+      Expr::StrLiter(val) => generate_string_liter(cfg, val, arg.dst()),
+      Expr::NullPairLiter => cfg.flow(Asm::ldr(arg.dst(), 0)),
       /* Container literals. */
       Expr::ArrayLiter(ArrayLiter(t, exprs)) => {
-        generate_array_liter(scope, cfg, regs, t, exprs)
+        generate_array_liter(scope, cfg, t, exprs, arg.dst())
       }
-      Expr::StructLiter(liter) => liter.cfg_generate(scope, cfg, regs, ()),
+      Expr::StructLiter(liter) => liter.cfg_generate(scope, cfg, arg.dst()),
       Expr::UnaryApp(op, expr) => {
-        generate_unary_app(cfg, regs, scope, op, expr)
+        generate_unary_app(cfg, scope, op, expr, arg.dst())
       }
       Expr::BinaryApp(expr1, op, expr2) => {
-        generate_binary_app(cfg, regs, scope, expr1, op, expr2)
+        generate_binary_app(cfg, scope, expr1, op, expr2, arg.dst())
       }
-      Expr::PairLiter(e1, e2) => generate_pair_liter(scope, cfg, regs, e1, e2),
-      Expr::ArrayElem(elem_type, arr_expr, idx_expr) => generate_array_elem(
-        scope, cfg, regs, elem_type, arr_expr, idx_expr, src,
-      ),
-      Expr::StructElem(elem) => {
-        generate_struct_elem(scope, cfg, regs, elem, src)
+      Expr::PairLiter(e1, e2) => {
+        generate_pair_liter(scope, cfg, e1, e2, arg.dst())
       }
-      Expr::PairElem(elem) => generate_pair_elem(scope, cfg, regs, elem, src),
+      Expr::ArrayElem(elem_type, arr_expr, idx_expr) => {
+        generate_array_elem(scope, cfg, elem_type, arr_expr, idx_expr, arg)
+      }
+      Expr::StructElem(elem) => generate_struct_elem(scope, cfg, elem, arg),
+      Expr::PairElem(elem) => generate_pair_elem(scope, cfg, elem, arg),
       Expr::Call(func_type, ident, exprs) => {
-        generate_call(scope, cfg, regs, func_type.clone(), ident, exprs)
+        generate_call(scope, cfg, func_type.clone(), ident, exprs, arg.dst())
       }
       Expr::AnonFunc(func) => {
-        generate_anon_func(scope, cfg, regs, (**func).clone())
+        generate_anon_func(scope, cfg, (**func).clone(), arg.dst())
       }
       Expr::BlankArrayLiter(t, size) => {
-        generate_blank_arr(scope, cfg, regs, t, size)
+        generate_blank_arr(scope, cfg, t, size, arg.dst())
       }
     }
   }
@@ -114,36 +129,33 @@ impl CFGable for Expr {
 fn generate_blank_arr<'a, 'cfg>(
   scope: &ScopeReader,
   cfg: &'a mut CFG<'cfg>,
-  regs: &[GenReg],
   t: &Type,
   size: &Box<Expr>,
+  dst: RegRef,
 ) -> Flow<'cfg> {
   /* LDR {regs[0]}, =type_size */
-  let mut flow = cfg.flow(Asm::ldr(Reg::General(regs[0]), t.size()));
+  let mut flow = cfg.flow(Asm::ldr(dst.clone(), t.size()));
 
-  flow += size.cfg_generate(scope, cfg, &regs[1..], None);
+  let size_reg = cfg.get_veg();
+
+  flow += size.cfg_generate(scope, cfg, Dst(size_reg.clone()));
 
   /* Malloc space for array. */
-  flow += generate_malloc_with_reg(
-    regs[0].into(),
-    regs[1].into(),
-    cfg,
-    regs[0].into(),
-  );
+  flow += generate_malloc_with_reg(dst.clone(), size_reg.clone(), cfg, dst.clone());
 
   /* Write length to first byte.
   LDR r5, =3
   STR r5, [r4] */
   flow
-    + size.cfg_generate(scope, cfg, &regs[1..], None)
-    + cfg.flow(Asm::str(Reg::General(regs[1]), (Reg::General(regs[0]), 0)))
+    + size.cfg_generate(scope, cfg, Dst(size_reg.clone()))
+    + cfg.flow(Asm::str(size_reg, (dst, 0)))
 }
 
 fn generate_anon_func<'a, 'cfg>(
   scope: &ScopeReader,
   cfg: &'a mut CFG<'cfg>,
-  regs: &[GenReg],
   func: Func,
+  dst: RegRef,
 ) -> Flow<'cfg> {
   let anon_label = cfg.code.get_label();
 
@@ -151,24 +163,21 @@ fn generate_anon_func<'a, 'cfg>(
   (anon_label.clone(), func).generate(
     scope,
     cfg.code,
-    regs,
+    &[],
     LabelPrefix::AnonFunc,
   );
 
   /* Loads pointer to anonymous function into regs[0]. */
-  cfg.flow(Asm::ldr(
-    Reg::General(regs[0]),
-    generate_anon_func_name(anon_label),
-  ))
+  cfg.flow(Asm::ldr(dst, generate_anon_func_name(anon_label)))
 }
 
 fn generate_call<'a, 'cfg>(
   scope: &ScopeReader,
   cfg: &'a mut CFG<'cfg>,
-  regs: &[GenReg],
   func_type: Type,
   func: &Expr,
   exprs: &[Expr],
+  dst: RegRef,
 ) -> Flow<'cfg> {
   /* Get arg types. */
 
@@ -181,9 +190,10 @@ fn generate_call<'a, 'cfg>(
   /* Figure out which registers aren't safe to overwrite and therefore need
   saving. */
   let mut unsafe_regs_set = GENERAL_REGS.iter().collect::<HashSet<_>>();
-  for reg in regs.iter() {
-    unsafe_regs_set.remove(reg);
-  }
+  /* TODO: only save the regs we need to. */
+  // for reg in regs.iter() {
+  //   unsafe_regs_set.remove(reg);
+  // }
 
   /* Must put in some deterministic order so registers are popped in the
   same order as they are pushed. */
@@ -209,15 +219,12 @@ fn generate_call<'a, 'cfg>(
 
     let arg_offset_scope = scope.new_scope(&symbol_table);
 
-    flow += expr.cfg_generate(&arg_offset_scope, cfg, safe_regs, None);
+    flow += expr.cfg_generate(&arg_offset_scope, cfg, Dst(safe_regs[0].into()));
 
     flow += cfg.flow(
-      Asm::str(
-        Reg::General(safe_regs[0]),
-        (Reg::StackPointer, -arg_type.size()),
-      )
-      .size(arg_type.size().into())
-      .pre_indexed(),
+      Asm::str(safe_regs[0], (Reg::StackPointer, -arg_type.size()))
+        .size(arg_type.size().into())
+        .pre_indexed(),
     );
 
     /* Make symbol table bigger. */
@@ -229,12 +236,11 @@ fn generate_call<'a, 'cfg>(
     /* Offset all stack accesses by the size the args take up. */
     &scope.new_scope(&SymbolTable::empty(args_offset)),
     cfg,
-    regs,
-    None,
+    Dst(safe_regs[0].into()),
   );
 
   /* Jump to function pointer. */
-  flow += cfg.flow(Asm::bx(Reg::General(regs[0])).link());
+  flow += cfg.flow(Asm::bx(safe_regs[0]).link());
 
   /* Pop preserved register back from the stack. */
   /* TODO: Change Pop instruction to do this with one instruction. */
@@ -249,26 +255,28 @@ fn generate_call<'a, 'cfg>(
       |offset| Asm::add(Reg::StackPointer, Reg::StackPointer, Op2::Imm(offset)),
       args_offset,
     )
-    + cfg.flow(Asm::mov(Reg::General(regs[0]), ArgReg::R0))
+    + cfg.flow(Asm::mov(dst, ArgReg::R0))
 }
 
 fn generate_pair_liter<'a, 'cfg>(
   scope: &ScopeReader,
   cfg: &'a mut CFG<'cfg>,
-  regs: &[GenReg],
   TypedExpr(e1_type, e1): &TypedExpr,
   TypedExpr(e2_type, e2): &TypedExpr,
+  dst: RegRef,
 ) -> Flow<'cfg> {
   let e1_size = e1_type.size();
   let e2_size = e2_type.size();
 
+  let elem_reg = cfg.get_veg();
+
   /* Malloc for the pair.
   regs[0] = malloc(8) */
-  generate_malloc(8, cfg, regs[0].into())
+  generate_malloc(8, cfg, dst.clone().into())
 
   /* Evaluate e1.
   regs[1] = eval(e1) */
-  + e1.cfg_generate(scope, cfg, &regs[1..], None)
+  + e1.cfg_generate(scope, cfg, Dst(elem_reg.clone()))
 
   /* Malloc for e1.
   r0 = malloc(e1_size) */
@@ -276,16 +284,16 @@ fn generate_pair_liter<'a, 'cfg>(
 
   /* Write e1 to malloced space. */
   + cfg.flow(
-    Asm::str(Reg::General(regs[1]), (Reg::Arg(ArgReg::R0), 0))
+    Asm::str(elem_reg.clone(), (Reg::Arg(ArgReg::R0), 0))
       .size(e1_size.into()),
   )
 
   /* Write pointer to e1 to pair. */
-  + cfg.flow(Asm::str(Reg::Arg(ArgReg::R0), (Reg::General(regs[0]), 0)))
+  + cfg.flow(Asm::str(ArgReg::R0, (dst.clone(), 0)))
 
   /* Evaluate e2.
   regs[1] = eval(e2) */
-  + e2.cfg_generate(scope, cfg, &regs[1..], None)
+  + e2.cfg_generate(scope, cfg, Dst(elem_reg.clone()))
 
   /* Malloc for e2.
   r0 = malloc(e2_size) */
@@ -293,24 +301,23 @@ fn generate_pair_liter<'a, 'cfg>(
 
   /* Write e2 to malloced space. */
   + cfg.flow(
-    Asm::str(Reg::General(regs[1]), (Reg::Arg(ArgReg::R0), 0))
+    Asm::str(elem_reg, (Reg::Arg(ArgReg::R0), 0))
       .size(e2_size.into()),
   )
 
   /* Write pointer to e2 to pair. */
-  + cfg.flow(Asm::str(
-    Reg::Arg(ArgReg::R0),
-    (Reg::General(regs[0]), ARM_DSIZE_WORD),
-  ))
+  + cfg.flow(Asm::str(Reg::Arg(ArgReg::R0), (dst, ARM_DSIZE_WORD)))
 }
 
 fn generate_array_liter<'a, 'cfg>(
   scope: &ScopeReader,
   cfg: &'a mut CFG<'cfg>,
-  regs: &[GenReg],
   elem_type: &Type,
   exprs: &[Expr],
+  dst: RegRef,
 ) -> Flow<'cfg> {
+  let elem_reg = cfg.get_veg();
+
   (if exprs.len() > 0 {
     /* Calculate size of elements. */
     let elem_size = elem_type.size();
@@ -319,20 +326,20 @@ fn generate_array_liter<'a, 'cfg>(
     let mut flow = generate_malloc(
       ARM_DSIZE_WORD + elem_size * exprs.len() as i32,
       cfg,
-      regs[0].into(),
+      dst.clone(),
     );
 
     /* Write each expression to the array. */
     for (i, expr) in exprs.iter().enumerate() {
       /* Evaluate expr to r5. */
-      flow += expr.cfg_generate(scope, cfg, &regs[1..], None)
+      flow += expr.cfg_generate(scope, cfg, Dst(elem_reg.clone()))
 
       /* Write r5 array. */
       + cfg.flow(
         Asm::str(
-          Reg::General(regs[1]),
+          elem_reg.clone(),
           (
-            Reg::General(regs[0]),
+            dst.clone(),
             ARM_DSIZE_WORD + (i as i32) * elem_size,
           ),
         )
@@ -343,46 +350,46 @@ fn generate_array_liter<'a, 'cfg>(
     flow
   } else {
     /* Malloc space for array. */
-    generate_malloc(ARM_DSIZE_WORD, cfg, regs[0].into())
+    generate_malloc(ARM_DSIZE_WORD, cfg, dst.clone().into())
   })
 
   /* Write length to first byte.
   LDR r5, =3
   STR r5, [r4] */
-  + cfg.flow(Asm::ldr(Reg::General(regs[1]), exprs.len() as i32))
-  + cfg.flow(Asm::str(Reg::General(regs[1]), (Reg::General(regs[0]), 0)))
+  + cfg.flow(Asm::ldr(elem_reg.clone(), exprs.len() as i32))
+  + cfg.flow(Asm::str(elem_reg, (dst, 0)))
 }
 
 fn generate_pair_elem<'a, 'cfg>(
   scope: &ScopeReader,
   cfg: &'a mut CFG<'cfg>,
-  regs: &[GenReg],
   elem: &PairElem,
-  src: Option<RegRef>,
+  arg: ExprArg,
 ) -> Flow<'cfg> {
   /*  */
   let (t, pair, offset) = match elem {
     PairElem::Fst(TypedExpr(t, pair)) => (t, pair, 0),
     PairElem::Snd(TypedExpr(t, pair)) => (t, pair, ARM_DSIZE_WORD),
   };
+  let reg = arg.reg();
 
   RequiredPredefs::CheckNullPointer.mark(cfg.code);
 
   /* Store address of pair in regs[0]. */
-  pair.cfg_generate(scope, cfg, regs, None)
+  pair.cfg_generate(scope, cfg, Dst(reg.clone()))
 
   /* CHECK: regs[0] != NULL */
-  + cfg.flow(Asm::mov(ArgReg::R0, regs[0]))
+  + cfg.flow(Asm::mov(ArgReg::R0, reg.clone()))
   + cfg.flow(Asm::b(PREDEF_CHECK_NULL_POINTER).link())
 
   /* Dereference. */
-  + cfg.flow(Asm::ldr(regs[0], (regs[0].into(), offset)))
+  + cfg.flow(Asm::ldr(reg.clone(), (reg.clone().into(), offset)))
 
   /* Dereference. */
   + {
-    let instr = match src {
-      Some(reg) => Asm::str(reg, (regs[0], 0)),
-      None => Asm::ldr(regs[0], (regs[0].into(), 0)),
+    let instr = match arg {
+      Src(_) => Asm::str(reg.clone(), (reg, 0)),
+      Dst(_) => Asm::ldr(reg.clone(), (reg.into(), 0)),
     };
 
     cfg.flow(instr.size(t.size().into()))
@@ -392,11 +399,11 @@ fn generate_pair_elem<'a, 'cfg>(
 fn generate_struct_elem<'a, 'cfg>(
   scope: &ScopeReader,
   cfg: &'a mut CFG<'cfg>,
-  regs: &[GenReg],
   elem: &StructElem,
-  src: Option<RegRef>,
+  arg: ExprArg,
 ) -> Flow<'cfg> {
   let StructElem(struct_name, expr, field_name) = elem;
+  let reg = arg.reg();
 
   /* Get struct definition. */
   let def = scope.get_def(struct_name).unwrap();
@@ -405,73 +412,77 @@ fn generate_struct_elem<'a, 'cfg>(
   let (type_, offset) = def.fields.get(field_name).unwrap();
 
   /* Evaluate expression. */
-  expr.cfg_generate(scope, cfg, regs, None)
+  expr.cfg_generate(scope, cfg, Dst(reg.clone()))
 
   /* Dereference with offset. */
   + {
-    let instr = match src {
-      Some(reg) => Asm::str(reg, (Reg::General(regs[0]), *offset)),
-      None => Asm::ldr(Reg::General(regs[0]), (regs[0].into(), *offset)),
+    let instr = match arg {
+      Src(_) => Asm::str(reg.clone(), (reg, *offset)),
+      Dst(_) => Asm::ldr(reg.clone(), (reg.into(), *offset)),
     };
 
-  cfg.flow(instr.size(type_.size().into()))}
+    cfg.flow(instr.size(type_.size().into()))
+  }
 }
 
 fn generate_array_elem<'a, 'cfg>(
   scope: &ScopeReader,
   cfg: &'a mut CFG<'cfg>,
-  regs: &[GenReg],
   elem_type: &Type,
   arr_expr: &Expr,
   idx_expr: &Expr,
-  src: Option<RegRef>,
+  arg: ExprArg,
 ) -> Flow<'cfg> {
   let elem_size = elem_type.size();
-  let arr_ptr_reg = Reg::General(regs[0]);
-  let idx_reg = Reg::General(regs[1]);
+  let arr_ptr_reg = arg.reg();
+  let idx_reg = cfg.get_veg();
 
   RequiredPredefs::ArrayBoundsError.mark(cfg.code);
 
   /* Evaluate array. */
-  arr_expr.cfg_generate(scope, cfg, regs, None)
+  arr_expr.cfg_generate(scope, cfg, Dst(arr_ptr_reg.clone()))
 
   /* Evaluate index. */
-  + idx_expr.cfg_generate(scope, cfg, &regs[1..], None)
+  + idx_expr.cfg_generate(scope, cfg, Dst(idx_reg.clone()))
 
   /* Array bounds check. */
   + cfg // RO = index
-    .flow(Asm::mov(Reg::Arg(ArgReg::R0), idx_reg))
+    .flow(Asm::mov(ArgReg::R0, idx_reg.clone()))
   + cfg // R1 = array ptr
-    .flow(Asm::mov(Reg::Arg(ArgReg::R1), arr_ptr_reg))
+    .flow(Asm::mov(ArgReg::R1, arr_ptr_reg.clone()))
   + cfg.flow(Asm::b(PREDEF_CHECK_ARRAY_BOUNDS).link())
 
   /* Move pointer to array to correct element. */
   /* Move pointer over array length field. */
-  + cfg.flow(Asm::add(arr_ptr_reg, arr_ptr_reg, Op2::Imm(ARM_DSIZE_WORD)))
+  + cfg.flow(Asm::add(arr_ptr_reg.clone(), arr_ptr_reg.clone(), ARM_DSIZE_WORD))
 
   /* Calculate how big each element is. */
-  + {let shift = match elem_size {
-    ARM_DSIZE_WORD => 2, /* Hardcoded log_2(current_type.size()) :) */
-    ARM_DSIZE_BYTE => 0,
-    /* Elements of sizes not equal to 4 or 1 not implemented. */
-    _ => unimplemented!(),
-  };
+  + {
+    let shift = match elem_size {
+      ARM_DSIZE_WORD => 2, /* Hardcoded log_2(current_type.size()) :) */
+      ARM_DSIZE_BYTE => 0,
+      /* Elements of sizes not equal to 4 or 1 not implemented. */
+      _ => unimplemented!(),
+    };
 
-  /* Move pointer over elements. */
-  cfg.flow(Asm::add(
-    arr_ptr_reg,
-    arr_ptr_reg,
-    Op2::Reg(idx_reg.into(), -shift),
-  ))}
+    /* Move pointer over elements. */
+    cfg.flow(Asm::add(
+      arr_ptr_reg.clone(),
+      arr_ptr_reg.clone(),
+      Op2::Reg(idx_reg.into(), -shift),
+    ))
+  }
 
   /* Either write to or read from that location. */
-  + {let instr = match src {
-    Some(reg) => Asm::str(reg, (Reg::General(regs[0]), 0)),
-    None => Asm::ldr(Reg::General(regs[0]), (regs[0].into(), 0)),
-  };
+  + {
+    let instr = match arg {
+      Src(_) => Asm::str(arr_ptr_reg.clone(), (arr_ptr_reg, 0)),
+      Dst(_) => Asm::ldr(arr_ptr_reg.clone(), (arr_ptr_reg.into(), 0)),
+    };
 
-  /*  */
-  cfg.flow(instr.size(elem_size.into()))}
+    /*  */
+    cfg.flow(instr.size(elem_size.into()))
+  }
 }
 
 /* match src {
@@ -481,31 +492,28 @@ fn generate_array_elem<'a, 'cfg>(
 fn generate_ident<'cfg, 'a>(
   scope: &ScopeReader,
   cfg: &'a mut CFG<'cfg>,
-  regs: &[GenReg],
   id: &Ident,
-  src: Option<RegRef>,
+  arg: ExprArg,
 ) -> Flow<'cfg> {
   use IdentInfo::*;
 
   match scope.get(id) {
     Some(LocalVar(type_, offset)) => {
-      let instr = match src {
+      let instr = match arg {
         /* STR {reg}, [sp, #{offset}] */
-        Some(reg) => Asm::str(reg, (Reg::StackPointer, offset)),
+        Src(reg) => Asm::str(reg, (Reg::StackPointer, offset)),
         /* LDR {regs[0]}, [sp, #{offset}] */
-        None => {
-          Asm::ldr(Reg::General(regs[0]), (Reg::StackPointer.into(), offset))
-        }
+        Dst(reg) => Asm::ldr(reg, (Reg::StackPointer.into(), offset)),
       };
 
       cfg.flow(instr.size(type_.size().into()))
     }
     Some(Label(_, label)) => {
       /* Cannot write to labels. */
-      assert!(src.is_none());
+      let reg = arg.dst();
 
       /* LDR {regs[0]}, ={label} */
-      cfg.flow(Asm::ldr(Reg::General(regs[0]), label))
+      cfg.flow(Asm::ldr(reg, label))
     }
     _ => panic!("ident must be a local variable or function"),
   }
@@ -513,8 +521,8 @@ fn generate_ident<'cfg, 'a>(
 
 fn generate_char_liter<'a, 'cfg>(
   cfg: &'a mut CFG<'cfg>,
-  regs: &[GenReg],
   val: &char,
+  dst: RegRef,
 ) -> Flow<'cfg> {
   let ch = *val;
   let ch_op2 = if ch == '\0' {
@@ -524,71 +532,54 @@ fn generate_char_liter<'a, 'cfg>(
   };
 
   /* MOV r{min_reg}, #'val' */
-  cfg.flow(Asm::mov(Reg::General(regs[0]), ch_op2))
+  cfg.flow(Asm::mov(dst, ch_op2))
 }
 
 fn generate_string_liter<'a, 'cfg>(
   cfg: &'a mut CFG<'cfg>,
-  regs: &[GenReg],
   val: &str,
+  dst: RegRef,
 ) -> Flow<'cfg> {
   /* Create a label msg_{msg_no} to display the text */
   /* msg_{msg_no}: */
   let msg_label = cfg.code.get_msg(val);
 
   /* LDR r{min_reg}, ={msg_{msg_no}} */
-  cfg.flow(Asm::ldr(Reg::General(regs[0]), msg_label))
+  cfg.flow(Asm::ldr(dst, msg_label))
 }
 
 fn generate_unary_app<'a, 'cfg>(
   cfg: &'a mut CFG<'cfg>,
-  regs: &[GenReg],
   scope: &ScopeReader,
   op: &UnaryOper,
   expr: &Expr,
+  dst: RegRef,
 ) -> Flow<'cfg> {
   /* Stores expression's value in regs[0]. */
-  expr.cfg_generate(scope, cfg, regs, None)
+  expr.cfg_generate(scope, cfg, Dst(dst.clone()))
 
   /* Applies unary operator to regs[0]. */
-  + generate_unary_op(cfg, regs[0].into(), op)
+  + generate_unary_op(cfg, dst, op)
 }
 
 fn generate_binary_app<'a, 'cfg>(
   cfg: &'a mut CFG<'cfg>,
-  regs: &[GenReg],
   scope: &ScopeReader,
   expr1: &Expr,
   op: &BinaryOper,
   expr2: &Expr,
+  dst: RegRef,
 ) -> Flow<'cfg> {
-  assert!(regs.len() >= 2);
+  let lhs_reg = cfg.get_veg();
 
   /* regs[0] = eval(expr1) */
-  expr1.cfg_generate(scope, cfg, regs, None)
-    + if regs.len() > MIN_STACK_MACHINE_REGS {
-      /* Haven't run out of registers, evaluate normally. */
-      expr2.cfg_generate(scope, cfg, &regs[1..], None)
+  expr1.cfg_generate(scope, cfg, Dst(dst.clone()))
+  
+  /* Haven't run out of registers, evaluate normally. */
+  + expr2.cfg_generate(scope, cfg, Dst(lhs_reg.clone()))
 
-      /* regs[0] = regs[0] <op> regs[1] */
-      + generate_binary_op(cfg, regs[0], regs[0], regs[1], op)
-    } else {
-      /* The PUSH instruction below decrements the stack pointer,
-      so we need to expand symbol table to reflect this. */
-      let st = SymbolTable::empty(ARM_DSIZE_WORD);
-
-      /* Save regs[0] so we can use it for evaluating LHS. */
-      cfg.flow(Asm::push(Reg::General(regs[0])))
-
-      /* Evaluate LHS using all registers. */
-      + expr2.cfg_generate(&scope.new_scope(&st), cfg, regs, None)
-
-      /* Restore RHS into next available register. */
-      + cfg.flow(Asm::pop(Reg::General(regs[1])))
-
-      /* regs[0] = regs[1] <op> regs[0] */
-      + generate_binary_op(cfg, regs[0], regs[1], regs[0], op)
-    }
+  /* regs[0] = regs[0] <op> regs[1] */
+  + generate_binary_op(cfg, dst.clone(), dst, lhs_reg, op)
 }
 
 fn generate_unary_op<'a, 'cfg>(
@@ -637,30 +628,26 @@ fn generate_unary_length<'a, 'cfg>(
 
 fn generate_binary_op<'a, 'cfg>(
   cfg: &'a mut CFG<'cfg>,
-  gen_dst: GenReg,
-  gen_reg1: GenReg,
-  gen_reg2: GenReg,
+  dst: RegRef,
+  reg1: RegRef,
+  reg2: RegRef,
   bin_op: &BinaryOper,
 ) -> Flow<'cfg> {
-  let dst = Reg::General(gen_dst);
-  let reg1 = Reg::General(gen_reg1);
-  let reg2 = Reg::General(gen_reg2);
-
   match bin_op {
     BinaryOper::Mul => {
       RequiredPredefs::OverflowError.mark(cfg.code);
 
       /* SMULL r4, r5, r4, r5 */
-      cfg.flow(Asm::smull(reg1, reg2, reg1, reg2))
+      cfg.flow(Asm::smull(reg1.clone(), reg2.clone(), reg1.clone(), reg2.clone()))
 
       /* CMP r5, r4, ASR #31 */
-      + cfg.flow(Asm::cmp(reg2, Op2::Reg(reg1.into(), 31)))
+      + cfg.flow(Asm::cmp(reg2.clone(), Op2::Reg(reg1.clone().into(), 31)))
 
       /* BLNE p_throw_overflow_error */
       + cfg.flow(Asm::b(PREDEF_THROW_OVERFLOW_ERR).link().ne())
     }
-    BinaryOper::Div => binary_div(cfg, gen_reg1, gen_reg2),
-    BinaryOper::Mod => binary_mod(cfg, gen_reg1, gen_reg2),
+    BinaryOper::Div => binary_div(cfg, reg1, reg2),
+    BinaryOper::Mod => binary_mod(cfg, reg1, reg2),
     BinaryOper::Add => {
       //set overflow error branch to true
       RequiredPredefs::OverflowError.mark(cfg.code);
@@ -700,15 +687,12 @@ fn generate_binary_op<'a, 'cfg>(
 
 fn binary_div<'a, 'cfg>(
   cfg: &'a mut CFG<'cfg>,
-  gen_reg1: GenReg,
-  gen_reg2: GenReg,
+  reg1: RegRef,
+  reg2: RegRef,
 ) -> Flow<'cfg> {
-  let reg1 = Reg::General(gen_reg1);
-  let reg2 = Reg::General(gen_reg2); /* MOV r0, reg1 */
-
   RequiredPredefs::DivideByZeroError.mark(cfg.code);
 
-  cfg.flow(Asm::mov(Reg::Arg(ArgReg::R0), reg1))
+  cfg.flow(Asm::mov(Reg::Arg(ArgReg::R0), reg1.clone()))
   /* MOV r1, reg2 */
   + cfg.flow(Asm::mov(Reg::Arg(ArgReg::R1), reg2))
 
@@ -724,16 +708,13 @@ fn binary_div<'a, 'cfg>(
 
 fn binary_mod<'a, 'cfg>(
   cfg: &'a mut CFG<'cfg>,
-  gen_reg1: GenReg,
-  gen_reg2: GenReg,
+  reg1: RegRef,
+  reg2: RegRef,
 ) -> Flow<'cfg> {
-  let reg1 = Reg::General(gen_reg1);
-  let reg2 = Reg::General(gen_reg2);
-
   RequiredPredefs::DivideByZeroError.mark(cfg.code);
 
   /* MOV r0, reg1 */
-  cfg.flow(Asm::mov(Reg::Arg(ArgReg::R0), reg1))
+  cfg.flow(Asm::mov(Reg::Arg(ArgReg::R0), reg1.clone()))
   /* MOV r1, reg2 */
   + cfg.flow(Asm::mov(Reg::Arg(ArgReg::R1), reg2))
 

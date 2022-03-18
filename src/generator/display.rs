@@ -41,27 +41,27 @@ impl Display for Asm {
       Asm::Instr(cond, i) => {
         write!(f, "\t")?;
         match i {
-          Push(reg) => write!(f, "PUSH{} {{{}}}", cond, reg.borrow()),
+          Push(reg) => write!(f, "PUSH{} {{{}}}", cond, reg.get()),
 
-          Pop(reg) => write!(f, "POP{} {{{}}}", cond, reg.borrow()),
+          Pop(reg) => write!(f, "POP{} {{{}}}", cond, reg.get()),
 
           Branch(link, label) => {
             write!(f, "B{}{} {}", if *link { "L" } else { "" }, cond, label)
           }
 
           Store(size, dst, (src, off), addr_mode) => {
-            write!(f, "STR{}{} {}, ", cond, size, dst.borrow())?;
+            write!(f, "STR{}{} {}, ", cond, size, dst.get())?;
 
             match addr_mode {
               AddressingMode::Default => {
                 if *off == 0 {
-                  write!(f, "[{}]", src.borrow())
+                  write!(f, "[{}]", src.get())
                 } else {
-                  write!(f, "[{}, #{}]", src.borrow(), off)
+                  write!(f, "[{}, #{}]", src.get(), off)
                 }
               }
               AddressingMode::PreIndexed => {
-                write!(f, "[{}, #{}]!", src.borrow(), off)
+                write!(f, "[{}, #{}]!", src.get(), off)
               } // AddressingMode::PostIndexed => write!(f, "[{}], #{}", src, off),   unused
             }
           }
@@ -78,7 +78,7 @@ impl Display for Asm {
               ldr_sign_extend,
               size,
               cond,
-              dst.borrow(),
+              dst.get(),
               load_arg
             )
           }
@@ -90,8 +90,8 @@ impl Display for Asm {
               instr,
               if *flags { "S" } else { "" },
               cond,
-              dst.borrow(),
-              src.borrow(),
+              dst.get(),
+              src.get(),
               op2
             )
           }
@@ -103,7 +103,7 @@ impl Display for Asm {
               instr,
               if *flags { "S" } else { "" },
               cond,
-              dst.borrow(),
+              dst.get(),
               op2
             )
           }
@@ -113,10 +113,10 @@ impl Display for Asm {
               f,
               "SMULL{} {}, {}, {}, {}",
               cond,
-              r1.borrow(),
-              r2.borrow(),
-              r3.borrow(),
-              r4.borrow()
+              r1.get(),
+              r2.get(),
+              r3.get(),
+              r4.get()
             )
           }
           BranchReg(link, reg) => {
@@ -125,7 +125,7 @@ impl Display for Asm {
               "B{}X{} {}",
               if *link { "L" } else { "" },
               cond,
-              reg.borrow()
+              reg.get()
             )
           }
         }
@@ -154,9 +154,9 @@ impl Display for LoadArg {
       LoadArg::Imm(val) => write!(f, "={}", val),
       LoadArg::MemAddress(reg, offset) => {
         if *offset == 0 {
-          write!(f, "[{}]", reg.borrow())
+          write!(f, "[{}]", reg.get())
         } else {
-          write!(f, "[{}, #{}]", reg.borrow(), offset)
+          write!(f, "[{}, #{}]", reg.get(), offset)
         }
       }
       LoadArg::Label(msg) => write!(f, "={}", msg),
@@ -208,7 +208,7 @@ impl Display for Op2 {
     match self {
       Imm(val) => write!(f, "#{}", val),
       Reg(reg, shift) => {
-        write!(f, "{}", reg.borrow())?;
+        write!(f, "{}", reg.get())?;
         if *shift > 0 {
           write!(f, ", ASR #{}", shift)?;
         } else if *shift < 0 {
@@ -256,7 +256,8 @@ impl Display for Reg {
       PC => write!(f, "pc"),
       Arg(arg_reg) => write!(f, "{}", arg_reg),
       General(gen_reg) => write!(f, "{}", gen_reg),
-      Virtual(_) => panic!("A virtual register made it to assembly!"),
+      // Virtual(_) => panic!("A virtual register made it to assembly!"),
+      Virtual(v) => write!(f, "v{}", v),
     }
   }
 }

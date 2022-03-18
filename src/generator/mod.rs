@@ -36,7 +36,6 @@ trait CFGable {
     &self,
     scope: &ScopeReader,
     cfg: &'a mut CFG<'cfg>,
-    regs: &[GenReg],
     aux: Self::Input,
   ) -> Flow<'cfg>;
 }

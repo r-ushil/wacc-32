@@ -144,7 +144,7 @@ impl Generatable for NamedFunc {
     LDR r4, [sp, #8]
     MOV r0, r4
     ADD sp, sp, #4 */
-    flow += func.body.cfg_generate(scope, &mut cfg, regs, ());
+    flow += func.body.cfg_generate(scope, &mut cfg, ());
 
     /* Main function implicitly ends in return 0. */
     if main {
