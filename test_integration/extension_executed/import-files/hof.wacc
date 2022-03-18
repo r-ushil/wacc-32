@@ -58,7 +58,6 @@ begin
         return res
     end
 
-    #concatmap is currently broken!
     int[] concatMap(int(int) f, int[][] arrs) is
         int[] tmp = call concat(arrs);
 
@@ -69,11 +68,6 @@ begin
         return res
 
     end
-
-    # int[][] filterMap(bool(int) f, int[][] arrs) is
-    #     int[][] res = call map(filter(f), arrs);
-    #     return res
-    # end
-
+    
     exit 0
 end

@@ -1,0 +1,5 @@
+import import-files/hof.wacc
+import import-files/vector.wacc
+begin
+    exit 0
+end
