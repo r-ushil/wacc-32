@@ -387,7 +387,7 @@ fn generate_pair_elem<'a, 'cfg>(
     PairElem::Fst(TypedExpr(t, pair)) => (t, pair, 0),
     PairElem::Snd(TypedExpr(t, pair)) => (t, pair, ARM_DSIZE_WORD),
   };
-  let reg = arg.reg();
+  let reg = cfg.get_veg();
 
   RequiredPredefs::CheckNullPointer.mark(cfg.code);
 
@@ -404,8 +404,8 @@ fn generate_pair_elem<'a, 'cfg>(
   /* Dereference. */
   + {
     let instr = match arg {
-      Src(_) => Asm::str(reg.clone(), (reg, 0)),
-      Dst(_) => Asm::ldr(reg.clone(), (reg.into(), 0)),
+      Src(reg2) => Asm::str(reg2, (reg, 0)),
+      Dst(reg2) => Asm::ldr(reg2, (reg.into(), 0)),
     };
 
     cfg.flow(instr.size(t.size().into()))
@@ -419,7 +419,7 @@ fn generate_struct_elem<'a, 'cfg>(
   arg: ExprArg,
 ) -> Flow<'cfg> {
   let StructElem(struct_name, expr, field_name) = elem;
-  let reg = arg.reg();
+  let reg = cfg.get_veg();
 
   /* Get struct definition. */
   let def = scope.get_def(struct_name).unwrap();
@@ -433,8 +433,8 @@ fn generate_struct_elem<'a, 'cfg>(
   /* Dereference with offset. */
   + {
     let instr = match arg {
-      Src(_) => Asm::str(reg.clone(), (reg, *offset)),
-      Dst(_) => Asm::ldr(reg.clone(), (reg.into(), *offset)),
+      Src(reg2) => Asm::str(reg2, (reg, *offset)),
+      Dst(reg2) => Asm::ldr(reg2, (reg.into(), *offset)),
     };
 
     cfg.flow(instr.size(type_.size().into()))
@@ -450,7 +450,7 @@ fn generate_array_elem<'a, 'cfg>(
   arg: ExprArg,
 ) -> Flow<'cfg> {
   let elem_size = elem_type.size();
-  let arr_ptr_reg = arg.reg();
+  let arr_ptr_reg = cfg.get_veg();
   let idx_reg = cfg.get_veg();
 
   RequiredPredefs::ArrayBoundsError.mark(cfg.code);
@@ -492,8 +492,8 @@ fn generate_array_elem<'a, 'cfg>(
   /* Either write to or read from that location. */
   + {
     let instr = match arg {
-      Src(_) => Asm::str(arr_ptr_reg.clone(), (arr_ptr_reg, 0)),
-      Dst(_) => Asm::ldr(arr_ptr_reg.clone(), (arr_ptr_reg.into(), 0)),
+      Src(reg) => Asm::str(reg, (arr_ptr_reg, 0)),
+      Dst(reg) => Asm::ldr(reg, (arr_ptr_reg.into(), 0)),
     };
 
     /*  */

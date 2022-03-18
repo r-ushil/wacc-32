@@ -291,6 +291,7 @@ impl<'cfg> CFG<'cfg> {
     let stack_size = (colouring.num_slots() * 4) as i32;
 
     /* Define functions which use colouring to load and save values. */
+    let mut use_r4_load = true;
     let mut load_reg = |text: &mut Vec<Asm>, reg: Reg, offset: i32| match reg {
       Reg::Virtual(vn) => {
         let loc = colouring.0.get(&vn).unwrap().clone();
@@ -298,7 +299,9 @@ impl<'cfg> CFG<'cfg> {
           Location::Reg(grn) => Reg::General(GENERAL_REGS[grn]),
           Location::Spill(slot) => {
             // todo
-            let tmp_reg = Reg::General(GenReg::R4);
+            use_r4_load = !use_r4_load;
+            let tmp_reg =
+              Reg::General(if use_r4_load { GenReg::R4 } else { GenReg::R5 });
             text.push(Asm::ldr(
               tmp_reg,
               LoadArg::MemAddress(
@@ -311,7 +314,9 @@ impl<'cfg> CFG<'cfg> {
         }
       }
       Reg::FuncArg(arg_num) => {
-        let tmp_reg = Reg::General(GenReg::R4);
+        use_r4_load = !use_r4_load;
+        let tmp_reg =
+          Reg::General(if use_r4_load { GenReg::R4 } else { GenReg::R5 });
         text.push(Asm::ldr(
           tmp_reg,
           LoadArg::MemAddress(
@@ -324,6 +329,7 @@ impl<'cfg> CFG<'cfg> {
       _ => unimplemented!(),
     };
 
+    let mut use_r4_save = true;
     let mut save_reg = |text: &mut Vec<Asm>, reg: Reg, offset: i32| match reg {
       Reg::Virtual(vn) => {
         let loc = colouring.0.get(&vn).unwrap().clone();
@@ -331,7 +337,9 @@ impl<'cfg> CFG<'cfg> {
           Location::Reg(grn) => Reg::General(GENERAL_REGS[grn]),
           Location::Spill(slot) => {
             // todo
-            let tmp_reg = Reg::General(GenReg::R4);
+            use_r4_save = !use_r4_save;
+            let tmp_reg =
+              Reg::General(if use_r4_save { GenReg::R4 } else { GenReg::R5 });
             text.push(Asm::str(
               tmp_reg,
               (Reg::StackPointer, slot as i32 * 4 + offset),
@@ -464,6 +472,9 @@ impl<'cfg> CFG<'cfg> {
           let actual_reg = save_reg(&mut added, *return_reg, 0);
           code.text.push(Asm::mov(actual_reg, ArgReg::R0));
           code.text.extend(added);
+        } else if let Asm::Ret = asm {
+          dealloc_stack(&mut code.text);
+          code.text.push(Asm::pop(Reg::PC));
         } else if !asm.is_useless() {
           /* Take a copy so we can mutate it. */
           let mut asm: Asm = asm.clone();
@@ -476,7 +487,8 @@ impl<'cfg> CFG<'cfg> {
           }
 
           /* Add register to code block. */
-          code.text.push(asm);
+          code.text.push(asm.clone());
+
           let asm = code.text.last_mut().unwrap();
 
           /* Save the defined registers. */

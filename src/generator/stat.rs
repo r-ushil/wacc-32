@@ -208,6 +208,8 @@ fn generate_stat_return<'a, 'cfg>(
   /* r0 = regs[0] */
   + cfg.flow(Asm::mov(ArgReg::R0, reg))
 
+  + cfg.flow(Asm::Ret)
+
   // + {
   //   let total_offset = scope.get_total_offset();
 
@@ -336,6 +338,8 @@ fn generate_stat_while<'a, 'cfg>(
   cond: &Expr,
   body: &ScopedStat,
 ) -> Flow<'cfg> {
+  let top_flow = cfg.dummy_flow();
+
   let body_flow =
     /* Loop body. */
     body.cfg_generate(scope, cfg, ());
@@ -352,7 +356,7 @@ fn generate_stat_while<'a, 'cfg>(
   body_flow.add_succ(&cond_flow);
 
   /* Start to end link. */
-  cond_flow
+  top_flow + cond_flow
 }
 
 fn generate_stat_scope<'a, 'cfg>(

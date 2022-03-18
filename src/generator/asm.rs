@@ -103,6 +103,7 @@ pub enum Asm {
   Directive(Directive),
   Instr(CondCode, Instr),
   Call(Reg, Reg, Vec<Reg>),
+  Ret,
 }
 
 /* ======= SHORTCUTS ======== */

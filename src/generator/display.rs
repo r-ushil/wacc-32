@@ -37,7 +37,6 @@ impl Display for Asm {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     use Instr::*;
     match self {
-      Asm::Call(_, _, _) => unimplemented!(),
       Asm::Directive(d) => write!(f, "{}", d),
       Asm::Instr(cond, i) => {
         write!(f, "\t")?;
@@ -113,6 +112,7 @@ impl Display for Asm {
           }
         }
       }
+      _ => unimplemented!(),
     }
   }
 }
