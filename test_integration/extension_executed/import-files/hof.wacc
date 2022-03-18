@@ -68,15 +68,6 @@ begin
         return res
 
     end
-
-    int[][] filterMap(bool(int) f, int[][] arrs) is
     
-        for a : arrs do
-            a = call filter(f, a)
-        done ;
-
-        return arrs
-    end
-
     exit 0
 end
