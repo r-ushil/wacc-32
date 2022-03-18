@@ -18,7 +18,7 @@ generate_our_test_data() {
     echo --------- stdout --------- > $our_output_file
     cat $stdin_src 1> $stdin_src.txt 2>/dev/null
     cat inputs.txt >> $stdin_src.txt
-    qemu-arm-static -L /usr/arm-linux-gnueabihf/ $our_output_file.bin < $stdin_src.txt
+    qemu-arm-static -L /usr/arm-linux-gnueabihf/ $our_output_file.bin < $stdin_src.txt >> $our_output_file
     exit_code=$(echo $?)
     echo -------------------------- >> $our_output_file
 
