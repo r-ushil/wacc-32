@@ -60,8 +60,9 @@ impl Display for Asm {
                   write!(f, "[{}, #{}]", src, off)
                 }
               }
-              AddressingMode::PreIndexed => write!(f, "[{}, #{}]!", src, off),
-              // AddressingMode::PostIndexed => write!(f, "[{}], #{}", src, off),   unused
+              AddressingMode::PreIndexed => {
+                write!(f, "[{}, #{}]!", src, off)
+              } // AddressingMode::PostIndexed => write!(f, "[{}], #{}", src, off),   unused
             }
           }
 
@@ -111,6 +112,7 @@ impl Display for Asm {
           }
         }
       }
+      _ => unimplemented!(),
     }
   }
 }
@@ -237,6 +239,9 @@ impl Display for Reg {
       PC => write!(f, "pc"),
       Arg(arg_reg) => write!(f, "{}", arg_reg),
       General(gen_reg) => write!(f, "{}", gen_reg),
+      // Virtual(_) => panic!("A virtual register made it to assembly!"),
+      Virtual(v) => write!(f, "v{}", v),
+      FuncArg(v) => write!(f, "a{}", v),
     }
   }
 }

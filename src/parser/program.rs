@@ -1,5 +1,5 @@
 extern crate nom;
-use std::fs;
+use std::{cell::Cell, fs};
 
 use nom::{
   branch::alt,
@@ -85,6 +85,7 @@ pub fn program(input: &str) -> IResult<&str, Program, ErrorTree<&str>> {
     Program {
       funcs,
       statement: ScopedStat::new(statement),
+      statement_vegs: Cell::new(0),
       symbol_table,
     },
   ))
@@ -134,6 +135,7 @@ pub fn func(input: &str) -> IResult<&str, Func, ErrorTree<&str>> {
         params_st: SymbolTable::default(),
         body_st: SymbolTable::default(),
         param_ids,
+        vegs: Cell::new(0),
       }
     },
   )(input)
@@ -200,6 +202,7 @@ mod tests {
             body: Stat::Return(Expr::Ident("x".to_string())),
             params_st: SymbolTable::default(),
             body_st: SymbolTable::default(),
+            vegs: Cell::new(0),
           }
         )),
         statement: ScopedStat::new(Stat::Declaration(
@@ -215,6 +218,7 @@ mod tests {
             )),
           )
         )),
+        statement_vegs: Cell::new(0),
         symbol_table: SymbolTable::default(),
       }
     );
@@ -260,7 +264,7 @@ mod tests {
     named_func("int firstFunc (int x, int y) is return x + y end"),
     Ok((
       "",
-      ast)) if ast == ("firstFunc".to_string() , Func {signature:FuncSig{param_types:vec!(Type::Int,Type::Int),return_type:Type::Int,},body:Stat::Return(Expr::BinaryApp(Box::new(Expr::Ident("x".to_string())),BinaryOper::Add,Box::new(Expr::Ident("y".to_string())))),params_st:SymbolTable::default(),body_st:SymbolTable::default(),
+      ast)) if ast == ("firstFunc".to_string() , Func {vegs: Cell::new(0), signature:FuncSig{param_types:vec!(Type::Int,Type::Int),return_type:Type::Int,},body:Stat::Return(Expr::BinaryApp(Box::new(Expr::Ident("x".to_string())),BinaryOper::Add,Box::new(Expr::Ident("y".to_string())))),params_st:SymbolTable::default(),body_st:SymbolTable::default(),
                                                                             param_ids
                                                                           : vec!("x".to_string(),"y".to_string()) })
     ));
@@ -269,7 +273,7 @@ mod tests {
     named_func("int exitThree () is exit 3 end"),
     Ok((
       "",
-      ast)) if ast == ("exitThree".to_string(), Func {signature:FuncSig{param_types:vec!(),return_type:Type::Int},body:Stat::Exit(Expr::IntLiter(3)),params_st:SymbolTable::default(),body_st:SymbolTable::default(), param_ids: vec!() })
+      ast)) if ast == ("exitThree".to_string(), Func {vegs:Cell::new(0), signature:FuncSig{param_types:vec!(),return_type:Type::Int},body:Stat::Exit(Expr::IntLiter(3)),params_st:SymbolTable::default(),body_st:SymbolTable::default(), param_ids: vec!() })
     ));
   }
 
@@ -290,6 +294,7 @@ mod tests {
         params_st:SymbolTable::default(),
         body_st:SymbolTable::default(),
         param_ids:vec!("foo".to_string(), "x".to_string()),
+        vegs: Cell::new(0),
       })
     );
   }

@@ -1,5 +1,8 @@
-use crate::analyser::context::{Offset, SymbolTable};
-use std::collections::HashMap;
+use crate::{
+  analyser::context::SymbolTable,
+  generator::asm::{Offset, VegNum},
+};
+use std::{cell::Cell, collections::HashMap};
 
 pub type NamedFunc = (Ident, Func);
 
@@ -9,6 +12,7 @@ pub struct Program {
   pub funcs: Vec<NamedFunc>,
   /* Program body. */
   pub statement: ScopedStat,
+  pub statement_vegs: Cell<VegNum>,
   /* Top level symbol table (root node in any
   given scope in this program.) */
   pub symbol_table: SymbolTable,
@@ -22,6 +26,8 @@ pub struct Func {
   pub body: Stat,
   pub params_st: SymbolTable,
   pub body_st: SymbolTable,
+  /* How many vegs this function uses. */
+  pub vegs: Cell<VegNum>,
 }
 
 #[derive(PartialEq, Debug, Clone)]

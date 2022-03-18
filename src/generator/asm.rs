@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use super::{display::unescape_char, predef::RequiredPredefs};
 
 /* ======== Type aliases. ======== */
@@ -14,8 +16,6 @@ pub type Offset = i32;
 pub type Shift = i32;
 
 /* ======== Represents entire program. ======== */
-
-pub const MIN_STACK_MACHINE_REGS: usize = 2;
 
 #[derive(PartialEq, Debug)]
 pub struct GeneratedCode {
@@ -70,6 +70,11 @@ impl GeneratedCode {
 
     label
   }
+
+  // pub fn get_veg(&mut self) -> VegNum {
+  //   self.vegs += 1;
+  //   self.vegs
+  // }
 }
 
 impl Default for GeneratedCode {
@@ -88,10 +93,12 @@ impl Default for GeneratedCode {
 /* ======== Represents line within produced assembly apart from instructions.  ======== */
 
 /* Line of assembly. */
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Asm {
   Directive(Directive),
   Instr(CondCode, Instr),
+  Call(Reg, Reg, Vec<Reg>),
+  Ret,
 }
 
 /* ======= SHORTCUTS ======== */
@@ -100,6 +107,116 @@ pub enum Asm {
 so we're allowing unused functions in this case. */
 #[allow(dead_code)]
 impl Asm {
+  pub fn is_useless(&self) -> bool {
+    use Instr::*;
+
+    let instr = match self {
+      Asm::Instr(_, instr) => instr,
+      _ => return false,
+    };
+
+    match instr {
+      Unary(UnaryInstr::Mov, r1, Op2::Reg(r2, 0), _) if r1 == r2 => true,
+      _ => false,
+    }
+  }
+
+  /* Returns vector of registers this instruction reads. */
+  pub fn uses(&mut self) -> HashSet<VegNum> {
+    let mut v = HashSet::new();
+
+    self.map_uses(|reg| {
+      if let Reg::Virtual(vn) = reg {
+        v.insert(*vn);
+      }
+    });
+
+    v
+  }
+
+  /* Calls closure on the instructions this instruction needs. */
+  pub fn map_uses(&mut self, mut f: impl FnMut(&mut Reg)) {
+    use Instr::*;
+
+    let mut g = |reg: &mut Reg| match reg {
+      Reg::Virtual(_) | Reg::FuncArg(_) => f(reg),
+      _ => (),
+    };
+
+    match self {
+      Asm::Instr(_,
+        /* Binary uses two registers if it's second
+        operand is a register. */
+        Binary(_, _, r1, Op2::Reg(r2, _), _)
+        /* Store and multiply always use two registers. */
+        | Store(_, r1, (r2, _), _)
+        | Multiply(_, _, r1, r2)
+      ) => {g(r1); g(r2)},
+      Asm::Instr(_, instr) => match instr {
+        /* Push, BranchReg, and Load always use one register. */
+        Push(r)=> g(r),
+        BranchReg(_, r) => g(r),
+        /* Unary uses a register if it's operand is a register. */
+        Unary(UnaryInstr::Mov, _, Op2::Reg(r, _), _) => g(r),
+        Unary(UnaryInstr::Cmp, r1, Op2::Reg(r2, _), _) => {g(r1); g(r2)},
+        Unary(UnaryInstr::Cmp, r1, _, _) => g(r1),
+        /* Binary uses one register if it's second operand isn't
+        a register, which we know to be the case at this pointer because
+        otherwise we would've hit above branch and returned. */
+        Binary(_, _, r, _, _) => g(r),
+        /* Load uses a register if the memory address is specified
+        by a register. */
+        Load(_, _, LoadArg::MemAddress(r, _)) => g(r),
+        _ => (),
+      }
+      Asm::Call(_, func_reg, arg_regs) => {
+        for arg_reg in arg_regs.iter_mut() {
+          g(arg_reg);
+        }
+        g(func_reg);
+      }
+      _ => ()
+    }
+  }
+
+  pub fn defines(&mut self) -> HashSet<VegNum> {
+    let mut v = HashSet::new();
+
+    self.map_defines(|reg| {
+      if let Reg::Virtual(vn) = reg {
+        v.insert(*vn);
+      }
+    });
+
+    v
+  }
+
+  /* Returns register this instruction defines. */
+  pub fn map_defines(&mut self, mut f: impl FnMut(&mut Reg)) {
+    use Instr::*;
+
+    let mut g = |reg: &mut Reg| match reg {
+      Reg::Virtual(_) | Reg::FuncArg(_) => f(reg),
+      _ => (),
+    };
+
+    match self {
+      /* Pop always defines the register it writes to from the stack. */
+      /* Unar, Binary, and Load always defines it's output register. */
+      Asm::Instr(_, Pop(r)) => g(r),
+      Asm::Instr(_, Unary(UnaryInstr::Mov, r, _, _)) => g(r),
+      Asm::Instr(_, Binary(_, r, _, _, _)) => g(r),
+      Asm::Instr(_, Load(_, r, _)) => g(r),
+      /* Multiply always writes to two register. */
+      Asm::Instr(_, Multiply(r1, r2, _, _)) => {
+        g(r1);
+        g(r2)
+      }
+      Asm::Call(return_reg, _, _) => g(return_reg),
+      _ => (),
+    };
+  }
+
   /* ==== MODIFIERS ==== */
   /* These modify already existing Asm instructions. */
 
@@ -145,20 +262,20 @@ impl Asm {
     Self::Instr(CondCode::AL, i)
   }
 
-  pub fn push(reg: Reg) -> Self {
-    Self::instr(Instr::Push(reg))
+  pub fn push(reg: impl Into<Reg>) -> Self {
+    Self::instr(Instr::Push(reg.into()))
   }
 
-  pub fn pop(reg: Reg) -> Self {
-    Self::instr(Instr::Pop(reg))
+  pub fn pop(reg: impl Into<Reg>) -> Self {
+    Self::instr(Instr::Pop(reg.into()))
   }
 
   pub fn b(label: impl Into<Label>) -> Self {
     Self::instr(Instr::Branch(false, label.into()))
   }
 
-  pub fn bx(reg: Reg) -> Self {
-    Self::instr(Instr::BranchReg(false, reg))
+  pub fn bx(reg: impl Into<Reg>) -> Self {
+    Self::instr(Instr::BranchReg(false, reg.into()))
   }
 
   pub fn link(mut self) -> Self {
@@ -170,45 +287,87 @@ impl Asm {
   }
 
   /* UNARY INSTRUCTIONS */
-  fn unary(unary_instr: UnaryInstr, reg: Reg, op2: Op2) -> Self {
-    Self::instr(Instr::Unary(unary_instr, reg, op2, false))
+  fn unary(
+    unary_instr: UnaryInstr,
+    reg: impl Into<Reg>,
+    op2: impl Into<Op2>,
+  ) -> Self {
+    Self::instr(Instr::Unary(unary_instr, reg.into(), op2.into(), false))
   }
-  pub fn mov(reg: Reg, op2: Op2) -> Self {
-    Self::unary(UnaryInstr::Mov, reg, op2)
+  pub fn mov(reg: impl Into<Reg>, op2: impl Into<Op2>) -> Self {
+    Self::unary(UnaryInstr::Mov, reg, op2.into())
   }
-  pub fn cmp(reg: Reg, op2: Op2) -> Self {
+  pub fn cmp(reg: impl Into<Reg>, op2: impl Into<Op2>) -> Self {
     Self::unary(UnaryInstr::Cmp, reg, op2)
   }
 
   /* BINARY INSTRUCTIONS */
-  fn binary(binary_instr: BinaryInstr, r1: Reg, r2: Reg, op2: Op2) -> Self {
-    Self::instr(Instr::Binary(binary_instr, r1, r2, op2, false))
+  fn binary(
+    binary_instr: BinaryInstr,
+    r1: impl Into<Reg>,
+    r2: impl Into<Reg>,
+    op2: impl Into<Op2>,
+  ) -> Self {
+    Self::instr(Instr::Binary(
+      binary_instr,
+      r1.into(),
+      r2.into(),
+      op2.into(),
+      false,
+    ))
   }
-  pub fn add(r1: Reg, r2: Reg, op2: Op2) -> Self {
-    Self::binary(BinaryInstr::Add, r1, r2, op2)
+  pub fn add(
+    r1: impl Into<Reg>,
+    r2: impl Into<Reg>,
+    op2: impl Into<Op2>,
+  ) -> Self {
+    Self::binary(BinaryInstr::Add, r1.into(), r2.into(), op2.into())
   }
-  pub fn sub(r1: Reg, r2: Reg, op2: Op2) -> Self {
-    Self::binary(BinaryInstr::Sub, r1, r2, op2)
+  pub fn sub(
+    r1: impl Into<Reg>,
+    r2: impl Into<Reg>,
+    op2: impl Into<Op2>,
+  ) -> Self {
+    Self::binary(BinaryInstr::Sub, r1.into(), r2.into(), op2.into())
   }
-  pub fn rev_sub(r1: Reg, r2: Reg, op2: Op2) -> Self {
-    Self::binary(BinaryInstr::RevSub, r1, r2, op2)
+  pub fn rev_sub(
+    r1: impl Into<Reg>,
+    r2: impl Into<Reg>,
+    op2: impl Into<Op2>,
+  ) -> Self {
+    Self::binary(BinaryInstr::RevSub, r1.into(), r2.into(), op2.into())
   }
-  pub fn and(r1: Reg, r2: Reg, op2: Op2) -> Self {
-    Self::binary(BinaryInstr::And, r1, r2, op2)
+  pub fn and(
+    r1: impl Into<Reg>,
+    r2: impl Into<Reg>,
+    op2: impl Into<Op2>,
+  ) -> Self {
+    Self::binary(BinaryInstr::And, r1.into(), r2.into(), op2.into())
   }
-  pub fn or(r1: Reg, r2: Reg, op2: Op2) -> Self {
-    Self::binary(BinaryInstr::Or, r1, r2, op2)
+  pub fn or(
+    r1: impl Into<Reg>,
+    r2: impl Into<Reg>,
+    op2: impl Into<Op2>,
+  ) -> Self {
+    Self::binary(BinaryInstr::Or, r1.into(), r2.into(), op2.into())
   }
-  pub fn eor(r1: Reg, r2: Reg, op2: Op2) -> Self {
-    Self::binary(BinaryInstr::Eor, r1, r2, op2)
+  pub fn eor(
+    r1: impl Into<Reg>,
+    r2: impl Into<Reg>,
+    op2: impl Into<Op2>,
+  ) -> Self {
+    Self::binary(BinaryInstr::Eor, r1.into(), r2.into(), op2.into())
   }
 
   /* STORE AND LOAD */
-  pub fn str(r1: Reg, (r2, offset): (Reg, Offset)) -> Self {
+  pub fn str(
+    r1: impl Into<Reg>,
+    (r2, offset): (impl Into<Reg>, Offset),
+  ) -> Self {
     Self::instr(Instr::Store(
       DataSize::Word,
-      r1,
-      (r2, offset),
+      r1.into(),
+      (r2.into(), offset),
       AddressingMode::Default,
     ))
   }
@@ -221,8 +380,8 @@ impl Asm {
     }
     self
   }
-  pub fn ldr(r1: Reg, arg: impl Into<LoadArg>) -> Self {
-    Self::instr(Instr::Load(DataSize::Word, r1, arg.into()))
+  pub fn ldr(r1: impl Into<Reg>, arg: impl Into<LoadArg>) -> Self {
+    Self::instr(Instr::Load(DataSize::Word, r1.into(), arg.into()))
   }
   pub fn size(mut self, size: DataSize) -> Self {
     match &mut self {
@@ -238,8 +397,13 @@ impl Asm {
   }
 
   /* MUL */
-  pub fn smull(r1: Reg, r2: Reg, r3: Reg, r4: Reg) -> Self {
-    Self::instr(Instr::Multiply(r1, r2, r3, r4))
+  pub fn smull(
+    r1: impl Into<Reg>,
+    r2: impl Into<Reg>,
+    r3: impl Into<Reg>,
+    r4: impl Into<Reg>,
+  ) -> Self {
+    Self::instr(Instr::Multiply(r1.into(), r2.into(), r3.into(), r4.into()))
   }
 
   /* FLAGS */
@@ -257,7 +421,7 @@ impl Asm {
 
 /* ======== ASM HELPERS ======== */
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Directive {
   Text,          /* .text */
   Data,          /* .data */
@@ -331,6 +495,12 @@ pub enum LoadArg {
   Label(Label),
 }
 
+impl From<Reg> for LoadArg {
+  fn from(reg: Reg) -> Self {
+    LoadArg::MemAddress(reg.into(), 0)
+  }
+}
+
 impl From<Label> for LoadArg {
   fn from(l: Label) -> Self {
     LoadArg::Label(l)
@@ -340,12 +510,6 @@ impl From<Label> for LoadArg {
 impl From<i32> for LoadArg {
   fn from(n: i32) -> Self {
     LoadArg::Imm(n)
-  }
-}
-
-impl From<Reg> for LoadArg {
-  fn from(r: Reg) -> Self {
-    LoadArg::MemAddress(r, 0)
   }
 }
 
@@ -394,8 +558,6 @@ pub enum BinaryInstr {
 
 /* ======== Helper types for use within assembly representations.  ======== */
 
-pub const OP2_MAX_VALUE: Imm = 1024;
-
 #[derive(PartialEq, Eq, Debug, Clone)]
 // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289851539.htm
 pub enum Op2 {
@@ -405,29 +567,27 @@ pub enum Op2 {
   Reg(Reg, Shift),
 }
 
-impl Op2 {
-  pub fn imm_unroll<F>(mut instr_builder: F, imm: Imm) -> Vec<Asm>
-  where
-    F: FnMut(Imm) -> Asm,
-  {
-    let asm_count = (imm / OP2_MAX_VALUE).unsigned_abs();
-    let mut asms: Vec<Asm> = Vec::with_capacity(asm_count as usize);
-
-    let imm_sign = imm.signum();
-    let mut imm_abs = imm;
-
-    while imm_abs > 0 {
-      asms.push(instr_builder(imm_sign * OP2_MAX_VALUE.min(imm_abs)));
-      imm_abs -= OP2_MAX_VALUE;
-    }
-
-    asms
-  }
-}
-
 impl From<Imm> for Op2 {
   fn from(i: Imm) -> Self {
     Op2::Imm(i)
+  }
+}
+
+impl From<Reg> for Op2 {
+  fn from(reg: Reg) -> Self {
+    Op2::Reg(reg.into(), 0)
+  }
+}
+
+impl From<ArgReg> for Op2 {
+  fn from(ar: ArgReg) -> Self {
+    Op2::Reg(ar.into(), 0)
+  }
+}
+
+impl From<GenReg> for Op2 {
+  fn from(ar: GenReg) -> Self {
+    Op2::Reg(ar.into(), 0)
   }
 }
 
@@ -438,6 +598,24 @@ pub enum Reg {
   StackPointer,
   Link,
   PC,
+  /* Represents a value which has not yet been given a register. */
+  Virtual(VegNum),
+  FuncArg(ArgNum),
+}
+
+pub type VegNum = usize;
+pub type ArgNum = usize;
+
+impl From<ArgReg> for Reg {
+  fn from(ar: ArgReg) -> Self {
+    Reg::Arg(ar)
+  }
+}
+
+impl From<GenReg> for Reg {
+  fn from(ar: GenReg) -> Self {
+    Reg::General(ar)
+  }
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
@@ -461,9 +639,9 @@ pub enum GenReg {
 }
 
 /* General purpose registers usable for expression evaluation. */
-pub const GENERAL_REGS: [GenReg; 8] = [
-  GenReg::R4,
-  GenReg::R5,
+pub const GENERAL_REGS: [GenReg; 6] = [
+  // GenReg::R4,
+  // GenReg::R5,
   GenReg::R6,
   GenReg::R7,
   GenReg::R8,
@@ -473,7 +651,7 @@ pub const GENERAL_REGS: [GenReg; 8] = [
 ];
 
 // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289860997.htm
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum CondCode {
   EQ,
   NE,

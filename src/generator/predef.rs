@@ -120,12 +120,11 @@ fn check_array_bounds(code: &mut GeneratedCode) {
   /* PUSH {lr}                      //push link register */
   code.text.push(Asm::push(Reg::Link));
   /* CMP r0, #0                     //compare r0 to 0 */
-  code.text.push(Asm::cmp(Reg::Arg(ArgReg::R0), Op2::Imm(0)));
+  code.text.push(Asm::cmp(ArgReg::R0, Op2::Imm(0)));
   /* LDRLT r0, =msg_0               //load msg_0 if less than flag set into r0 */
-  code.text.push(Instr(
-    LT,
-    Load(DataSize::Word, Reg::Arg(ArgReg::R0), LoadArg::Label(msg_0)),
-  ));
+  code
+    .text
+    .push(Asm::ldr(ArgReg::R0, LoadArg::Label(msg_0)).lt());
   /* BLLT p_throw_runtime_error     //branch to runtime error as a result */
   RequiredPredefs::RuntimeError.mark(code);
   code.text.push(Instr(
@@ -133,24 +132,16 @@ fn check_array_bounds(code: &mut GeneratedCode) {
     Branch(true, PREDEF_THROW_RUNTIME_ERR.to_string()),
   ));
   /* LDR r1, [r1]                   //dereference r1 */
-  code.text.push(Instr(
-    AL,
-    Load(
-      DataSize::Word,
-      Reg::Arg(ArgReg::R1),
-      LoadArg::MemAddress(Reg::Arg(ArgReg::R1), 0),
-    ),
+  code.text.push(Asm::ldr(
+    ArgReg::R1,
+    LoadArg::MemAddress(ArgReg::R1.into(), 0),
   ));
   /* CMP r0, r1                     //compare r0 and r1 */
-  code.text.push(Asm::cmp(
-    Reg::Arg(ArgReg::R0),
-    Op2::Reg(Reg::Arg(ArgReg::R1), 0),
-  ));
+  code.text.push(Asm::cmp(ArgReg::R0, ArgReg::R1));
   /* LDRCS r0, =msg_1               //load msg_1 into r0 if carry flag is set */
-  code.text.push(Instr(
-    CS,
-    Load(DataSize::Word, Reg::Arg(ArgReg::R0), LoadArg::Label(msg_1)),
-  ));
+  code
+    .text
+    .push(Asm::ldr(ArgReg::R0, LoadArg::Label(msg_1)).cs());
   /* BLCS p_throw_runtime_error     //branch to runtime error as a result */
   code.text.push(Instr(
     CS,
@@ -177,23 +168,15 @@ fn read(code: &mut GeneratedCode, fmt: ReadFmt) {
   /*  PUSH {lr}            //push link reg */
   code.text.push(Asm::push(Reg::Link));
   /*  MOV r1, r0            //move r0 to r1 */
-  code.text.push(Asm::mov(
-    Reg::Arg(ArgReg::R1),
-    Op2::Reg(Reg::Arg(ArgReg::R0), 0),
-  ));
+  code.text.push(Asm::mov(Reg::Arg(ArgReg::R1), ArgReg::R0));
 
   /*  LDR r0, =msg_read_{fmt}   //load the result of msg_read_{fmt} */
-  code.text.push(Instr(
-    AL,
-    Load(DataSize::Word, Reg::Arg(ArgReg::R0), LoadArg::Label(msg)),
-  ));
+  code.text.push(Asm::ldr(ArgReg::R0, LoadArg::Label(msg)));
 
   /*  ADD r0, r0, #4        //add 4 to r0 and store in r0 */
-  code.text.push(Asm::add(
-    Reg::Arg(ArgReg::R0),
-    Reg::Arg(ArgReg::R0),
-    Op2::Imm(ARM_DSIZE_WORD),
-  ));
+  code
+    .text
+    .push(Asm::add(ArgReg::R0, ArgReg::R0, Op2::Imm(ARM_DSIZE_WORD)));
   /*  BL scanf             //branch to scanf */
   code
     .text
@@ -220,26 +203,19 @@ fn println(code: &mut GeneratedCode) {
   /*  PUSH {lr}            //push link reg */
   code.text.push(Asm::push(Reg::Link));
   /*  LDR r0, =msg_println   //load the result of msg_println */
-  code.text.push(Instr(
-    AL,
-    Load(
-      DataSize::Word,
-      Reg::Arg(ArgReg::R0),
-      LoadArg::Label(msg_label),
-    ),
-  ));
+  code
+    .text
+    .push(Asm::ldr(ArgReg::R0, LoadArg::Label(msg_label)));
   /*  ADD r0, r0, #4        //add 4 to r0 and store in r0 */
-  code.text.push(Asm::add(
-    Reg::Arg(ArgReg::R0),
-    Reg::Arg(ArgReg::R0),
-    Op2::Imm(ARM_DSIZE_WORD),
-  ));
+  code
+    .text
+    .push(Asm::add(ArgReg::R0, ArgReg::R0, Op2::Imm(ARM_DSIZE_WORD)));
   /*  BL puts             //branch to puts */
   code
     .text
     .push(Instr(AL, Branch(true, String::from("puts"))));
   /*  MOV r0, #0            //move 0 to r0 */
-  code.text.push(Asm::mov(Reg::Arg(ArgReg::R0), Op2::Imm(0)));
+  code.text.push(Asm::mov(ArgReg::R0, Op2::Imm(0)));
   /*  BL fflush             //branch to fflush */
   code
     .text
@@ -267,16 +243,11 @@ fn check_null_pointer(code: &mut GeneratedCode) {
   /*  PUSH {lr}            //push link reg */
   code.text.push(Asm::push(Reg::Link));
   /*  CMP r0, #0           //compare the contents of r0 to 0 and set flags */
-  code.text.push(Asm::cmp(Reg::Arg(ArgReg::R0), Op2::Imm(0)));
+  code.text.push(Asm::cmp(ArgReg::R0, Op2::Imm(0)));
   /*  LDREQ r0, =msg_label   //load error msg if r0 equals 0 */
-  code.text.push(Instr(
-    EQ,
-    Load(
-      DataSize::Word,
-      Reg::Arg(ArgReg::R0),
-      LoadArg::Label(msg_label),
-    ),
-  ));
+  code
+    .text
+    .push(Asm::ldr(ArgReg::R0, LoadArg::Label(msg_label)).eq());
 
   /*  BLEQ p_throw_runtime_error   //branch to runtime error if r0 equals 0 */
   code.text.push(Instr(
@@ -312,14 +283,9 @@ fn check_divide_by_zero(code: &mut GeneratedCode) {
   /*  CMP r1, #0           //compare the contents of r1 to 0 and set flags */
   code.text.push(Asm::cmp(Reg::Arg(ArgReg::R1), Op2::Imm(0)));
   /*  LDREQ r0, =msg_divide_by_zero   //load error msg if r0 equals 0 */
-  code.text.push(Instr(
-    EQ,
-    Load(
-      DataSize::Word,
-      Reg::Arg(ArgReg::R0),
-      LoadArg::Label(msg_label),
-    ),
-  ));
+  code
+    .text
+    .push(Asm::ldr(ArgReg::R0, LoadArg::Label(msg_label)).eq());
 
   /*  BLEQ p_throw_runtime_error   //branch to runtime error if r0 equals 0 */
   code.text.push(Instr(
@@ -352,14 +318,9 @@ fn throw_overflow_error(code: &mut GeneratedCode) {
     .push(Directive(Label(PREDEF_THROW_OVERFLOW_ERR.to_string())));
 
   /* LDR r0, =msg_overflow_error     //load result of message overflow error into r0 */
-  code.text.push(Instr(
-    AL,
-    Load(
-      DataSize::Word,
-      Reg::Arg(ArgReg::R0),
-      LoadArg::Label(msg_label),
-    ),
-  ));
+  code
+    .text
+    .push(Asm::ldr(ArgReg::R0, LoadArg::Label(msg_label)));
   /* BL p_throw_runtime_error        //branch to runtime error */
   RequiredPredefs::RuntimeError.mark(code);
   code.text.push(Instr(
@@ -382,16 +343,11 @@ fn free(code: &mut GeneratedCode) {
   /*  PUSH {lr}            //push link reg */
   code.text.push(Asm::push(Reg::Link));
   /*  CMP r0, #0           //compare the contents of r0 to 0 and set flags */
-  code.text.push(Asm::cmp(Reg::Arg(ArgReg::R0), Op2::Imm(0)));
+  code.text.push(Asm::cmp(ArgReg::R0, Op2::Imm(0)));
   /*  LDREQ r0, =msg_null_deref   //load deref msg if r0 equals 0 */
-  code.text.push(Instr(
-    EQ,
-    Load(
-      DataSize::Word,
-      Reg::Arg(ArgReg::R0),
-      LoadArg::Label(msg_label),
-    ),
-  ));
+  code
+    .text
+    .push(Asm::ldr(ArgReg::R0, LoadArg::Label(msg_label)).eq());
   /*  BEQ p_throw_runtime_error   //branch to runtime error if r0 equals 0 */
   code.text.push(Instr(
     EQ,
@@ -430,16 +386,11 @@ fn free_pair(code: &mut GeneratedCode) {
   /*  PUSH {lr}            //push link reg */
   code.text.push(Asm::push(Reg::Link));
   /*  CMP r0, #0           //compare the contents of r0 to 0 and set flags */
-  code.text.push(Asm::cmp(Reg::Arg(ArgReg::R0), Op2::Imm(0)));
+  code.text.push(Asm::cmp(ArgReg::R0, Op2::Imm(0)));
   /*  LDREQ r0, =msg_null_deref   //load deref msg if r0 equals 0 */
-  code.text.push(Instr(
-    EQ,
-    Load(
-      DataSize::Word,
-      Reg::Arg(ArgReg::R0),
-      LoadArg::Label(msg_label),
-    ),
-  ));
+  code
+    .text
+    .push(Asm::ldr(ArgReg::R0, LoadArg::Label(msg_label)).eq());
   /*  BEQ p_throw_runtime_error   //branch to runtime error if r0 equals 0 */
   code.text.push(Instr(
     EQ,
@@ -450,15 +401,11 @@ fn free_pair(code: &mut GeneratedCode) {
   RequiredPredefs::RuntimeError.mark(code);
 
   /*  PUSH {r0}           //push r0 */
-  code.text.push(Asm::push(Reg::Arg(ArgReg::R0)));
+  code.text.push(Asm::push(ArgReg::R0));
 
-  code.text.push(Instr(
-    AL,
-    Load(
-      DataSize::Word,
-      Reg::Arg(ArgReg::R0),
-      LoadArg::MemAddress(Reg::Arg(ArgReg::R0), 0),
-    ),
+  code.text.push(Asm::ldr(
+    ArgReg::R0,
+    LoadArg::MemAddress(ArgReg::R0.into(), 0),
   ));
 
   code
@@ -466,29 +413,18 @@ fn free_pair(code: &mut GeneratedCode) {
     .push(Instr(AL, Branch(true, PREDEF_SYS_FREE.to_string())));
 
   /*  LDR r0, [sp]        //load stack pointer address into r0 */
-  code.text.push(Instr(
-    AL,
-    Load(
-      DataSize::Word,
-      Reg::Arg(ArgReg::R0),
-      LoadArg::MemAddress(Reg::StackPointer, 0),
-    ),
-  ));
+  code.text.push(Asm::ldr(ArgReg::R0, Reg::StackPointer));
   /*  LDR r0, [r0, #4]    //load address of r0+4 into r0 */
-  code.text.push(Instr(
-    AL,
-    Load(
-      DataSize::Word,
-      Reg::Arg(ArgReg::R0),
-      LoadArg::MemAddress(Reg::Arg(ArgReg::R0), 4),
-    ),
+  code.text.push(Asm::ldr(
+    ArgReg::R0,
+    LoadArg::MemAddress(ArgReg::R0.into(), 4),
   ));
   /*  BL free             //branch to free */
   code
     .text
     .push(Instr(AL, Branch(true, PREDEF_SYS_FREE.to_string())));
   /*  POP {r0}            //pop r0 register */
-  code.text.push(Asm::pop(Reg::Arg(ArgReg::R0)));
+  code.text.push(Asm::pop(ArgReg::R0));
   /*  BL free             //branch to free */
   code
     .text
@@ -514,7 +450,7 @@ fn throw_runtime_error(code: &mut GeneratedCode) {
     .push(Instr(AL, Branch(true, PREDEF_PRINT_STRING.to_string())));
   /* MOV r0, #-1              //move -1 into r0*/
   RequiredPredefs::PrintString.mark(code);
-  code.text.push(Asm::mov(Reg::Arg(ArgReg::R0), Op2::Imm(-1)));
+  code.text.push(Asm::mov(ArgReg::R0, Op2::Imm(-1)));
   /* BL exit                  //exit with status code -1  */
   code
     .text
@@ -546,37 +482,25 @@ fn print_bool(code: &mut GeneratedCode) {
   /*  PUSH {lr}             //push link reg */
   code.text.push(Asm::push(Reg::Link));
   /*  CMP r0, #0            //compare the contents of r0 to 0 and set flags */
-  code.text.push(Asm::cmp(Reg::Arg(ArgReg::R0), Op2::Imm(0)));
+  code.text.push(Asm::cmp(ArgReg::R0, Op2::Imm(0)));
   /*  LDRNE r0, =msg_true   //load result of msg_true if not equal to r0  */
-  code.text.push(Instr(
-    NE,
-    Load(
-      DataSize::Word,
-      Reg::Arg(ArgReg::R0),
-      LoadArg::Label(msg_label_true),
-    ),
-  ));
+  code
+    .text
+    .push(Asm::ldr(ArgReg::R0, LoadArg::Label(msg_label_true)).ne());
   /*  LDREQ r0, =msg_false   //load result of msg_false if equal to r0  */
-  code.text.push(Instr(
-    EQ,
-    Load(
-      DataSize::Word,
-      Reg::Arg(ArgReg::R0),
-      LoadArg::Label(msg_label_false),
-    ),
-  ));
+  code
+    .text
+    .push(Asm::ldr(ArgReg::R0, LoadArg::Label(msg_label_false)).eq());
   /*  ADD r0, r0, #4        //add 4 to r0 and store in r0 */
-  code.text.push(Asm::add(
-    Reg::Arg(ArgReg::R0),
-    Reg::Arg(ArgReg::R0),
-    Op2::Imm(ARM_DSIZE_WORD),
-  ));
+  code
+    .text
+    .push(Asm::add(ArgReg::R0, ArgReg::R0, Op2::Imm(ARM_DSIZE_WORD)));
   /*  BL printf             //branch to printf */
   code
     .text
     .push(Instr(AL, Branch(true, PREDEF_SYS_PRINTF.to_string())));
   /*  MOV r0, #0            //move 0 to r0 */
-  code.text.push(Asm::mov(Reg::Arg(ArgReg::R0), Op2::Imm(0)));
+  code.text.push(Asm::mov(ArgReg::R0, Op2::Imm(0)));
   /*  BL fflush             //branch to fflush */
   code
     .text
@@ -606,41 +530,30 @@ fn print_string(code: &mut GeneratedCode) {
   /*  PUSH {lr}             //push link reg */
   code.text.push(Asm::push(Reg::Link));
   /*  LDR r1, [r0]          //load address at r0 into r1 */
-  code.text.push(Instr(
-    AL,
-    Load(
-      DataSize::Word,
-      Reg::Arg(ArgReg::R1),
-      LoadArg::MemAddress(Reg::Arg(ArgReg::R0), 0),
-    ),
+  code.text.push(Asm::ldr(
+    Reg::Arg(ArgReg::R1),
+    LoadArg::MemAddress(ArgReg::R0.into(), 0),
   ));
   /*  ADD r2, r0, #4        //add 4 to r0 and store in r2 */
   code.text.push(Asm::add(
     Reg::Arg(ArgReg::R2),
-    Reg::Arg(ArgReg::R0),
+    ArgReg::R0,
     Op2::Imm(ARM_DSIZE_WORD),
   ));
   /*  LDR r0, =msg_string   //load the result of msg_string */
-  code.text.push(Instr(
-    AL,
-    Load(
-      DataSize::Word,
-      Reg::Arg(ArgReg::R0),
-      LoadArg::Label(msg_label),
-    ),
-  ));
+  code
+    .text
+    .push(Asm::ldr(ArgReg::R0, LoadArg::Label(msg_label)));
   /*  ADD r0, r0, #4        //add 4 to r0 and store in r0 */
-  code.text.push(Asm::add(
-    Reg::Arg(ArgReg::R0),
-    Reg::Arg(ArgReg::R0),
-    Op2::Imm(ARM_DSIZE_WORD),
-  ));
+  code
+    .text
+    .push(Asm::add(ArgReg::R0, ArgReg::R0, Op2::Imm(ARM_DSIZE_WORD)));
   /*  BL printf             //branch to printf */
   code
     .text
     .push(Instr(AL, Branch(true, PREDEF_SYS_PRINTF.to_string())));
   /*  MOV r0, #0            //move 0 to r0 */
-  code.text.push(Asm::mov(Reg::Arg(ArgReg::R0), Op2::Imm(0)));
+  code.text.push(Asm::mov(ArgReg::R0, Op2::Imm(0)));
   /*  BL fflush             //branch to fflush */
   code
     .text
@@ -693,32 +606,22 @@ fn print_int_or_ref(code: &mut GeneratedCode, opt: PrintFmt) {
   /*  PUSH {lr}             //push link reg */
   code.text.push(Asm::push(Reg::Link));
   /*  MOV r1, r0            //move r0 to r1 */
-  code.text.push(Asm::mov(
-    Reg::Arg(ArgReg::R1),
-    Op2::Reg(Reg::Arg(ArgReg::R0), 0),
-  ));
+  code.text.push(Asm::mov(Reg::Arg(ArgReg::R1), ArgReg::R0));
 
   /*  LDR r0, =msg_int      //load result of msg_int into r0 */
-  code.text.push(Instr(
-    AL,
-    Load(
-      DataSize::Word,
-      Reg::Arg(ArgReg::R0),
-      LoadArg::Label(msg_label),
-    ),
-  ));
+  code
+    .text
+    .push(Asm::ldr(ArgReg::R0, LoadArg::Label(msg_label)));
   /*  ADD r0, r0, #4        //add the 4 to r0, and store the result in r0 */
-  code.text.push(Asm::add(
-    Reg::Arg(ArgReg::R0),
-    Reg::Arg(ArgReg::R0),
-    Op2::Imm(ARM_DSIZE_WORD),
-  ));
+  code
+    .text
+    .push(Asm::add(ArgReg::R0, ArgReg::R0, Op2::Imm(ARM_DSIZE_WORD)));
   /*  BL printf             //branch to printf */
   code
     .text
     .push(Instr(AL, Branch(true, PREDEF_SYS_PRINTF.to_string())));
   /*  MOV r0, #0            //move 0 to r0 */
-  code.text.push(Asm::mov(Reg::Arg(ArgReg::R0), Op2::Imm(0)));
+  code.text.push(Asm::mov(ArgReg::R0, Op2::Imm(0)));
   /*  BL fflush             //branch to fflush */
   code
     .text

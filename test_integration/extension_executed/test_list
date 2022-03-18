@@ -39,10 +39,12 @@
 ./tests/vectors/get-vec.wacc,./tests/vectors/get-vec.output.observed,./tests/vectors/get-vec.output.expected,pass
 ./tests/vectors/pop-vec.wacc,./tests/vectors/pop-vec.output.observed,./tests/vectors/pop-vec.output.expected,pass
 ./tests/vectors/free.wacc,./tests/vectors/free.output.observed,./tests/vectors/free.output.expected,pass
-./tests/assign-lhs/destructuring.wacc,./tests/assign-lhs/destructuring.output.observed,./tests/assign-lhs/destructuring.output.expected,fail
+./tests/assign-lhs/assignments.wacc,./tests/assign-lhs/assignments.output.observed,./tests/assign-lhs/assignments.output.expected,pass
 ./tests/assign-lhs/pairDestructure.wacc,./tests/assign-lhs/pairDestructure.output.observed,./tests/assign-lhs/pairDestructure.output.expected,pass
 ./tests/assign-lhs/arrayDestructure.wacc,./tests/assign-lhs/arrayDestructure.output.observed,./tests/assign-lhs/arrayDestructure.output.expected,pass
 ./tests/assign-lhs/structDestructure.wacc,./tests/assign-lhs/structDestructure.output.observed,./tests/assign-lhs/structDestructure.output.expected,pass
 ./tests/assign-lhs/mixedDestructure.wacc,./tests/assign-lhs/mixedDestructure.output.observed,./tests/assign-lhs/mixedDestructure.output.expected,pass
 ./tests/decl-type-inference/let.wacc,./tests/decl-type-inference/let.output.observed,./tests/decl-type-inference/let.output.expected,pass
 ./tests/decl-type-inference/letArray.wacc,./tests/decl-type-inference/letArray.output.observed,./tests/decl-type-inference/letArray.output.expected,pass
+./tests/reg-alloc/basic.wacc,./tests/reg-alloc/basic.output.observed,./tests/reg-alloc/basic.output.expected,pass
+./tests/reg-alloc/call.wacc,./tests/reg-alloc/call.output.observed,./tests/reg-alloc/call.output.expected,pass
