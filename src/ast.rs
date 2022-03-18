@@ -1,6 +1,6 @@
 use crate::{
   analyser::context::SymbolTable,
-  generator::asm::{Offset, Reg, VegNum},
+  generator::asm::{Offset, VegNum},
 };
 use std::{cell::Cell, collections::HashMap};
 

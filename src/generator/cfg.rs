@@ -1,5 +1,5 @@
 use std::{
-  cell::{Cell, RefCell},
+  cell::RefCell,
   collections::HashSet,
   fmt::Display,
   ops::{Add, AddAssign},
@@ -254,27 +254,6 @@ impl<'cfg> CFG<'cfg> {
     self.option_flow(None)
   }
 
-  pub fn imm_unroll<'a, F>(
-    &'a mut self,
-    mut instr_builder: F,
-    imm: Imm,
-  ) -> Flow<'cfg>
-  where
-    F: FnMut(Imm) -> Asm,
-  {
-    let mut flow = self.dummy_flow();
-
-    let imm_sign = imm.signum();
-    let mut imm_abs = imm;
-
-    while imm_abs > 0 {
-      flow += self.flow(instr_builder(imm_sign * OP2_MAX_VALUE.min(imm_abs)));
-      imm_abs -= OP2_MAX_VALUE;
-    }
-
-    flow
-  }
-
   /* This takes ownership of the cfg so this is guarenteed to be the last
   operation on the cfg. */
   pub fn save(mut self) {
@@ -411,10 +390,10 @@ impl<'cfg> CFG<'cfg> {
   {
     let Self {
       code,
-      arena,
+      arena: _,
       ordering,
-      vegs,
-      label,
+      vegs: _,
+      label: _,
     } = self;
 
     for block in ordering.iter() {

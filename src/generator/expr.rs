@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use self::CondCode::*;
 use super::predef::{
   RequiredPredefs, PREDEF_AEABI_IDIV, PREDEF_AEABI_IDIVMOD,
@@ -29,7 +27,7 @@ impl ExprArg {
     }
   }
 
-  fn reg(&self) -> Reg {
+  fn _reg(&self) -> Reg {
     match self {
       Dst(reg) | Src(reg) => reg.clone(),
     }
@@ -175,7 +173,7 @@ fn generate_anon_func<'a, 'cfg>(
 fn generate_call<'a, 'cfg>(
   scope: &ScopeReader,
   cfg: &'a mut CFG<'cfg>,
-  func_type: Type,
+  _func_type: Type,
   func: &Expr,
   exprs: &[Expr],
   dst: Reg,
@@ -514,7 +512,7 @@ fn generate_ident<'cfg, 'a>(
   use IdentInfo::*;
 
   match scope.get(id) {
-    Some(LocalVar(type_, var_reg)) => {
+    Some(LocalVar(_type, var_reg)) => {
       let instr = match arg {
         /* STR {reg}, [sp, #{offset}] */
         Src(reg) => Asm::mov(var_reg, reg),

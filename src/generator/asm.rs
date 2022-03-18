@@ -1,7 +1,4 @@
-use std::{
-  cell::{Cell, RefCell},
-  collections::HashSet,
-};
+use std::collections::HashSet;
 
 use super::{display::unescape_char, predef::RequiredPredefs};
 
@@ -19,8 +16,6 @@ pub type Offset = i32;
 pub type Shift = i32;
 
 /* ======== Represents entire program. ======== */
-
-pub const MIN_STACK_MACHINE_REGS: usize = 2;
 
 #[derive(PartialEq, Debug)]
 pub struct GeneratedCode {
@@ -562,8 +557,6 @@ pub enum BinaryInstr {
 }
 
 /* ======== Helper types for use within assembly representations.  ======== */
-
-pub const OP2_MAX_VALUE: Imm = 1024;
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 // https://www.keil.com/support/man/docs/armasm/armasm_dom1361289851539.htm

@@ -7,13 +7,10 @@ use super::*;
 /* ======== LIVENESS ANALYSIS ======== */
 
 pub fn calculate_liveness<'cfg>(cfg: &mut CFG<'_>) {
-  println!("Populating live ins and live outs!");
-
   let allocation_order = cfg.ordering.clone();
 
   // Until things stop changing
   let mut updated = true;
-  let mut iterations = 0;
   while updated {
     updated = false;
     for cell in allocation_order.iter().rev() {
@@ -28,10 +25,6 @@ pub fn calculate_liveness<'cfg>(cfg: &mut CFG<'_>) {
         let succs = &cell.borrow().succs;
 
         // LiveIn(n) = uses(n) or (LiveOut(n), - defines(n))
-        // TODO: @Charlie - This is awful, what is better way to do this?
-        //       I just want the set difference, but to clone the elements
-        //       into a new set rather than having references to the
-        //       VegNumisters in the new set
         let live_out_without_defines: HashSet<VegNum> = live_out
           .difference(defines)
           .into_iter()
@@ -52,25 +45,10 @@ pub fn calculate_liveness<'cfg>(cfg: &mut CFG<'_>) {
 
         updated |= (*live_in != new_live_in) || (*live_out != new_live_out);
       }
-      // println!(
-      //   "new_live_in = {:#?}, new_live_out = {:#?}",
-      //   new_live_in, new_live_out,
-      // );
       cell.borrow_mut().live_in = new_live_in;
       cell.borrow_mut().live_out = new_live_out;
     }
-    iterations += 1;
   }
-  // For debugging
-  // println!("Found fixpoint after {} iterations. ", iterations);
-  // for cell in allocation_order.iter() {
-  //     let id = cell.borrow().id;
-
-  //     let live_in = &cell.borrow().live_in;
-  //     let live_out = &cell.borrow().live_out;
-
-  //     println!("{} in:{:?}, out:{:?}", id, live_in, live_out);
-  // }
 }
 
 /* ======== INTERFERENCE CALCULATION ======== */
@@ -78,21 +56,15 @@ pub fn calculate_liveness<'cfg>(cfg: &mut CFG<'_>) {
 pub type Interference = Vec<(VegNum, HashSet<VegNum>)>;
 
 pub fn calculate_interference(cfg: &mut CFG<'_>) -> Interference {
-  println!("Calculating interferences!");
-
   let allocation_order = cfg.ordering.clone();
 
   // Pre-condition: We don't want to be colouring any non-general VegNumisters
-  // TODO: Explicitly assert / statically verify this somewhere
-  // TODO: Change the way we iterate this to ensure we do the maximum number temporary
   let mut interferences: Vec<(VegNum, HashSet<VegNum>)> = Vec::new();
   for veg_num in 1..(cfg.vegs + 1) {
     let mut current_interferences: HashSet<VegNum> = HashSet::from([veg_num]);
 
     for cell in allocation_order.iter() {
       if cell.borrow().live_out.contains(&veg_num) {
-        // TODO: Clean up this anti-pattern
-        // TODO: make this an in place extend
         current_interferences = current_interferences
           .union(&cell.borrow().live_out)
           .into_iter()
@@ -101,7 +73,6 @@ pub fn calculate_interference(cfg: &mut CFG<'_>) -> Interference {
       }
     }
     if current_interferences.len() > 0 {
-      // println!("adding");
       interferences.push((veg_num, current_interferences));
     }
   }
@@ -118,7 +89,7 @@ pub enum Location {
 }
 
 impl Location {
-  pub fn reg(&self) -> Reg {
+  pub fn _reg(&self) -> Reg {
     if let Location::Reg(rn) = self {
       Reg::General(GENERAL_REGS[*rn])
     } else {
@@ -238,7 +209,7 @@ fn spill_node<T>(
   T: Debug,
 {
   // We know all nodes will not be easy neighbors, so we can spill any of them
-  let (node, neighbors) = remove_node(interference, 0);
+  let (node, _) = remove_node(interference, 0);
   allocation.insert(node, Location::Spill(*spill_location));
   *spill_location = *spill_location + 1;
 }
@@ -259,7 +230,6 @@ fn colour_stack<T>(
     let (node, neighbors) = colourable_stack.pop().unwrap();
     // Get all of the colours used by the neighbors or the current node
     // this should be guaranteed to be populated
-    // TODO: @Charlie another dutty ting, better way to do this?
     let neighbor_colours: Vec<usize> = neighbors
       .iter()
       .map(|neighbor| node_colours.get(neighbor))
@@ -313,8 +283,6 @@ fn remove_easy_neighbors<T>(
     // We will potentially remove from the interference graph if there
     // are easy neighbors in the current state of the graph.
     let mut i = 0;
-    // TODO: Validate edge cases where we do something like remove an
-    //       easy neighbor as the last node
     while i < interference.len() {
       // number of neighbors -1 as every node is a neighbor of itself
       if interference[i].1.len() - 1 < colours.into() {
@@ -359,15 +327,3 @@ where
 
   (curr_node, neighbors)
 }
-
-// #[cfg(test)]
-// mod tests {
-//
-//     use super::*;
-//
-//     #[test]
-//     fn test_colour_1() {
-//         let x = vec![(1, HashSet::new(vec![1, 2, 3, 4)]), (2, HashSet::new(1, 2, 3)), ]
-//         println!("Working");
-//     }
-// }

@@ -6,7 +6,7 @@ use crate::ast::*;
 
 pub use context::SymbolTable;
 
-use super::asm::{Label, Offset, Reg, ARM_DSIZE_WORD};
+use super::asm::{Label, Reg};
 
 #[derive(Debug)]
 pub struct ScopeReader<'a> {
