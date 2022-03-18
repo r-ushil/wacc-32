@@ -80,8 +80,8 @@ pub struct Block<'cfg> {
   /* Stored assembly. */
   asm: Option<Asm>,
   /* This blocks relationship to the rest of the graph. */
-  uses: Vec<RegRef>,
-  defines: Vec<RegRef>,
+  uses: Vec<Reg>,
+  defines: Vec<Reg>,
   // live_in: Vec<Reg>,
   // live_out: Vec<Reg>,
   /* This blocks successors. */
@@ -152,7 +152,7 @@ impl<'cfg> CFG<'cfg> {
   /* Creates a flow which starts and ends on a given instruction. */
   fn option_flow<'a>(&'a mut self, asm: Option<Asm>) -> Flow<'cfg> {
     /* Calculates which virtuals this instruction defines. */
-    let (uses, defines) = if let Some(asm) = &asm {
+    let (uses, defines) = if let Some(mut asm) = asm.clone() {
       (asm.uses(), asm.defines())
     } else {
       (vec![], vec![])
@@ -182,9 +182,9 @@ impl<'cfg> CFG<'cfg> {
     }
   }
 
-  pub fn get_veg(&mut self) -> RegRef {
+  pub fn get_veg(&mut self) -> Reg {
     self.vegs += 1;
-    Cell::new(Reg::Virtual(self.vegs))
+    Reg::Virtual(self.vegs)
   }
 
   #[must_use]
@@ -230,16 +230,21 @@ impl<'cfg> CFG<'cfg> {
     /* Colour interference graph. */
     let _colouring = allocate::colour(interference);
 
+    /* Define functions which use colouring to load and save values. */
+    let mut load_reg = |_, n| Reg::General(GENERAL_REGS[n]);
+    let mut save_reg = |_, n| Reg::General(GENERAL_REGS[n]);
+
     /* Linearise while colouring. */
-    self.linearise(Vec::push);
+    self.linearise(&mut load_reg, &mut save_reg);
   }
 
   /* Writes the cfg to code, transforming it from a graph to a linear
   structure. Call must add the a given assembly instruction to the vector,
   expanding into multiple instructions if nessecary. */
-  fn linearise<F>(&mut self, mut push: F)
+  fn linearise<F, G>(&mut self, mut load_reg: F, mut save_reg: G)
   where
-    F: FnMut(&mut Vec<Asm>, Asm),
+    F: FnMut(bool, usize) -> Reg,
+    G: FnMut(bool, usize) -> Reg,
   {
     for block in self.ordering.iter() {
       let mut block = block.borrow_mut();
@@ -252,7 +257,28 @@ impl<'cfg> CFG<'cfg> {
 
       /* Generate block body. */
       if let Some(asm) = &block.asm {
-        push(&mut self.code.text, asm.clone());
+        /* Take a copy so we can mutate it. */
+        let mut asm = asm.clone();
+
+        /* Load the used registers. */
+        asm.map_uses(|reg| {
+          if let Reg::Virtual(id) = reg {
+            *reg = load_reg(false, *id);
+            // *reg = load_reg(&mut self.code.text, *id);
+          }
+        });
+
+        /* Add register to code block. */
+        self.code.text.push(asm);
+        let asm = self.code.text.last_mut().unwrap();
+
+        /* Save the defined registers. */
+        asm.map_defines(|reg| {
+          if let Reg::Virtual(id) = reg {
+            *reg = save_reg(false, *id);
+            // *reg = save_reg(&mut self.code.text, *id);
+          }
+        })
       }
 
       /* Generate a branch to each successor, if one is required. */

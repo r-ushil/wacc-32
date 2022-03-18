@@ -10,7 +10,7 @@ use Instr::*;
 pub fn generate_malloc<'a, 'cfg>(
   bytes: i32,
   cfg: &'a mut CFG<'cfg>,
-  reg: RegRef,
+  reg: Reg,
 ) -> Flow<'cfg> {
   /* LDR r0, ={bytes} */
   let mut flow = cfg.flow(Asm::ldr(ArgReg::R0, bytes))
@@ -19,7 +19,7 @@ pub fn generate_malloc<'a, 'cfg>(
   + cfg.flow(Asm::b(PREDEF_SYS_MALLOC).link());
 
   /* MOV {regs[0]}, r0 */
-  if reg.get() != Reg::Arg(ArgReg::R0) {
+  if reg != Reg::Arg(ArgReg::R0) {
     flow += cfg.flow(Asm::mov(reg, ArgReg::R0));
   }
 
@@ -27,10 +27,10 @@ pub fn generate_malloc<'a, 'cfg>(
 }
 
 pub fn generate_malloc_with_reg<'a, 'cfg>(
-  type_size: RegRef,
-  exprs_size: RegRef,
+  type_size: Reg,
+  exprs_size: Reg,
   cfg: &'a mut CFG<'cfg>,
-  reg: RegRef,
+  reg: Reg,
 ) -> Flow<'cfg> {
   /* Mallocs {bytes} bytes and leaves the address in {reg}. */
   /* MOV r1, {bytes} */
@@ -58,7 +58,7 @@ pub fn generate_malloc_with_reg<'a, 'cfg>(
   + cfg.flow(Asm::b(PREDEF_SYS_MALLOC).link());
 
   /* MOV {regs[0]}, r0 */
-  if reg.get() != Reg::Arg(ArgReg::R0) {
+  if reg != Reg::Arg(ArgReg::R0) {
     flow += cfg.flow(Asm::mov(reg, ArgReg::R0));
   }
 

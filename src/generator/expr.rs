@@ -15,21 +15,21 @@ use stat::generate_malloc;
 
 pub enum ExprArg {
   /* Write to this register from the expression. */
-  Src(RegRef),
+  Src(Reg),
   /* Read from this register into the expression. */
-  Dst(RegRef),
+  Dst(Reg),
 }
 use ExprArg::*;
 
 impl ExprArg {
-  fn dst(self) -> RegRef {
+  fn dst(self) -> Reg {
     match self {
       Dst(reg) => reg,
       Src(_) => panic!("Cannot write to this expression."),
     }
   }
 
-  fn reg(&self) -> RegRef {
+  fn reg(&self) -> Reg {
     match self {
       Dst(reg) | Src(reg) => reg.clone(),
     }
@@ -37,13 +37,13 @@ impl ExprArg {
 }
 
 impl CFGable for StructLiter {
-  type Input = RegRef;
+  type Input = Reg;
 
   fn cfg_generate<'a, 'cfg>(
     &self,
     scope: &ScopeReader,
     cfg: &'a mut CFG<'cfg>,
-    dst: RegRef,
+    dst: Reg,
   ) -> Flow<'cfg> {
     let StructLiter { id, fields } = self;
 
@@ -131,7 +131,7 @@ fn generate_blank_arr<'a, 'cfg>(
   cfg: &'a mut CFG<'cfg>,
   t: &Type,
   size: &Box<Expr>,
-  dst: RegRef,
+  dst: Reg,
 ) -> Flow<'cfg> {
   /* LDR {regs[0]}, =type_size */
   let mut flow = cfg.flow(Asm::ldr(dst.clone(), t.size()));
@@ -141,7 +141,8 @@ fn generate_blank_arr<'a, 'cfg>(
   flow += size.cfg_generate(scope, cfg, Dst(size_reg.clone()));
 
   /* Malloc space for array. */
-  flow += generate_malloc_with_reg(dst.clone(), size_reg.clone(), cfg, dst.clone());
+  flow +=
+    generate_malloc_with_reg(dst.clone(), size_reg.clone(), cfg, dst.clone());
 
   /* Write length to first byte.
   LDR r5, =3
@@ -155,7 +156,7 @@ fn generate_anon_func<'a, 'cfg>(
   scope: &ScopeReader,
   cfg: &'a mut CFG<'cfg>,
   func: Func,
-  dst: RegRef,
+  dst: Reg,
 ) -> Flow<'cfg> {
   let anon_label = cfg.code.get_label();
 
@@ -177,7 +178,7 @@ fn generate_call<'a, 'cfg>(
   func_type: Type,
   func: &Expr,
   exprs: &[Expr],
-  dst: RegRef,
+  dst: Reg,
 ) -> Flow<'cfg> {
   /* Get arg types. */
 
@@ -263,7 +264,7 @@ fn generate_pair_liter<'a, 'cfg>(
   cfg: &'a mut CFG<'cfg>,
   TypedExpr(e1_type, e1): &TypedExpr,
   TypedExpr(e2_type, e2): &TypedExpr,
-  dst: RegRef,
+  dst: Reg,
 ) -> Flow<'cfg> {
   let e1_size = e1_type.size();
   let e2_size = e2_type.size();
@@ -314,7 +315,7 @@ fn generate_array_liter<'a, 'cfg>(
   cfg: &'a mut CFG<'cfg>,
   elem_type: &Type,
   exprs: &[Expr],
-  dst: RegRef,
+  dst: Reg,
 ) -> Flow<'cfg> {
   let elem_reg = cfg.get_veg();
 
@@ -522,7 +523,7 @@ fn generate_ident<'cfg, 'a>(
 fn generate_char_liter<'a, 'cfg>(
   cfg: &'a mut CFG<'cfg>,
   val: &char,
-  dst: RegRef,
+  dst: Reg,
 ) -> Flow<'cfg> {
   let ch = *val;
   let ch_op2 = if ch == '\0' {
@@ -538,7 +539,7 @@ fn generate_char_liter<'a, 'cfg>(
 fn generate_string_liter<'a, 'cfg>(
   cfg: &'a mut CFG<'cfg>,
   val: &str,
-  dst: RegRef,
+  dst: Reg,
 ) -> Flow<'cfg> {
   /* Create a label msg_{msg_no} to display the text */
   /* msg_{msg_no}: */
@@ -553,7 +554,7 @@ fn generate_unary_app<'a, 'cfg>(
   scope: &ScopeReader,
   op: &UnaryOper,
   expr: &Expr,
-  dst: RegRef,
+  dst: Reg,
 ) -> Flow<'cfg> {
   /* Stores expression's value in regs[0]. */
   expr.cfg_generate(scope, cfg, Dst(dst.clone()))
@@ -568,13 +569,13 @@ fn generate_binary_app<'a, 'cfg>(
   expr1: &Expr,
   op: &BinaryOper,
   expr2: &Expr,
-  dst: RegRef,
+  dst: Reg,
 ) -> Flow<'cfg> {
   let lhs_reg = cfg.get_veg();
 
   /* regs[0] = eval(expr1) */
   expr1.cfg_generate(scope, cfg, Dst(dst.clone()))
-  
+
   /* Haven't run out of registers, evaluate normally. */
   + expr2.cfg_generate(scope, cfg, Dst(lhs_reg.clone()))
 
@@ -584,7 +585,7 @@ fn generate_binary_app<'a, 'cfg>(
 
 fn generate_unary_op<'a, 'cfg>(
   cfg: &'a mut CFG<'cfg>,
-  reg: RegRef,
+  reg: Reg,
   unary_op: &UnaryOper,
 ) -> Flow<'cfg> {
   // TODO: Briefly explain the pre-condition that you created in the caller
@@ -599,7 +600,7 @@ fn generate_unary_op<'a, 'cfg>(
 
 fn generate_unary_bang<'a, 'cfg>(
   cfg: &'a mut CFG<'cfg>,
-  reg: RegRef,
+  reg: Reg,
 ) -> Flow<'cfg> {
   /* EOR reg, reg, #1 */
   cfg.flow(Asm::eor(reg.clone(), reg, Op2::Imm(1)))
@@ -607,7 +608,7 @@ fn generate_unary_bang<'a, 'cfg>(
 
 fn generate_unary_negation<'a, 'cfg>(
   cfg: &'a mut CFG<'cfg>,
-  reg: RegRef,
+  reg: Reg,
 ) -> Flow<'cfg> {
   RequiredPredefs::OverflowError.mark(cfg.code);
 
@@ -620,7 +621,7 @@ fn generate_unary_negation<'a, 'cfg>(
 
 fn generate_unary_length<'a, 'cfg>(
   cfg: &'a mut CFG<'cfg>,
-  reg: RegRef,
+  reg: Reg,
 ) -> Flow<'cfg> {
   /* LDR reg, [reg]             //derefence value in reg */
   cfg.flow(Asm::ldr(reg.clone(), reg))
@@ -628,9 +629,9 @@ fn generate_unary_length<'a, 'cfg>(
 
 fn generate_binary_op<'a, 'cfg>(
   cfg: &'a mut CFG<'cfg>,
-  dst: RegRef,
-  reg1: RegRef,
-  reg2: RegRef,
+  dst: Reg,
+  reg1: Reg,
+  reg2: Reg,
   bin_op: &BinaryOper,
 ) -> Flow<'cfg> {
   match bin_op {
@@ -687,8 +688,8 @@ fn generate_binary_op<'a, 'cfg>(
 
 fn binary_div<'a, 'cfg>(
   cfg: &'a mut CFG<'cfg>,
-  reg1: RegRef,
-  reg2: RegRef,
+  reg1: Reg,
+  reg2: Reg,
 ) -> Flow<'cfg> {
   RequiredPredefs::DivideByZeroError.mark(cfg.code);
 
@@ -708,8 +709,8 @@ fn binary_div<'a, 'cfg>(
 
 fn binary_mod<'a, 'cfg>(
   cfg: &'a mut CFG<'cfg>,
-  reg1: RegRef,
-  reg2: RegRef,
+  reg1: Reg,
+  reg2: Reg,
 ) -> Flow<'cfg> {
   RequiredPredefs::DivideByZeroError.mark(cfg.code);
 
@@ -732,8 +733,8 @@ fn binary_comp_ops<'a, 'cfg>(
   cond1: CondCode,
   cond2: CondCode,
   cfg: &'a mut CFG<'cfg>,
-  reg1: RegRef,
-  reg2: RegRef,
+  reg1: Reg,
+  reg2: Reg,
 ) -> Flow<'cfg> {
   /* CMP r4, r5 */
   cfg.flow(Asm::cmp(reg1.clone(), Op2::Reg(reg2, 0)))
