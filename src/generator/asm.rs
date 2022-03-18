@@ -1,4 +1,7 @@
-use std::cell::{Cell, RefCell};
+use std::{
+  cell::{Cell, RefCell},
+  collections::HashSet,
+};
 
 use super::{display::unescape_char, predef::RequiredPredefs};
 
@@ -72,6 +75,11 @@ impl GeneratedCode {
 
     label
   }
+
+  // pub fn get_veg(&mut self) -> VegNum {
+  //   self.vegs += 1;
+  //   self.vegs
+  // }
 }
 
 impl Default for GeneratedCode {
@@ -103,10 +111,14 @@ so we're allowing unused functions in this case. */
 #[allow(dead_code)]
 impl Asm {
   /* Returns vector of registers this instruction reads. */
-  pub fn uses(&mut self) -> Vec<Reg> {
-    let mut v = Vec::new();
+  pub fn uses(&mut self) -> HashSet<VegNum> {
+    let mut v = HashSet::new();
 
-    self.map_uses(|reg| v.push(reg.clone()));
+    self.map_uses(|reg| {
+      if let Reg::Virtual(vn) = reg {
+        v.insert(*vn);
+      }
+    });
 
     v
   }
@@ -151,10 +163,14 @@ impl Asm {
     }
   }
 
-  pub fn defines(&mut self) -> Vec<Reg> {
-    let mut v = Vec::new();
+  pub fn defines(&mut self) -> HashSet<VegNum> {
+    let mut v = HashSet::new();
 
-    self.map_uses(|reg| v.push(reg.clone()));
+    self.map_defines(|reg| {
+      if let Reg::Virtual(vn) = reg {
+        v.insert(*vn);
+      }
+    });
 
     v
   }
@@ -569,8 +585,10 @@ pub enum Reg {
   Link,
   PC,
   /* Represents a value which has not yet been given a register. */
-  Virtual(usize),
+  Virtual(VegNum),
 }
+
+pub type VegNum = usize;
 
 impl From<ArgReg> for Reg {
   fn from(ar: ArgReg) -> Self {

@@ -1,5 +1,7 @@
 use std::{
   cell::{Cell, RefCell},
+  collections::HashSet,
+  fmt::Display,
   ops::{Add, AddAssign},
 };
 
@@ -80,12 +82,12 @@ pub struct Block<'cfg> {
   /* Stored assembly. */
   asm: Option<Asm>,
   /* This blocks relationship to the rest of the graph. */
-  uses: Vec<Reg>,
-  defines: Vec<Reg>,
-  // live_in: Vec<Reg>,
-  // live_out: Vec<Reg>,
+  pub uses: HashSet<VegNum>,
+  pub defines: HashSet<VegNum>,
+  pub live_in: HashSet<VegNum>,
+  pub live_out: HashSet<VegNum>,
   /* This blocks successors. */
-  succs: Vec<(CondCode, &'cfg BlockRef<'cfg>)>,
+  pub succs: Vec<(CondCode, &'cfg BlockRef<'cfg>)>,
   /* Whether or not this block should generate a label when it's linearised. */
   needs_label: bool,
   label: Option<Label>,
@@ -124,6 +126,54 @@ impl<'cfg> Block<'cfg> {
   }
 }
 
+impl Display for CFG<'_> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let mut visited: Vec<usize> = Vec::new();
+    write!(f, "digraph {}", "{")?;
+    dfs(self.ordering[0], &mut visited);
+    write!(f, "{}", "}")?;
+    Ok(())
+  }
+}
+
+impl Display for Block<'_> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(
+      f,
+      "{} [label=\"{}: Uses={:?} Defines={:?}\"] {} -> {} ",
+      self.id,
+      // self.id,
+      self
+        .asm
+        .clone()
+        .unwrap_or(Asm::Directive(Directive::Label(format!("")))),
+      self.uses,
+      self.defines,
+      self.id,
+      // self.data.replace("\"", "\'"),
+      "{"
+    )
+    .unwrap();
+    for (_, child) in self.succs.iter() {
+      write!(f, "{} ", child.borrow().id).unwrap();
+    }
+    write!(f, "{}", "}")
+  }
+}
+
+pub fn dfs(entry: &BlockRef, visited: &mut Vec<usize>) {
+  let node = &entry.borrow();
+  println!("{}", node);
+  visited.push(node.id);
+  if node.succs.len() != 0 {
+    for (_, child) in node.succs.iter() {
+      if !visited.contains(&child.borrow().id) {
+        dfs(child, visited);
+      }
+    }
+  }
+}
+
 /* Represents an entire control flow graph. */
 pub struct CFG<'cfg> {
   /* The GeneratedCode we are generating into. */
@@ -131,9 +181,9 @@ pub struct CFG<'cfg> {
   /* Arena to allocate blocks into. */
   arena: &'cfg Arena<BlockRef<'cfg>>,
   /* Ordered list of the blocks. */
-  ordering: Vec<&'cfg BlockRef<'cfg>>,
+  pub ordering: Vec<&'cfg BlockRef<'cfg>>,
   /* How many vegs have been used so far. */
-  vegs: usize,
+  pub vegs: usize,
 }
 
 impl<'cfg> CFG<'cfg> {
@@ -155,7 +205,7 @@ impl<'cfg> CFG<'cfg> {
     let (uses, defines) = if let Some(mut asm) = asm.clone() {
       (asm.uses(), asm.defines())
     } else {
-      (vec![], vec![])
+      (HashSet::new(), HashSet::new())
     };
 
     /* Create new block out of asm. */
@@ -167,6 +217,8 @@ impl<'cfg> CFG<'cfg> {
       label: None,
       uses,
       defines,
+      live_in: HashSet::new(),
+      live_out: HashSet::new(),
     };
 
     /* Allocate it in the arena. */
@@ -221,18 +273,23 @@ impl<'cfg> CFG<'cfg> {
   /* This takes ownership of the cfg so this is guarenteed to be the last
   operation on the cfg. */
   pub fn save(mut self) {
+    println!("cfg = {}", self);
+
     /* Populate live ins and live outs. */
     allocate::calculate_liveness(&mut self);
 
     /* Create interference graph. */
-    let interference = allocate::calculate_interference(&mut self);
+    let mut interference = allocate::calculate_interference(&mut self);
 
     /* Colour interference graph. */
-    let _colouring = allocate::colour(interference);
+    let colouring = allocate::colour(interference, GENERAL_REGS.len());
+    println!("colouring = {:#?}", colouring);
 
     /* Define functions which use colouring to load and save values. */
-    let mut load_reg = |_, n| Reg::General(GENERAL_REGS[n]);
-    let mut save_reg = |_, n| Reg::General(GENERAL_REGS[n]);
+    let mut load_reg =
+      |_: &mut Vec<Asm>, n: usize| colouring.get(&n).unwrap().reg();
+    let mut save_reg =
+      |_: &mut Vec<Asm>, n: usize| colouring.get(&n).unwrap().reg();
 
     /* Linearise while colouring. */
     self.linearise(&mut load_reg, &mut save_reg);
@@ -243,42 +300,53 @@ impl<'cfg> CFG<'cfg> {
   expanding into multiple instructions if nessecary. */
   fn linearise<F, G>(&mut self, mut load_reg: F, mut save_reg: G)
   where
-    F: FnMut(bool, usize) -> Reg,
-    G: FnMut(bool, usize) -> Reg,
+    F: FnMut(&mut Vec<Asm>, usize) -> Reg,
+    G: FnMut(&mut Vec<Asm>, usize) -> Reg,
   {
-    for block in self.ordering.iter() {
+    let Self {
+      code,
+      arena,
+      ordering,
+      vegs,
+    } = self;
+
+    for block in ordering.iter() {
       let mut block = block.borrow_mut();
 
       /* If anyone needs to jump to this block, add a label. */
       if block.needs_label {
-        let label = block.get_label(self.code);
-        self.code.text.push(Asm::Directive(Directive::Label(label)));
+        let label = block.get_label(code);
+        code.text.push(Asm::Directive(Directive::Label(label)));
       }
 
       /* Generate block body. */
       if let Some(asm) = &block.asm {
         /* Take a copy so we can mutate it. */
-        let mut asm = asm.clone();
+        let mut asm: Asm = asm.clone();
 
         /* Load the used registers. */
-        asm.map_uses(|reg| {
-          if let Reg::Virtual(id) = reg {
-            *reg = load_reg(false, *id);
-            // *reg = load_reg(&mut self.code.text, *id);
-          }
-        });
+        {
+          asm.map_uses(|reg: &mut Reg| {
+            if let Reg::Virtual(id) = reg {
+              // *reg = load_reg(false, *id);
+              *reg = load_reg(&mut code.text, *id);
+            }
+          });
+        }
 
         /* Add register to code block. */
-        self.code.text.push(asm);
-        let asm = self.code.text.last_mut().unwrap();
+        code.text.push(asm);
+        let asm = code.text.last_mut().unwrap();
 
         /* Save the defined registers. */
+        let mut added = Vec::new();
         asm.map_defines(|reg| {
           if let Reg::Virtual(id) = reg {
-            *reg = save_reg(false, *id);
-            // *reg = save_reg(&mut self.code.text, *id);
+            // *reg = save_reg(false, *id);
+            *reg = save_reg(&mut added, *id);
           }
-        })
+        });
+        code.text.extend(added);
       }
 
       /* Generate a branch to each successor, if one is required. */
@@ -286,8 +354,8 @@ impl<'cfg> CFG<'cfg> {
         let mut succ_block = (**succ_block).borrow_mut();
 
         if !succ_block.follows(&block) {
-          let label = succ_block.get_label(self.code);
-          self.code.text.push(Asm::b(label).cond(*succ_cond));
+          let label = succ_block.get_label(code);
+          code.text.push(Asm::b(label).cond(*succ_cond));
         }
       }
     }
