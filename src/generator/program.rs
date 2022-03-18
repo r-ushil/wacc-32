@@ -87,13 +87,10 @@ impl Generatable for NamedFunc {
     &self,
     scope: &ScopeReader,
     code: &mut GeneratedCode,
-    regs: &[GenReg],
+    _regs: &[GenReg],
     aux: Self::Input,
   ) {
     let (ident, func) = self;
-
-    /* No registers should be in use by this point. */
-    assert!(regs == GENERAL_REGS);
 
     // TODO: make this a more robust check
     let main = ident == WACC_PROGRAM_MAIN_LABEL;

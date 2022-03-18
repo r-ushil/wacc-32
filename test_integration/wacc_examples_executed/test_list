@@ -1,6 +1,4 @@
 ../wacc_examples/valid/advanced/binarySortTree.wacc,./wacc_examples_executed_ours/valid/advanced/binarySortTree.output,./wacc_examples_executed/valid/advanced/binarySortTree.output,pass
-../wacc_examples/valid/advanced/hashTable.wacc,./wacc_examples_executed_ours/valid/advanced/hashTable.output,./wacc_examples_executed/valid/advanced/hashTable.output,pass
-../wacc_examples/valid/advanced/ticTacToe.wacc,./wacc_examples_executed_ours/valid/advanced/ticTacToe.output,./wacc_examples_executed/valid/advanced/ticTacToe.output,pass
 ../wacc_examples/valid/array/arrayBasic.wacc,./wacc_examples_executed_ours/valid/array/arrayBasic.output,./wacc_examples_executed/valid/array/arrayBasic.output,pass
 ../wacc_examples/valid/array/arrayEmpty.wacc,./wacc_examples_executed_ours/valid/array/arrayEmpty.output,./wacc_examples_executed/valid/array/arrayEmpty.output,pass
 ../wacc_examples/valid/array/arrayLength.wacc,./wacc_examples_executed_ours/valid/array/arrayLength.output,./wacc_examples_executed/valid/array/arrayLength.output,pass
@@ -94,7 +92,6 @@
 ../wacc_examples/valid/if/ifFalse.wacc,./wacc_examples_executed_ours/valid/if/ifFalse.output,./wacc_examples_executed/valid/if/ifFalse.output,pass
 ../wacc_examples/valid/if/ifTrue.wacc,./wacc_examples_executed_ours/valid/if/ifTrue.output,./wacc_examples_executed/valid/if/ifTrue.output,pass
 ../wacc_examples/valid/if/whitespace.wacc,./wacc_examples_executed_ours/valid/if/whitespace.output,./wacc_examples_executed/valid/if/whitespace.output,pass
-../wacc_examples/valid/IO/IOLoop.wacc,./wacc_examples_executed_ours/valid/IO/IOLoop.output,./wacc_examples_executed/valid/IO/IOLoop.output,pass
 ../wacc_examples/valid/IO/IOSequence.wacc,./wacc_examples_executed_ours/valid/IO/IOSequence.output,./wacc_examples_executed/valid/IO/IOSequence.output,pass
 ../wacc_examples/valid/IO/print/hashInProgram.wacc,./wacc_examples_executed_ours/valid/IO/print/hashInProgram.output,./wacc_examples_executed/valid/IO/print/hashInProgram.output,pass
 ../wacc_examples/valid/IO/print/multipleStringsAssignment.wacc,./wacc_examples_executed_ours/valid/IO/print/multipleStringsAssignment.output,./wacc_examples_executed/valid/IO/print/multipleStringsAssignment.output,pass
