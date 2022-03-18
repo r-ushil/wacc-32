@@ -117,7 +117,7 @@
 ../wacc_examples/valid/pairs/createPair.wacc,./wacc_examples_executed_ours/valid/pairs/createPair.output,./wacc_examples_executed/valid/pairs/createPair.output,pass
 ../wacc_examples/valid/pairs/createRefPair.wacc,./wacc_examples_executed_ours/valid/pairs/createRefPair.output,./wacc_examples_executed/valid/pairs/createRefPair.output,pass
 ../wacc_examples/valid/pairs/free.wacc,./wacc_examples_executed_ours/valid/pairs/free.output,./wacc_examples_executed/valid/pairs/free.output,pass
-../wacc_examples/valid/pairs/linkedList.wacc,./wacc_examples_executed_ours/valid/pairs/linkedList.output,./wacc_examples_executed/valid/pairs/linkedList.output,pass
+../wacc_examples/valid/pairs/linkedList.wacc,./wacc_examples_executed_ours/valid/pairs/linkedList.output,./wacc_examples_executed/valid/pairs/linkedList.output,fail
 ../wacc_examples/valid/pairs/nestedPair.wacc,./wacc_examples_executed_ours/valid/pairs/nestedPair.output,./wacc_examples_executed/valid/pairs/nestedPair.output,pass
 ../wacc_examples/valid/pairs/null.wacc,./wacc_examples_executed_ours/valid/pairs/null.output,./wacc_examples_executed/valid/pairs/null.output,pass
 ../wacc_examples/valid/pairs/printNullPair.wacc,./wacc_examples_executed_ours/valid/pairs/printNullPair.output,./wacc_examples_executed/valid/pairs/printNullPair.output,pass
