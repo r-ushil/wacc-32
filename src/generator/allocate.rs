@@ -186,7 +186,6 @@ where
       }
     }
 
-    println!("Next attempt. ");
     let result = colour_inner(interference_copy, colours);
     allocation.extend(result);
   } else {
@@ -291,7 +290,6 @@ fn remove_easy_neighbors<T>(
 
         // Push the node to the coloured stack
         colourable_stack.push(curr_node);
-        println!("Easy neighbor removed");
 
         // There could be more easy_neighbors now.
         easy_neighbors = true;

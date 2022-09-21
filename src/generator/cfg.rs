@@ -106,7 +106,6 @@ impl<'cfg> Block<'cfg> {
     ordering, it needs a label. */
     let mut succ = block_ref.borrow_mut();
     if !succ.follows(self) {
-      println!("NEEDS LABEL: {:?}", succ.asm);
       succ.needs_label = true;
     }
   }
@@ -164,7 +163,6 @@ impl Display for Block<'_> {
 
 pub fn dfs(entry: &BlockRef, visited: &mut Vec<usize>) {
   let node = &entry.borrow();
-  println!("{}", node);
   visited.push(node.id);
   if node.succs.len() != 0 {
     for (_, child) in node.succs.iter() {
