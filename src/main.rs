@@ -62,6 +62,7 @@ fn main() {
 
   let code = generator::generate(&ast);
   write_asm(code, destination_path);
+  println!("Successful code generation");
 }
 
 fn write_asm(code: GeneratedCode, destination_path: &str) {
