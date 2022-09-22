@@ -39,17 +39,13 @@ impl CompileResult {
   }
 }
 
-#[wasm_bindgen]
-pub fn compile() -> CompileResult {
-  // Get all arguments passed to the compiler
+pub fn compile_with_argv() -> CompileResult {
   let args: Vec<String> = env::args().collect();
-
-  let mut terminal_output: Vec<String> = vec![];
 
   // Ensure that a single argument was given
   if args.len() < 3 {
-    terminal_output.push(String::from("Error: note enough arguments."));
-    print_usage(&mut terminal_output);
+    println!("Error: note enough arguments.");
+    println!("Usage: ./wacc_32 <input_file_path> <output_file_path>");
     exit(-1)
   }
 
@@ -57,8 +53,8 @@ pub fn compile() -> CompileResult {
   let source_path = &args[1];
   let destination_path = &args[2];
   if !Path::new(source_path).exists() {
-    terminal_output.push(String::from("Error: input file does not exist."));
-    print_usage(&mut terminal_output);
+    println!("Error: input file does not exist.");
+    println!("Usage: ./wacc_32 <input_file_path> <output_file_path>");
     exit(-1)
   }
 
@@ -78,9 +74,16 @@ pub fn compile() -> CompileResult {
     }
   }
 
-  // Read the contents of this file
   let program_string = read_file(fs::File::open(source_path).unwrap());
-  let program_str = program_string.as_str();
+
+  compile(program_string, analysis_only)
+}
+
+#[wasm_bindgen]
+pub fn compile(program: String, analysis_only: bool) -> CompileResult {
+  let mut terminal_output: Vec<String> = vec![];
+
+  let program_str = program.as_str();
 
   let (ast, mut parse_output) = parse_with_terminal_output(program_str);
 
@@ -108,7 +111,7 @@ pub fn compile() -> CompileResult {
       }
 
       let code = generator::generate(&ast);
-      let asm_output = write_asm(code, destination_path);
+      let asm_output = write_asm(code);
       terminal_output.push(String::from("Successful code generation."));
 
       CompileResult {
@@ -119,11 +122,15 @@ pub fn compile() -> CompileResult {
   }
 }
 
-fn write_asm(code: GeneratedCode, destination_path: &str) -> String {
+fn write_asm(code: GeneratedCode) -> String {
   let mut asm_text = String::new();
   write!(&mut asm_text, "{}", code).unwrap();
-  fs::write(destination_path, asm_text.clone()).unwrap();
   asm_text
+}
+
+fn _write_to_fs(code: GeneratedCode, destination_path: &str) {
+  let output = write_asm(code);
+  fs::write(destination_path, output.clone()).unwrap();
 }
 
 fn analyse(ast: &mut ast::Program, terminal_output: &mut Vec<String>) -> bool {
