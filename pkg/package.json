@@ -1,0 +1,13 @@
+{
+  "name": "wacc_32",
+  "version": "0.1.0",
+  "files": [
+    "wacc_32_bg.wasm",
+    "wacc_32.js",
+    "wacc_32_bg.js",
+    "wacc_32.d.ts"
+  ],
+  "module": "wacc_32.js",
+  "types": "wacc_32.d.ts",
+  "sideEffects": false
+}
