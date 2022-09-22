@@ -1,5 +1,5 @@
 extern crate nom;
-use std::{cell::Cell, fs};
+use std::{cell::Cell, fs, process::exit};
 
 use nom::{
   branch::alt,
@@ -18,11 +18,11 @@ use nom_supreme::{
 use super::shared::*;
 use super::stat::*;
 use super::type_::*;
-use crate::ast::*;
 use crate::{
   analyser::context::{IdentInfo, SymbolTable},
-  parse, read_file,
+  read_file,
 };
+use crate::{ast::*, parse_with_terminal_output};
 
 fn file_name(input: &str) -> IResult<&str, &str, ErrorTree<&str>> {
   alt((alphanumeric1, tag("/"), tag("-"), tag("_"), tag("../")))(input)
@@ -36,9 +36,13 @@ fn import_file(
       read_file(fs::File::open(format!("{}.wacc", filename.join(""))).unwrap());
     let program_str = program_string.as_str();
 
-    let parsed = parse(program_str);
+    let (parsed, _) = parse_with_terminal_output(program_str);
 
-    (parsed.funcs, parsed.symbol_table)
+    //TODO: find a more elegant way to deal with this, currently errors if the imported file is malformed.
+    match parsed {
+      Some(p) => (p.funcs, p.symbol_table),
+      None => exit(100),
+    }
   })(input)
 }
 

@@ -16,20 +16,26 @@ use nom_supreme::error::ErrorTree;
 use nom_supreme::final_parser::Location;
 use nom_supreme::final_parser::RecreateContext;
 
-pub fn compile() {
+pub fn compile() -> (String, String) {
   // Get all arguments passed to the compiler
   let args: Vec<String> = env::args().collect();
 
+  let mut terminal_output: Vec<String> = vec![];
+
   // Ensure that a single argument was given
   if args.len() < 3 {
-    incorrect_usage("Error: not enough arguments. ")
+    terminal_output.push(String::from("Error: note enough arguments."));
+    print_usage(&mut terminal_output);
+    exit(-1)
   }
 
   // Ensure that this argument is a path leading to file
   let source_path = &args[1];
   let destination_path = &args[2];
   if !Path::new(source_path).exists() {
-    incorrect_usage("Error: input file does not exist. ")
+    terminal_output.push(String::from("Error: input file does not exist."));
+    print_usage(&mut terminal_output);
+    exit(-1)
   }
 
   /* OPTIONS */
@@ -52,48 +58,78 @@ pub fn compile() {
   let program_string = read_file(fs::File::open(source_path).unwrap());
   let program_str = program_string.as_str();
 
-  let mut ast = parse(program_str);
-  analyse(&mut ast);
+  let (ast, mut parse_output) = parse_with_terminal_output(program_str);
 
-  if analysis_only {
-    println!("Halted after analysis stage. ");
-    exit(0);
+  terminal_output.append(&mut parse_output);
+
+  match ast {
+    None => (terminal_output.join("\n"), String::new()),
+    Some(mut ast) => {
+      if !analyse(&mut ast, &mut terminal_output) {
+        return (terminal_output.join("\n"), String::new());
+      }
+
+      if analysis_only {
+        terminal_output.push(String::from("Halted after analysis stage."));
+        return (terminal_output.join("\n"), String::new());
+      }
+
+      let code = generator::generate(&ast);
+      let asm_output = write_asm(code, destination_path);
+      terminal_output.push(String::from("Successful code generation."));
+
+      (terminal_output.join("\n"), asm_output)
+    }
   }
-
-  let code = generator::generate(&ast);
-  write_asm(code, destination_path);
-  println!("Successful code generation");
 }
 
-fn write_asm(code: GeneratedCode, destination_path: &str) {
+fn write_asm(code: GeneratedCode, destination_path: &str) -> String {
   let mut asm_text = String::new();
   write!(&mut asm_text, "{}", code).unwrap();
-  fs::write(destination_path, asm_text).unwrap();
+  fs::write(destination_path, asm_text.clone()).unwrap();
+  asm_text
 }
 
-fn analyse(ast: &mut ast::Program) {
+fn analyse(ast: &mut ast::Program, terminal_output: &mut Vec<String>) -> bool {
   match analyser::analyse(ast) {
     Ok(()) => {
-      println!("Successful semantic analysis.");
+      terminal_output.push(String::from("Successful semantic analysis."));
+      true
     }
     Err(errors) => {
-      println!("{}", errors);
-      if contains_syntax_errors(errors) {
-        exit(100);
+      terminal_output.push(errors.to_string());
+
+      if contains_syntax_errors(&errors) {
+        terminal_output.push(compile_error(100))
       } else {
-        exit(200);
+        terminal_output.push(compile_error(200))
       }
+      false
     }
   }
 }
 
-fn parse(program_str: &str) -> ast::Program {
+fn compile_error(code: u8) -> String {
+  format!("Error: Code {}", code)
+}
+
+fn parse_with_terminal_output(
+  program_str: &str,
+) -> (Option<ast::Program>, Vec<String>) {
+  let mut terminal_output = vec![];
+  parse(program_str, &mut terminal_output)
+}
+
+fn parse(
+  program_str: &str,
+  terminal_output: &mut Vec<String>,
+) -> (Option<ast::Program>, Vec<String>) {
   match parser::parse(program_str) {
-    Ok(ast) => ast,
-    Err(err_tree) => {
-      pretty_print_err_tree(program_str, &err_tree);
-      exit(100);
-    }
+    Ok(ast) => (Some(ast), terminal_output.to_vec()),
+    Err(err_tree) => (
+      None,
+      pretty_print_err_tree(program_str, &err_tree, terminal_output),
+    ),
   }
 }
 
@@ -104,24 +140,22 @@ fn read_file(file: fs::File) -> String {
   program_buf
 }
 
-fn incorrect_usage(reason: &str) {
-  println!("{}", reason);
-  print_usage();
-  exit(-1);
-}
-
-fn contains_syntax_errors(errors: SemanticError) -> bool {
+fn contains_syntax_errors(errors: &SemanticError) -> bool {
   use SemanticError::*;
   match errors {
     Syntax(_) => true,
     Normal(_) => false,
-    Join(e1, e2) => contains_syntax_errors(*e1) || contains_syntax_errors(*e2),
+    Join(e1, e2) => contains_syntax_errors(e1) || contains_syntax_errors(e2),
   }
 }
 
 const EXCERPT_SIZE: usize = 30;
 
-fn pretty_print_err_tree(program: &str, err_tree: &ErrorTree<&str>) {
+fn pretty_print_err_tree(
+  program: &str,
+  err_tree: &ErrorTree<&str>,
+  terminal_output: &mut Vec<String>,
+) -> Vec<String> {
   match err_tree {
     ErrorTree::Base { location, kind } => {
       let context = Location::recreate_context(program, *location);
@@ -131,24 +165,28 @@ fn pretty_print_err_tree(program: &str, err_tree: &ErrorTree<&str>) {
 
       let context_excerpt = &l[..EXCERPT_SIZE.min(l_len)];
 
-      println!(
+      terminal_output.push(format!(
         "line {}, column {}: {} \nStart of error input: {}\n",
         context.line, context.column, kind, context_excerpt,
-      );
+      ));
     }
     ErrorTree::Stack { base, contexts } => {
       for _ctx in contexts {
-        pretty_print_err_tree(program, base);
+        pretty_print_err_tree(program, base, terminal_output);
       }
     }
     ErrorTree::Alt(errors) => {
       for error in errors {
-        pretty_print_err_tree(program, error);
+        pretty_print_err_tree(program, error, terminal_output);
       }
     }
   }
+
+  terminal_output.to_vec()
 }
 
-fn print_usage() {
-  println!("Usage: ./wacc_32 <input_file_path> <output_file_path>")
+fn print_usage(terminal_output: &mut Vec<String>) {
+  terminal_output.push(String::from(
+    "Usage: ./wacc_32 <input_file_path> <output_file_path>",
+  ))
 }
