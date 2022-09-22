@@ -16,7 +16,31 @@ use nom_supreme::error::ErrorTree;
 use nom_supreme::final_parser::Location;
 use nom_supreme::final_parser::RecreateContext;
 
-pub fn compile() -> (String, String) {
+use wasm_bindgen::prelude::*;
+
+/* WASM_bindgen stuff - need to return one object with getters for TypeScript */
+
+#[wasm_bindgen]
+pub struct CompileResult {
+  terminal_output: String,
+  asm_output: String,
+}
+
+#[wasm_bindgen]
+impl CompileResult {
+  #[wasm_bindgen(getter)]
+  pub fn terminal_output(&self) -> String {
+    self.terminal_output.clone()
+  }
+
+  #[wasm_bindgen(getter)]
+  pub fn asm_output(&self) -> String {
+    self.asm_output.clone()
+  }
+}
+
+#[wasm_bindgen]
+pub fn compile() -> CompileResult {
   // Get all arguments passed to the compiler
   let args: Vec<String> = env::args().collect();
 
@@ -63,22 +87,34 @@ pub fn compile() -> (String, String) {
   terminal_output.append(&mut parse_output);
 
   match ast {
-    None => (terminal_output.join("\n"), String::new()),
+    None => CompileResult {
+      terminal_output: terminal_output.join("\n"),
+      asm_output: String::new(),
+    },
     Some(mut ast) => {
       if !analyse(&mut ast, &mut terminal_output) {
-        return (terminal_output.join("\n"), String::new());
+        return CompileResult {
+          terminal_output: terminal_output.join("\n"),
+          asm_output: String::new(),
+        };
       }
 
       if analysis_only {
         terminal_output.push(String::from("Halted after analysis stage."));
-        return (terminal_output.join("\n"), String::new());
+        return CompileResult {
+          terminal_output: terminal_output.join("\n"),
+          asm_output: String::new(),
+        };
       }
 
       let code = generator::generate(&ast);
       let asm_output = write_asm(code, destination_path);
       terminal_output.push(String::from("Successful code generation."));
 
-      (terminal_output.join("\n"), asm_output)
+      CompileResult {
+        terminal_output: terminal_output.join("\n"),
+        asm_output,
+      }
     }
   }
 }

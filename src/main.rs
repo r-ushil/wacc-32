@@ -1,6 +1,6 @@
 use wacc_32::compile;
 
 fn main() {
-  let (terminal_output, asm) = compile();
-  println!("{}\n{}", terminal_output, asm);
+  let res = compile();
+  println!("{}\n{}", res.terminal_output(), res.asm_output());
 }
