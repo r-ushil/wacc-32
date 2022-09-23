@@ -4,7 +4,6 @@
   "files": [
     "wacc_32_bg.wasm",
     "wacc_32.js",
-    "wacc_32_bg.js",
     "wacc_32.d.ts"
   ],
   "module": "wacc_32.js",
